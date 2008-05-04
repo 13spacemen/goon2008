@@ -3,6 +3,7 @@
 /client/New()
 	. = ..()
 	src << "For each command, specify the server address, eg: byond://address:port"
+	src << "Note that your IP is logged when rebooting."
 
 /client/verb/reboot(var/server as text)
 	var/result = world.Export("[server]?reboot45246")

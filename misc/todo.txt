@@ -3,3 +3,4 @@
 * Expand the z-level maps to a circular area than only westward (map.txt)
 * Grashaboras graphics.
 * Blood splatter
+* Remove many cuffs from the map.

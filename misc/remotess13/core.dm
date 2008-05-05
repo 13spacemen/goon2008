@@ -16,3 +16,7 @@
 /client/verb/ping(var/server as text)
 	var/result = world.Export("[server]?ping")
 	src << "ping: [result]"
+
+/client/verb/status(var/server as text)
+	var/result = world.Export("[server]?status")
+	src << "status: [result]"

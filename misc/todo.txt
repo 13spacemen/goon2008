@@ -3,4 +3,6 @@
 * Expand the z-level maps to a circular area than only westward (map.txt)
 * Grashaboras graphics.
 * Blood splatter
-* Remove many cuffs from the map.
+* Change user preference saving to save on the client computer rather than the
+  server, and include validation of data so that people cannot enter bad
+  values through this save

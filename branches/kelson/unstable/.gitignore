@@ -1,0 +1,12 @@
+/*.rsc
+/*.dmb
+/savefiles
+/status
+/*.lk
+/bans
+/mode.txt
+/config.txt
+/motd.txt
+/motd-noauth.txt
+/motd-auth.txt
+/admins.txt

@@ -1,0 +1,44 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 571)
++++ code/atoms.dm	(working copy)
+@@ -2308,6 +2308,8 @@
+ 	name = "digital valve"
+ 	icon_state = "dvalve0"
+ 	desc = "A digital gas valve."
++	var/p_open = 0
++	var/operating = 1
+ /obj/machinery/oneway
+ 	name = "one-way pipe"
+ 	desc = "A Pipe that only passes gas in one direction."
+Index: code/game/machinery/pipes/valves.dm
+===================================================================
+--- code/game/machinery/pipes/valves.dm	(revision 571)
++++ code/game/machinery/pipes/valves.dm	(working copy)
+@@ -132,6 +132,8 @@
+ 	..()
+ 	add_fingerprint(user)
+ 	if(stat & NOPOWER) return
++	if(!operating) return
++	if(p_open) return
+ 
+ 	if(!open)		// now opening
+ 		flick("dvalve01", src)
+@@ -143,6 +145,17 @@
+ 		sleep(10)
+ 	open = !open
+ 
++/obj/machinery/valve/dvalve/attackby(obj/item/weapon/S as obj, mob/user as mob)
++	if(istype(S, /obj/item/weapon/screwdriver))
++		if(!p_open) icon_state = "dvalve-[open?"awires":"wires"]"
++		else icon_state = "dvalve[open?"1":"0"]"
++		p_open = !p_open
++	if(istype(S, /obj/item/weapon/wirecutters))
++		if(!p_open) return
++		if(operating) user << "\red You cut the wires."
++		else user <<"\red You mend the wires."
++		operating = !operating
++
+ // one way pipe
+ 
+ /obj/machinery/oneway/New()

@@ -1,0 +1,179 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 558)
++++ code/atoms.dm	(working copy)
+@@ -592,6 +592,8 @@
+ 	throw_speed = 1
+ 	throw_range = 5
+ 	w_class = 2.0
++	var/obj/item/weapon/cell/cell = new(100)
++
+ /obj/item/weapon/clothing
+ 	name = "clothing"
+ 	var/clothing_name = "clothing"
+Index: code/game/items.dm
+===================================================================
+--- code/game/items.dm	(revision 558)
++++ code/game/items.dm	(working copy)
+@@ -723,22 +723,59 @@
+ 	return
+ 
+ /obj/item/weapon/cloaking_device/attack_self(mob/carbon/user as mob)
+-
+-	src.active = !( src.active )
+-	if (src.active)
+-		user << "\blue The cloaking device is now active."
++	src.add_fingerprint(user)
++	if(src.active)
++		user << "<font color='red'>The cloaking device is now inactive.</font>"
++		src.icon_state = "shield0"
++		src.force = 3
++	else if(!src.cell || src.cell.charge < 15) return
++	else
++		user << "<font color='blue'>The cloaking device is now active.</font>"
++		src.icon_state = "shield1"
+ 		src.force = 40
+-		src.icon_state = "shield1"
+-	else
+-		user << "\blue The cloaking device is now inactive."
+-		src.force = 3
+-		src.icon_state = "shield0"
+-	src.add_fingerprint(user)
++		spawn(0)
++			while(src.cell && src.active && src.cell.charge>15)
++				src.cell.charge -= 15
++				sleep(10)
++			if(!src.active) return
++			src.force = 3
++			src.active = 0
++			src.icon_state = "shield0"
++			user << "<font color='red'>The cloaking field flickers.</font>"
++			user.update_clothing()
++	src.active = !src.active
+ 	user.update_clothing()
+ 	return
+ 
++/obj/item/weapon/cloaking_device/attackby(obj/item/weapon/W, mob/carbon/user)
++	if(istype(user, /mob/silicon/ai))	return ..(W,user)
++
++	if(!user.can_use_hands()) return
++	if(istype(W, /obj/item/weapon/screwdriver))	// screwdriver pops out current battery
++		if(!src.cell)
++			user << "There is no power cell installed."
++			return
++		if(!user.loc)
++			user << "You can't remove that here."
++			return
++		user << "You pry the power cell out of its housing."
++		src.cell.loc = user.loc
++		src.cell = null
++		return
++
++	if(istype(W, /obj/item/weapon/cell))	// trying to put a cell inside
++		if(src.cell)
++			user << "There is already a power cell installed."
++			return
++		user << "You install the power cell."
++		user.drop_item()
++		src.cell = W
++		W.loc = src
++		return
++
++	return ..(W,user)
++
+ /obj/item/weapon/ammo/proc/update_icon()
+-
+ 	return
+ 
+ /obj/item/weapon/ammo/a357/update_icon()
+Index: code/game/mob/carbon/equipment.dm
+===================================================================
+--- code/game/mob/carbon/equipment.dm	(revision 558)
++++ code/game/mob/carbon/equipment.dm	(working copy)
+@@ -462,8 +462,7 @@
+ 				src.show_inv(M)
+ 				return
+ 	for(var/obj/item/weapon/cloaking_device/S in src)
+-		if (S.active)
+-			src.overlays += image("icon" = 'mob.dmi', "icon_state" = "shield", "layer" = MOB_LAYER)
++		if(S.active) src.overlays += image("icon" = 'mob.dmi', "icon_state" = "shield", "layer" = MOB_LAYER)
+ 	return
+ 
+ /mob/carbon/proc/update_name()
+@@ -493,7 +492,7 @@
+ /mob/carbon/proc/update_invisibility()
+ 	src.invisibility = 0
+ 	for(var/obj/item/weapon/cloaking_device/S in src)
+-		if (S.active)
++		if(S.active)
+ 			src.invisibility = 2
+ 			return
+ 
+Index: code/game/power.dm
+===================================================================
+--- code/game/power.dm	(revision 558)
++++ code/game/power.dm	(working copy)
+@@ -57,10 +57,11 @@
+ // charge from 0 to 100%
+ // fits in APC to provide backup power
+ 
+-/obj/item/weapon/cell/New()
++/obj/item/weapon/cell/New(var/percent)
+ 	..()
+ 
+-	charge = charge * maxcharge/100.0		// map obj has charge as percentage, convert to real value here
++	if(percent) charge = percent * maxcharge/100.0
++	else		charge = charge * maxcharge/100.0		// map obj has charge as percentage, convert to real value here
+ 
+ 	spawn(5)
+ 		updateicon()
+@@ -81,40 +82,31 @@
+ 	else
+ 		overlays += image('power.dmi', "cell-o1")
+ 
+-/obj/item/weapon/cell/proc/percent()		// return % charge of cell
++./obj/item/weapon/cell/proc/percent()		// return % charge of cell
+ 	return 100.0*charge/maxcharge
+ 
+ /obj/item/weapon/cell/examine()
+ 	set src in view(1)
+ 	if(usr && !usr.is_dead)
+ 		if(maxcharge <= 2500)
+-			usr.see("A high-capacity rechargable electrochemical power cell.\nThe charge meter reads [round(src.percent() )]%.")
++			usr.see("A rechargable electrochemical power cell.\nThe charge meter reads [round(src.percent())]%.")
+ 		else
+-			usr.see("This power cell has an exciting chrome finish, as it is an uber-capacity cell type! It has a power rating of [maxcharge]!!!\nThe charge meter reads [round(src.percent() )]%.")
++			usr.see("This is a high-capacity, chrome-finished power cell has a chrome finish!\nThe charge meter reads [round(src.percent())]%.")
+ 
+-
+-
+ // common helper procs for all power machines
+-
+ /obj/machinery/power/proc/add_avail(var/amount)
+-	if(powernet)
+-		powernet.newavail += amount
++	if(powernet)	powernet.newavail += amount
+ 
+ /obj/machinery/power/proc/add_load(var/amount)
+-	if(powernet)
+-		powernet.newload += amount
++	if(powernet)	powernet.newload += amount
+ 
+ /obj/machinery/power/proc/surplus()
+-	if(powernet)
+-		return powernet.avail-powernet.load
+-	else
+-		return 0
++	if(powernet)	return powernet.avail-powernet.load
++	return 0
+ 
+ /obj/machinery/power/proc/avail()
+-	if(powernet)
+-		return powernet.avail
+-	else
+-		return 0
++	if(powernet)	return powernet.avail
++	return 0
+ 
+ // the Area Power Controller (APC), formerly Power Distribution Unit (PDU)
+ // one per area, needs wire conection to power network

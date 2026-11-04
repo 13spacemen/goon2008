@@ -1,0 +1,98 @@
+Index: code/game/cryo.dm
+===================================================================
+--- code/game/cryo.dm	(revision 532)
++++ code/game/cryo.dm	(working copy)
+@@ -1,46 +1,53 @@
+-
+ /obj/machinery/computer/med_data/interact(mob/user as mob)
++	if (src.temp)
++		var/dat = text("<TT>[]</TT><BR><BR><A href='?src=\ref[];temp=1'>Clear Screen</A>", src.temp, src)
++		ss13_browse(user, text("<HEAD><TITLE>Medical Records</TITLE></HEAD><TT>[]</TT>", dat), "window=med_rec")
++		return
+ 
+-	var/dat
+-	if (src.temp)
+-		dat = text("<TT>[]</TT><BR><BR><A href='?src=\ref[];temp=1'>Clear Screen</A>", src.temp, src)
+-	else
+-		dat = text("Confirm Identity: <A href='?src=\ref[];scan=1'>[]</A><HR>", src, (src.scan ? text("[]", src.scan.name) : "----------"))
+-		if (src.authenticated)
+-			switch(src.screen)
+-				if(1.0)
+-					dat += text("<A href='?src=\ref[];search=1'>Search Records</A><BR>\n<A href='?src=\ref[];list=1'>List Records</A><BR>\n<BR>\n<A href='?src=\ref[];rec_m=1'>Record Maintenance</A><BR>\n<A href='?src=\ref[];logout=1'>{Log Out}</A><BR>\n", src, src, src, src)
+-				if(2.0)
+-					dat += "<B>Record List</B>:<HR>"
+-					for(var/datum/data/record/R in data_core.general)
+-						dat += text("<A href='?src=\ref[];d_rec=\ref[]'>[]: []<BR>", src, R, R.fields["id"], R.fields["name"])
+-						//Foreach goto(132)
+-					dat += text("<HR><A href='?src=\ref[];main=1'>Back</A>", src)
+-				if(3.0)
+-					dat += text("<B>Records Maintenance</B><HR>\n<A href='?src=\ref[];back=1'>Backup To Disk</A><BR>\n<A href='?src=\ref[];u_load=1'>Upload From disk</A><BR>\n<A href='?src=\ref[];del_all=1'>Delete All Records</A><BR>\n<BR>\n<A href='?src=\ref[];main=1'>Back</A>", src, src, src, src)
+-				if(4.0)
+-					dat += "<CENTER><B>Medical Record</B></CENTER><BR>"
+-					if ((istype(src.active1, /datum/data/record) && data_core.general.Find(src.active1)))
+-						dat += text("Name: [] ID: []<BR>\nSex: <A href='?src=\ref[];field=sex'>[]</A><BR>\nFingerprint: <A href='?src=\ref[];field=fingerprint'>[]</A><BR>\nPhysical Status: <A href='?src=\ref[];field=p_stat'>[]</A><BR>\nMental Status: <A href='?src=\ref[];field=m_stat'>[]</A><BR>", src.active1.fields["name"], src.active1.fields["id"], src, src.active1.fields["sex"], src, src.active1.fields["fingerprint"], src, src.active1.fields["p_stat"], src, src.active1.fields["m_stat"])
+-					else
+-						dat += "<B>General Record Lost!</B><BR>"
+-					if ((istype(src.active2, /datum/data/record) && data_core.medical.Find(src.active2)))
+-						dat += text("<BR>\n<CENTER><B>Medical Data</B></CENTER><BR>\nBlood Type: <A href='?src=\ref[];field=b_type'>[]</A><BR>\n<BR>\nMinor Disabilities: <A href='?src=\ref[];field=mi_dis'>[]</A><BR>\nDetails: <A href='?src=\ref[];field=mi_dis_d'>[]</A><BR>\n<BR>\nMajor Disabilities: <A href='?src=\ref[];field=ma_dis'>[]</A><BR>\nDetails: <A href='?src=\ref[];field=ma_dis_d'>[]</A><BR>\n<BR>\nAllergies: <A href='?src=\ref[];field=alg'>[]</A><BR>\nDetails: <A href='?src=\ref[];field=alg_d'>[]</A><BR>\n<BR>\nCurrent Diseases: <A href='?src=\ref[];field=cdi'>[]</A> (per disease info placed in log/comment section)<BR>\nDetails: <A href='?src=\ref[];field=cdi_d'>[]</A><BR>\n<BR>\nImportant Notes:<BR>\n\t<A href='?src=\ref[];field=notes'>[]</A><BR>\n<BR>\n<CENTER><B>Comments/Log</B></CENTER><BR>", src, src.active2.fields["b_type"], src, src.active2.fields["mi_dis"], src, src.active2.fields["mi_dis_d"], src, src.active2.fields["ma_dis"], src, src.active2.fields["ma_dis_d"], src, src.active2.fields["alg"], src, src.active2.fields["alg_d"], src, src.active2.fields["cdi"], src, src.active2.fields["cdi_d"], src, src.active2.fields["notes"])
+-						var/counter = 1
+-						while(src.active2.fields[text("com_[]", counter)])
+-							dat += text("[]<BR><A href='?src=\ref[];del_c=[]'>Delete Entry</A><BR><BR>", src.active2.fields[text("com_[]", counter)], src, counter)
+-							counter++
+-						dat += text("<A href='?src=\ref[];add_c=1'>Add Entry</A><BR><BR>", src)
+-						dat += text("<A href='?src=\ref[];del_r=1'>Delete Record (Medical Only)</A><BR><BR>", src)
+-					else
+-						dat += "<B>Medical Record Lost!</B><BR>"
+-						dat += text("<A href='?src=\ref[];new=1'>New Record</A><BR><BR>", src)
+-					dat += text("\n<A href='?src=\ref[];print_p=1'>Print Record</A><BR>\n<A href='?src=\ref[];list=1'>Back</A><BR>", src, src)
+-				else
+-		else
+-			dat += text("<A href='?src=\ref[];login=1'>{Log In}</A>", src)
++	var/dat = text("Confirm Identity: <A href='?src=\ref[];scan=1'>[]</A><HR>", src, (src.scan ? text("[]", src.scan.name) : "----------"))
++	if(!src.authenticated)
++		dat += text("<A href='?src=\ref[];login=1'>{Log In}</A>", src)
++		ss13_browse(user, text("<HEAD><TITLE>Medical Records</TITLE></HEAD><TT>[]</TT>", dat), "window=med_rec")
++		return
++
++	switch(src.screen)
++		if(1.0)
++			dat += text({"<A href='?src=\ref[];search=1'>Search Records</A><BR>
++							<A href='?src=\ref[];list=1'>List Records</A><BR>\n<BR>
++							<A href='?src=\ref[];rec_m=1'>Record Maintenance</A><BR>
++							<A href='?src=\ref[];logout=1'>{Log Out}</A><BR>\n"}, src, src, src, src)
++		if(2.0)
++			dat += "<B>Record List</B>:<HR>"
++			for(var/datum/data/record/R in data_core.general)
++				dat += text("<A href='?src=\ref[];d_rec=\ref[]'>[]: []<BR>", src, R, R.fields["id"], R.fields["name"])
++			dat += text("<HR><A href='?src=\ref[];main=1'>Back</A>", src)
++		if(3.0)
++			dat += text(   {"<B>Records Maintenance</B><HR>"
++							"<A href='?src=\ref[];back=1'>Backup To Disk</A><BR>"
++							"<A href='?src=\ref[];u_load=1'>Upload From disk</A><BR>"
++							"<A href='?src=\ref[];del_all=1'>Delete All Records</A><BR>"
++							"<BR>"
++							"<A href='?src=\ref[];main=1'>Back</A>"}, src, src, src, src)
++		if(4.0)
++			dat += "<CENTER><B>Medical Record</B></CENTER><BR>"
++			if(istype(src.active1, /datum/data/record) && data_core.general.Find(src.active1))
++				dat += text({"Name: [] ID: []<BR>\nSex: <A href='?src=\ref[];field=sex'>[]</A><BR>"
++							"Fingerprint: <A href='?src=\ref[];field=fingerprint'>[]</A><BR>"
++							"Physical Status: <A href='?src=\ref[];field=p_stat'>[]</A><BR>"
++							"Mental Status: <A href='?src=\ref[];field=m_stat'>[]</A><BR>"},src.active1.fields["name"], src.active1.fields["id"], src, src.active1.fields["sex"], src, src.active1.fields["fingerprint"], src, src.active1.fields["p_stat"], src, src.active1.fields["m_stat"])
++			else
++				dat += "<B>General Record Lost!</B><BR>"
++			if(istype(src.active2, /datum/data/record) && data_core.medical.Find(src.active2))
++				dat += text("<BR>\n<CENTER><B>Medical Data</B></CENTER><BR>\nBlood Type: <A href='?src=\ref[];field=b_type'>[]</A><BR>\n<BR>\nMinor Disabilities: <A href='?src=\ref[];field=mi_dis'>[]</A><BR>\nDetails: <A href='?src=\ref[];field=mi_dis_d'>[]</A><BR>\n<BR>\nMajor Disabilities: <A href='?src=\ref[];field=ma_dis'>[]</A><BR>\nDetails: <A href='?src=\ref[];field=ma_dis_d'>[]</A><BR>\n<BR>\nAllergies: <A href='?src=\ref[];field=alg'>[]</A><BR>\nDetails: <A href='?src=\ref[];field=alg_d'>[]</A><BR>\n<BR>\nCurrent Diseases: <A href='?src=\ref[];field=cdi'>[]</A> (per disease info placed in log/comment section)<BR>\nDetails: <A href='?src=\ref[];field=cdi_d'>[]</A><BR>\n<BR>\nImportant Notes:<BR>\n\t<A href='?src=\ref[];field=notes'>[]</A><BR>\n<BR>\n<CENTER><B>Comments/Log</B></CENTER><BR>", src, src.active2.fields["b_type"], src, src.active2.fields["mi_dis"], src, src.active2.fields["mi_dis_d"], src, src.active2.fields["ma_dis"], src, src.active2.fields["ma_dis_d"], src, src.active2.fields["alg"], src, src.active2.fields["alg_d"], src, src.active2.fields["cdi"], src, src.active2.fields["cdi_d"], src, src.active2.fields["notes"])
++				for(var/counter=1;src.active2.fields[text("com_[]", counter)];counter++)
++					dat += text("[]<BR><A href='?src=\ref[];del_c=[]'>Delete Entry</A><BR><BR>", src.active2.fields[text("com_[]", counter)], src, counter)
++				dat += text("<A href='?src=\ref[];add_c=1'>Add Entry</A><BR><BR>", src)
++				dat += text("<A href='?src=\ref[];del_r=1'>Delete Record (Medical Only)</A><BR><BR>", src)
++			else
++				dat += "<B>Medical Record Lost!</B><BR>"
++				dat += text("<A href='?src=\ref[];new=1'>New Record</A><BR><BR>", src)
++			dat += text("\n<A href='?src=\ref[];print_p=1'>Print Record</A><BR>\n<A href='?src=\ref[];list=1'>Back</A><BR>", src, src)
+ 	ss13_browse(user, text("<HEAD><TITLE>Medical Records</TITLE></HEAD><TT>[]</TT>", dat), "window=med_rec")
+-	return
+ 
+ /obj/machinery/computer/med_data/Topic(href, href_list)
+ 	. = ..()

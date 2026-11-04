@@ -1,0 +1,101 @@
+Index: code/game/drag.dm
+===================================================================
+--- code/game/drag.dm	(revision 576)
++++ code/game/drag.dm	(working copy)
+@@ -80,6 +80,7 @@
+ 	if(!src.source || !src.target)						return
+ 	if(src.source.loc != src.s_loc)						return
+ 	if(src.target.loc != src.t_loc)						return
++	if(LinkBlocked(src.s_loc,src.t_loc))				return
+ 	if(src.item && src.source.equipped() != src.item)	return
+ 	if(!src.source.can_use_hands())						return
+ 	switch(src.place)
+Index: code/game/mob/carbon/equipment.dm
+===================================================================
+--- code/game/mob/carbon/equipment.dm	(revision 576)
++++ code/game/mob/carbon/equipment.dm	(working copy)
+@@ -544,12 +544,13 @@
+ 	return
+ 
+ /mob/carbon/MouseDrop(mob/carbon/M as mob)
+-
+ 	..()
+-	if (M != usr || usr == src || get_dist(usr, src) > 1 || !istype(M, /mob/carbon))
+-		return
++	if(M != usr) return
++	if(usr == src) return
++	if(get_dist(usr,src) > 1) return
++	if(!istype(M,/mob/carbon)) return
++	if(LinkBlocked(usr.loc,src.loc)) return
+ 	src.show_inv(usr)
+-	return
+ 
+ /mob/carbon/proc/equip_if_possible(obj/item/weapon/W, slot) // since byond doesn't seem to have pointers, this seems like the best way to do this :/
+ 	//warning: icky code
+Index: code/game/mob/carbon/show_inv.dm
+===================================================================
+--- code/game/mob/carbon/show_inv.dm	(revision 576)
++++ code/game/mob/carbon/show_inv.dm	(working copy)
+@@ -34,7 +34,10 @@
+ 
+ /mob/carbon/Topic(href, href_list)
+ 	..()
+-	if (href_list["item"] && usr.can_use_hands() && get_dist(src, usr) <= 1)
++	if(get_dist(src,usr)>1) return
++	if(!usr.can_use_hands()) return
++	if(LinkBlocked(src.loc,usr.loc)) return
++	if(href_list["item"])
+ 		var/obj/equip_e/O = new()
+ 		O.source = usr
+ 		O.target = src
+@@ -43,6 +46,6 @@
+ 		O.t_loc = src.loc
+ 		O.place = href_list["item"]
+ 		src.requests += O
+-		spawn( 0 )
++		spawn(0)
+ 			O.process()
+ 			return
+Index: code/helpers.dm
+===================================================================
+--- code/helpers.dm	(revision 576)
++++ code/helpers.dm	(working copy)
+@@ -262,3 +262,38 @@
+ 	if(A < lower) return 0
+ 	if(A > upper) return 0
+ 	return 1
++
++/proc/LinkBlocked(turf/A, turf/B)
++	if(A == null || B == null) return 1
++	var/adir = get_dir(A,B)
++	var/rdir = get_dir(B,A)
++	if((adir & (NORTH|SOUTH)) && (adir & (EAST|WEST)))	//	diagonal
++		var/iStep = get_step(A,adir&(NORTH|SOUTH))
++		if(!LinkBlocked(A,iStep) && !LinkBlocked(iStep,B)) return 0
++
++		var/pStep = get_step(A,adir&(EAST|WEST))
++		if(!LinkBlocked(A,pStep) && !LinkBlocked(pStep,B)) return 0
++		return 1
++
++	if(DirBlocked(A,adir)) return 1
++	if(DirBlocked(B,rdir)) return 1
++	return 0
++
++
++/proc/DirBlocked(turf/loc,var/dir)
++	for(var/obj/window/D in loc)
++		if(!D.density)			continue
++		if(D.dir == SOUTHWEST)	return 1
++		if(D.dir == dir)		return 1
++
++	for(var/obj/machinery/door/D in loc)
++		if(!D.density)			continue
++		if(istype(D, /obj/machinery/door/window))
++			if(istype(D, /obj/machinery/door/window/alt))
++				if((dir & NORTH) && (D.dir & (EAST|WEST)))		return 1
++				if((dir & WEST ) && (D.dir & (NORTH|SOUTH)))	return 1
++			else
++				if((dir & SOUTH) && (D.dir & (EAST|WEST)))		return 1
++				if((dir & EAST ) && (D.dir & (NORTH|SOUTH)))	return 1
++		else return 1	// it's a real, air blocking door
++	return 0

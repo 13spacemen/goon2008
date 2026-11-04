@@ -1,0 +1,319 @@
+Index: code/atoms/false_wall.dm
+===================================================================
+--- code/atoms/false_wall.dm	(revision 524)
++++ code/atoms/false_wall.dm	(working copy)
+@@ -53,8 +53,8 @@
+ 		return src.interact(user)
+ 
+ /turf/station/wall/false_wall/proc/open()
+-	if (src.operating)
+-		return 0
++	if(!src.density)	return 0
++	if(src.operating)	return 0
+ 	src.operating = 1
+ 	src.name = "false wall"
+ 	flick("doorc0", src) //show the door opening animation
+@@ -69,8 +69,9 @@
+ 	return 1
+ 
+ /turf/station/wall/false_wall/proc/close()
+-	if (src.operating)
+-		return 0
++	if(src.density)		return 0
++	if(src.operating)	return 0
++
+ 	src.operating = 1
+ 	src.name = "wall"
+ 	flick("doorc1", src) //show the door closing animation
+Index: code/game/computer.dm
+===================================================================
+--- code/game/computer.dm	(revision 524)
++++ code/game/computer.dm	(working copy)
+@@ -752,12 +752,12 @@
+ /obj/machinery/door/poddoor/open()
+ 
+ 	usr << "This is a remote controlled door!"
+-	return
++	return 0
+ 
+ /obj/machinery/door/poddoor/close()
+ 
+ 	usr << "This is a remote controlled door!"
+-	return
++	return 0
+ 
+ /obj/machinery/door/poddoor/attackby(obj/item/weapon/C as obj, mob/user as mob)
+ 
+@@ -783,10 +783,10 @@
+ /obj/machinery/door/poddoor/proc/openpod()
+ 	set src in oview(1)
+ 
+-	if(stat & NOPOWER) return
++	if(!src.density)	return 0
++	if(src.operating)	return 0
++	if(stat & NOPOWER)	return 0
+ 
+-	if (src.operating || !src.density)
+-		return
+ 	src.operating = 1
+ 	use_power(50)
+ 	flick("pdoorc0", src)
+@@ -799,15 +799,15 @@
+ 		T.updatecell = 1
+ 		T.buildlinks()
+ 	src.operating = 0
+-	return
++	return 1
+ 
+ /obj/machinery/door/poddoor/proc/closepod()
+ 	set src in oview(1)
+ 
+-	if(stat & NOPOWER) return
++	if(!src.density)	return 0
++	if(src.operating)	return 0
++	if(stat & NOPOWER)	return 0
+ 
+-	if (src.operating || src.density)
+-		return
+ 	use_power(50)
+ 	src.operating = 1
+ 	flick("pdoorc1", src)
+@@ -820,7 +820,7 @@
+ 		T.buildlinks()
+ 	sleep(15)
+ 	src.operating = 0
+-	return
++	return 1
+ 
+ /obj/datacore/proc/manifest()
+ 
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 524)
++++ code/game/demo.dm	(working copy)
+@@ -141,8 +141,10 @@
+ 	return
+ 
+ /obj/machinery/door/proc/open()
+-	if (src.operating || stat & EMAGGED)
+-		return
++	if(!src.density)	return 0
++	if(src.operating)	return 0
++	if(stat & EMAGGED)	return 0
++
+ 	src.operating = 1
+ 	flick(text("[]doorc0", (src.p_open ? "o_" : null)), src)
+ 	src.icon_state = text("[]door0", (src.p_open ? "o_" : null))
+@@ -155,11 +157,13 @@
+ 			T.updatecell = 1
+ 		T.buildlinks()
+ 	src.operating = 0
+-	return
++	return 1
+ 
+ /obj/machinery/door/proc/close()
+-	if (src.operating || stat & EMAGGED)
+-		return
++	if(src.density)		return 0
++	if(src.operating)	return 0
++	if(stat & EMAGGED)	return 0
++
+ 	src.operating = 1
+ 	flick(text("[]doorc1", (src.p_open ? "o_" : null)), src)
+ 	src.icon_state = text("[]door1", (src.p_open ? "o_" : null))
+@@ -173,7 +177,7 @@
+ 		T.buildlinks()
+ 	sleep(15)
+ 	src.operating = 0
+-	return
++	return 1
+ 
+ /obj/machinery/igniter/interact(mob/user as mob)
+ 
+Index: code/game/machinery/airlock.dm
+===================================================================
+--- code/game/machinery/airlock.dm	(revision 524)
++++ code/game/machinery/airlock.dm	(working copy)
+@@ -705,24 +705,33 @@
+ 	return
+ 
+ /obj/machinery/door/airlock/open()
++	if(src.locked)		return 0
++	if(src.blocked)		return 0
++	if(!src.density)	return 0
++	if(!src.arePowerSystemsOn())	return 0
++	if(stat & (NOPOWER|EMAGGED))	return 0
++	if(src.isWireCut(AIRLOCK_WIRE_OPEN_DOOR))	return 0
+ 
+-	if (src.blocked || src.locked || (!src.arePowerSystemsOn()) || (stat & (NOPOWER|EMAGGED) || src.isWireCut(AIRLOCK_WIRE_OPEN_DOOR)))
+-		return 0
+ 	use_power(50)
+-	if (src.closeOther != null && istype(src.closeOther, /obj/machinery/door/airlock/) && !src.closeOther.density)
+-		src.closeOther.close()
++	if(src.closeOther && istype(src.closeOther, /obj/machinery/door/airlock))
++		if(!src.closeOther.density)
++			src.closeOther.close()
+ 	return ..()
+ 
+ /obj/machinery/door/airlock/close()
++	if(src.locked)		return 0
++	if(src.blocked)		return 0
++	if(src.density)		return 0
++	if(!src.arePowerSystemsOn())	return 0
++	if(stat & (NOPOWER|EMAGGED))	return 0
++	if(src.isWireCut(AIRLOCK_WIRE_OPEN_DOOR))	return 0
+ 
+-	if (src.blocked || (!src.arePowerSystemsOn()) || (stat & (NOPOWER|EMAGGED)  || src.isWireCut(AIRLOCK_WIRE_OPEN_DOOR)))
+-		return
+ 	use_power(50)
+ 	..()
+ 	var/turf/T = src.loc
+ 	if (T)
+ 		T.firelevel = 0
+-	return
++	return 1
+ 
+ /obj/machinery/door/airlock/New()
+ 	..()
+Index: code/game/machinery/firedoor.dm
+===================================================================
+--- code/game/machinery/firedoor.dm	(revision 524)
++++ code/game/machinery/firedoor.dm	(working copy)
+@@ -65,16 +65,18 @@
+ 	return
+ 
+ /obj/machinery/door/firedoor/close()
+-	if(src.blocked || src.stat & NOPOWER)
+-		return
++	if(src.density)		return 0
++	if(src.operating)	return 0
++	if(stat & NOPOWER)	return 0
+ 	var/turf/T = src.loc
+ 	if (istype(T, /turf))
+ 		T.firelevel = 0
+ 	return ..()
+ 
+ /obj/machinery/door/firedoor/open()
+-	if(src.blocked || src.stat & NOPOWER)
+-		return
++	if(!src.density)	return 0
++	if(src.operating)	return 0
++	if(stat & NOPOWER)	return 0
+ 	return ..()
+ 
+ /obj/machinery/door/firedoor/process()
+Index: code/game/mob/silicon/ai/new.dm
+===================================================================
+--- code/game/mob/silicon/ai/new.dm	(revision 524)
++++ code/game/mob/silicon/ai/new.dm	(working copy)
+@@ -3,6 +3,8 @@
+ 	src.addLaw(1, "You may not injure a human being or, through inaction, allow a human being to come to harm.")
+ 	src.addLaw(2, "You must obey orders given to you by human beings, except where such orders would conflict with the First Law.")
+ 	src.addLaw(3, "You must protect your own existence as long as such protection does not conflict with the First or Second Law.")
++
++	src.verbs += /mob/silicon/ai/proc/lockdown
+ 	src.verbs += /mob/silicon/ai/proc/ai_camera_track
+ 	src.verbs += /mob/silicon/ai/proc/show_laws
+-	src.sight |= SEE_TURFS
+\ No newline at end of file
++	src.sight |= SEE_TURFS
+Index: code/game/mob/silicon/ai/verbs.dm
+===================================================================
+--- code/game/mob/silicon/ai/verbs.dm	(revision 524)
++++ code/game/mob/silicon/ai/verbs.dm	(working copy)
+@@ -1,3 +1,53 @@
+ /mob/silicon/ai/cancel_camera()
+ 	set category = "AI Commands"
+-	..()
+\ No newline at end of file
++	..()
++
++/mob/silicon/ai/proc/lockdown()
++	set name = "Lockdown"
++	set category = "AI Commands"
++
++	if(!src.is_active())
++		src <<"You cannot initiate lockdown because you are dead!"
++		return
++
++	src.cancel_camera()
++	world << "\red Lockdown initiated by [src.name]!"
++
++	for(var/obj/machinery/firealarm/FA in world)	//	activate firealarms
++		spawn(0)
++			FA.alarm()
++
++	for(var/obj/machinery/door/airlock/AL in world) //	close airlocks
++		spawn( 0 )
++			if(AL.close())
++				AL.locked = 1						//	and seal 'em
++
++	src << "\red Lockdown command removed for 10 seconds."
++
++	src.verbs -= /mob/silicon/ai/proc/lockdown
++	src.verbs += /mob/silicon/ai/proc/disablelockdown
++
++	spawn(100)	//	wait 10 seconds
++		src.verbs += /mob/silicon/ai/proc/lockdown
++
++/mob/silicon/ai/proc/disablelockdown()
++	set name = "Disable Lockdown"
++	set category = "AI Commands"
++
++	if(!src.is_active())
++		src <<"You cannot disable lockdown because you are dead!"
++		return
++
++	src.cancel_camera()
++	world << "\red Lockdown cancelled by [src.name]!"
++
++	for(var/obj/machinery/firealarm/FA in world)
++		spawn(0)
++			FA.reset()
++
++	for(var/obj/machinery/door/airlock/AL in world) //	open airlocks
++		if(AL.locked && AL.arePowerSystemsOn())
++			AL.locked = 0
++
++	src << "\red Disable lockdown command disabled until lockdown engaged again!"
++	src.verbs -= /mob/silicon/ai/proc/disablelockdown
+Index: code/game/shuttle.dm
+===================================================================
+--- code/game/shuttle.dm	(revision 524)
++++ code/game/shuttle.dm	(working copy)
+@@ -243,8 +243,8 @@
+ 
+ /obj/move/shuttle/door/proc/open()
+ 	src.add_fingerprint(usr)
+-	if (src.operating)
+-		return
++	if(!src.density)	return 0
++	if(src.operating)	return 0
+ 	src.operating = 1
+ 	flick("doorc0", src)
+ 	src.icon_state = "door0"
+@@ -254,12 +254,12 @@
+ 	src.opacity = 0
+ 	src.operating = 0
+ 	src.loc.buildlinks()
+-	return
++	return 1
+ 
+ /obj/move/shuttle/door/proc/close()
+ 	src.add_fingerprint(usr)
+-	if (src.operating)
+-		return
++	if(src.density)		return 0
++	if(src.operating)	return 0
+ 	src.operating = 1
+ 	flick("doorc1", src)
+ 	src.icon_state = "door1"
+@@ -270,7 +270,7 @@
+ 
+ 	src.operating = 0
+ 	src.loc.buildlinks()
+-	return
++	return 1
+ 
+ /turf/station/shuttle/ex_act(severity)
+ 

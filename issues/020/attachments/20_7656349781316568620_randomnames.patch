@@ -1,0 +1,154 @@
+Index: globals.dm
+===================================================================
+--- globals.dm	(revision 111)
++++ globals.dm	(working copy)
+@@ -308,6 +308,88 @@
+ 		"Medical Assistant",
+ 		"Research Assistant",
+ 		"Staff Assistant")
++	list/first_names = list(
++		"Big",
++		"Fat",
++		"Awesome",
++		"Great",
++		"So-so",
++		"Mediocre",
++		"Epic",
++		"Mega",
++		"Large",
++		"Small",
++		"Tall",
++		"Short",
++		"Ugly",
++		"Beautiful",
++		"Amazing",
++		"Breathtaking",
++		"Smelly",
++		"Disgusting",
++		"Putrid",
++		"Whimsical",
++		"Odorous",
++		"Heaping",
++		"Massive",
++		"Red",
++		"Orange",
++		"Yellow",
++		"Green",
++		"Blue",
++		"Purple",
++		"Aqua",
++		"Incredible",
++		"Bald",
++		"Gross",
++		"Disturbing",
++		"Homicidal",
++		"Rampaging",
++		"Deadly",
++		"Fluffy",
++		"Cute",
++		"Girly")
++	list/last_names = list(
++		"Head",
++		"Eyes",
++		"Ears",
++		"Nose",
++		"Mouth",
++		"Teeth",
++		"Tongue",
++		"Brain",
++		"Hair",
++		"Neck",
++		"Shoulders",
++		"Bones",
++		"Armpit",
++		"Bicep",
++		"Arm",
++		"Elbow",
++		"Wrist",
++		"Hand",
++		"Finger",
++		"Knuckle",
++		"Fingernail",
++		"Nipple",
++		"Bosom",
++		"Chest",
++		"Heart",
++		"Lung",
++		"Kidney",
++		"Leg",
++		"Knee",
++		"Ankle",
++		"Foot",
++		"Toe",
++		"Toenail",
++		"Rib",
++		"Liver",
++		"Bile",
++		"Appendix",
++		"Penis",
++		"Vagina",
++		"Bum")
+ 	list/ai_names = list(
+ 		"Asimov",
+ 		"Hadaly",
+@@ -505,6 +587,6 @@
+ 	turf = /turf/space
+ 	area = /area
+ 	view = "15x15"
+-	
++
+ 	hub = "Exadv1.spacestation13"
+ 	hub_password = "kMZy3U5jJHSiBQjr"
+Index: ss13_algorithm2.dm
+===================================================================
+--- ss13_algorithm2.dm	(revision 111)
++++ ss13_algorithm2.dm	(working copy)
+@@ -81,7 +81,7 @@
+ 	for (var/level = 1 to 3)
+ 		if (unassigned.len == 0)
+ 			break
+-		
++
+ 		for (var/occupation in assistant_occupations)
+ 			if (unassigned.len == 0)
+ 				break
+@@ -89,7 +89,7 @@
+ 			for (var/mob/human/candidate in candidates)
+ 				candidate.Assign_Rank(occupation)
+ 				unassigned -= candidate
+-		
++
+ 		for (var/occupation in occupation_choices)
+ 			if (unassigned.len == 0)
+ 				break
+@@ -108,7 +108,7 @@
+ 				unassigned -= candidate
+ 				eligiblechange++
+ 			occupation_eligible[occupation] -= eligiblechange
+-	
++
+ 	if (unassigned.len)
+ 		unassigned = shuffle(unassigned)
+ 		for (var/occupation in occupation_choices)
+@@ -390,6 +390,21 @@
+ 			src.wear_id = C
+ 		else
+ 			src.r_hand = C
++
++		var/randomname = pick(first_names)+" "+pick(last_names)
++		var/newname = input(
++			src,
++				"You are: "+rank+"! Would you like to change your name?", "Name change",
++				randomname)
++
++		if (length(newname) == 0)
++			newname = randomname
++		if (newname)
++			if (length(newname) >= 26)
++				newname = copytext(newname, 1, 26)
++				newname = dd_replacetext(newname, ">", "'")
++		src.rname = newname
++		src.name = newname
+ 		C.assignment = rank
+ 		C.layer = 20
+ 		C.registered = src.rname

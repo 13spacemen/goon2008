@@ -1,0 +1,15 @@
+Index: code/instructions.dm
+===================================================================
+--- code/instructions.dm	(revision 67)
++++ code/instructions.dm	(working copy)
+@@ -105,6 +105,10 @@
+ 		usr << "You have already started!"
+ 		return
+ 	var/mob/human/M = usr
++	for (var/mob/human/H in world)
++		if (H.start && cmptext(H.rname,M.rname))
++			usr << "You are using a name that is very similar to a currently used name, please choose another one using Character Setup."
++			return
+ 	src.get_dna_ready(M)
+ 	if ((!( M.w_uniform ) && !( ticker )))
+ 		if (M.gender == "female")

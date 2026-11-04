@@ -1,0 +1,18 @@
+Index: code/game/mob/memory.dm
+===================================================================
+--- code/game/mob/memory.dm	(revision 537)
++++ code/game/mob/memory.dm	(working copy)
+@@ -1,10 +1,6 @@
+ /mob/verb/memory()
+-
+ 	ss13_browse(src, text("<B>Memory:</B>:<HR>[]", src.memory), "window=memory")
+-	return
+ 
+-/mob/verb/add_memory(msg as message)
+-
+-	src.memory += text("[]<BR>", msg)
+-	ss13_browse(src, text("<B>Memory:</B>:<HR>[]", src.memory), "window=memory")
+-	return
++/mob/verb/add_memory(msg as message, atom/popup=null)
++	src.memory += "[msg]<BR>"
++	if(popup) src.memory()

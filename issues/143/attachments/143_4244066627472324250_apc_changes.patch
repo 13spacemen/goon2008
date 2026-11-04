@@ -1,0 +1,164 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 216)
++++ code/atoms.dm	(working copy)
+@@ -2015,8 +2015,6 @@
+ 	throwforce = 7.0
+ 	w_class = 2.0
+ 
+-#define CELLRATE 0.002
+-
+ /obj/item/weapon/cell
+ 	name = "power cell"
+ 	desc = "A rechargable electrochemical power cell."
+@@ -2888,7 +2886,7 @@
+ 	var/area/area
+ 	var/obj/item/weapon/cell/cell
+ 	var/start_charge = 90				// initial cell charge %
+-	var/cell_type = 1					// 0=no cell, 1=regular, 2=high-cap (x5)
++	var/cell_type = 2500				// 0=no cell, 1=regular, 2=high-cap (x5) <- old, now it's just 0=no cell, otherwise dictate cellcapacity by changing this value. 1 used to be 1000, 2 was 2500
+ 	var/opened = 0
+ 	var/lighting = 3
+ 	var/equipment = 3
+@@ -2907,6 +2905,9 @@
+ 	var/lastused_environ = 0
+ 	var/lastused_total = 0
+ 	var/main_status = 0
++	var/light_consumption = 0
++	var/equip_consumption = 0
++	var/environ_consumption = 0
+ 	netnum = -1		// set so that APCs aren't found as powernet nodes
+ 
+ /obj/machinery/power/terminal
+Index: code/game/power.dm
+===================================================================
+--- code/game/power.dm	(revision 216)
++++ code/game/power.dm	(working copy)
+@@ -61,7 +61,7 @@
+ 
+ // the power cell
+ // charge from 0 to 100%
+-// fits in PDU to provide backup power
++// fits in APC to provide backup power
+ 
+ /obj/item/weapon/cell/New()
+ 	..()
+@@ -74,7 +74,7 @@
+ 
+ /obj/item/weapon/cell/proc/updateicon()
+ 
+-	if(maxcharge == 1000)
++	if(maxcharge <= 2500)
+ 		icon_state = "cell"
+ 	else
+ 		icon_state = "hpcell"
+@@ -94,7 +94,7 @@
+ /obj/item/weapon/cell/examine()
+ 	set src in view(1)
+ 	if(usr && !usr.stat)
+-		if(maxcharge == 1000)
++		if(maxcharge <= 2500)
+ 			usr << "[desc]\nThe charge meter reads [round(src.percent() )]%."
+ 		else
+ 			usr << "A high-capacity rechargable electrochemical power cell.\nThe charge meter reads [round(src.percent() )]%."
+@@ -161,14 +161,12 @@
+ 	pixel_x = (tdir & 3)? 0 : (tdir == 4 ? 24 : -24)
+ 	pixel_y = (tdir & 3)? (tdir ==1 ? 24 : -24) : 0
+ 
+-
+ 	// is starting with a power cell installed, create it and set its charge level
+ 	if(cell_type)
+ 		src.cell = new/obj/item/weapon/cell(src)
+-		cell.maxcharge = cell_type==1 ? 1000 : 2500				// if type=2, make a hp cell
++		cell.maxcharge = cell_type	// cell_type is maximum charge (old default was 1000 or 2500 (values one and two respectively)
+ 		cell.charge = start_charge * cell.maxcharge / 100.0 		// (convert percentage to actual value)
+ 
+-
+ 	var/area/A = src.loc.loc
+ 
+ 	if(isarea(A))
+@@ -533,6 +531,13 @@
+ 	if(!area.requires_power)
+ 		return
+ 
++	if (equipment > 1) // off=0, off auto=1, on=2, on auto=3
++		use_power(src.equip_consumption, EQUIP)
++	if (lighting > 1) // off=0, off auto=1, on=2, on auto=3
++		use_power(src.light_consumption, LIGHT)
++	if (environ > 1) // off=0, off auto=1, on=2, on auto=3
++		use_power(src.environ_consumption, ENVIRON)
++
+ 	area.calc_lighting()
+ 
+ 	lastused_light = area.usage(LIGHT)
+@@ -542,14 +547,12 @@
+ 
+ 	lastused_total = lastused_light + lastused_equip + lastused_environ
+ 
+-
+ 	//store states to update icon if any change
+ 	var/last_lt = lighting
+ 	var/last_eq = equipment
+ 	var/last_en = environ
+ 	var/last_ch = charging
+ 
+-
+ 	var/excess = surplus()
+ 
+ 	if(!src.avail())
+@@ -571,8 +574,6 @@
+ 
+ 		cell.charge -= cellused
+ 
+-
+-
+ 		// set channels depending on how much charge we have left
+ 
+ 		if(cell.charge <= 0)					// zero charge, turn all off
+Index: code/globals.dm
+===================================================================
+--- code/globals.dm	(revision 184)
++++ code/globals.dm	(working copy)
+@@ -129,8 +129,7 @@
+ 	list/reg_dna = list(  )
+ 	list/banned = list(  )
+ 
+-
+-        //
++	CELLRATE = 0.002 // how quickly APCs recharge
+ 	shuttle_z = 2	//default
+ 	airtunnel_start = 68 // default
+ 	airtunnel_stop = 68 // default
+Index: InSpace.dme
+===================================================================
+--- InSpace.dme	(revision 216)
++++ InSpace.dme	(working copy)
+@@ -3,12 +3,6 @@
+ // New source code should be placed in .dm files: choose File/New --> Code File.
+ 
+ // BEGIN_INTERNALS
+-/*
+-FILE: code\game\verbs\ooc.dm
+-DIR: code code\atoms code\game code\game\area code\game\item code\game\item\weapon code\game\machinery code\game\modes code\game\verbs icons\ss13 maps
+-MAP_ICON_TYPE: 0
+-AUTO_FILE_DIR: ON
+-*/
+ // END_INTERNALS
+ // BEGIN_FILE_DIR
+ #define FILE_DIR .
+@@ -27,6 +21,7 @@
+ #define FILE_DIR "icons/ss13"
+ #define FILE_DIR "interface"
+ #define FILE_DIR "maps"
++#define FILE_DIR "maps/backup"
+ // END_FILE_DIR
+ 
+ // BEGIN_PREFERENCES
+@@ -50,7 +45,6 @@
+ #include "code\atoms\closet.dm"
+ #include "code\atoms\configuration.dm"
+ #include "code\atoms\false_wall.dm"
+-#include "code\atoms\power_sink.dm"
+ #include "code\atoms\secure_closet.dm"
+ #include "code\atoms\sun.dm"
+ #include "code\atoms\turf.dm"

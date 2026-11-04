@@ -1,0 +1,69 @@
+Index: code/atoms/configuration.dm
+===================================================================
+--- code/atoms/configuration.dm	(revision 553)
++++ code/atoms/configuration.dm	(working copy)
+@@ -25,3 +25,5 @@
+ 
+ 	var/random_ai_names = 1				// enables random AI name suggestion
+ 	var/random_names = 0				// enables random player name suggestion
++
++	var/rate_limit = 1					// restricts command rate to 1 command / second
+\ No newline at end of file
+Index: code/configuration.dm
+===================================================================
+--- code/configuration.dm	(revision 553)
++++ code/configuration.dm	(working copy)
+@@ -83,6 +83,8 @@
+ 					if("required")	config.enable_authentication = 2
+ 					if("optional")	parse_authentication(value)
+ 				if(!value) config.enable_authentication = 2
++			if("rate_limit")
++				config.rate_limit = text2num(value)
+ 			if("random_names")
+ 				config.random_names = text2num(value)
+ 			if("random_ai_names")
+Index: code/game/items.dm
+===================================================================
+--- code/game/items.dm	(revision 553)
++++ code/game/items.dm	(working copy)
+@@ -4130,11 +4130,8 @@
+ 	return DblClick()
+ 
+ /atom/DblClick()
+-	if(!usr.is_active())
+-		return
+-	if (world.time <= usr:lastDblClick+2)
+-		return
+-	usr:lastDblClick = world.time
++	if(!usr.is_active()) return
++	if(RateLimit(usr,2)) return
+ 
+ 	..()
+ 	if(usr.ui_mode == UI_MODE_THROW && istype(usr, /mob/carbon))
+Index: code/game/mob/var.dm
+===================================================================
+--- code/game/mob/var.dm	(revision 553)
++++ code/game/mob/var.dm	(working copy)
+@@ -6,7 +6,7 @@
+ 	var/other_mobs = null
+ 	var/memory = ""
+ 	var/poll_answer = 0.0
+-	var/lastDblClick = 0
++	var/nextDblClick = 0
+ 	var/list/requests = list(  )
+ 	var/list/mapobjs = list()
+ 
+Index: code/helpers.dm
+===================================================================
+--- code/helpers.dm	(revision 553)
++++ code/helpers.dm	(working copy)
+@@ -227,3 +227,9 @@
+ 
+ /proc/scrub_input(var/Message, var/Title, var/Default, var/length=MAX_MESSAGE_LEN)
+ 	return strip_html(input(Message,Title,Default) as text, length)
++
++/proc/RateLimit(var/mob/usr, var/rate = config.rate_limit)
++	if(!usr) return 0
++	if(world.time <= usr.nextDblClick) return 1
++	usr.nextDblClick = world.time + rate
++	return 0

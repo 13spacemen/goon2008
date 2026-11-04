@@ -1,0 +1,21 @@
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 67)
++++ code/game/demo.dm	(working copy)
+@@ -1270,7 +1270,6 @@
+ 	new /obj/item/weapon/fcardholder( src )
+ 	new /obj/item/weapon/fcardholder( src )
+ 	new /obj/item/weapon/fcardholder( src )
+-	new /obj/item/weapon/camera( src )
+ 	new /obj/item/weapon/f_print_scanner( src )
+ 	new /obj/item/weapon/f_print_scanner( src )
+ 	new /obj/item/weapon/f_print_scanner( src )
+@@ -1693,7 +1692,7 @@
+ 	var/obj/item/weapon/syndicate_uplink/U = new /obj/item/weapon/syndicate_uplink( src )
+ 	U.uses = 5
+ 	return
+-	
++
+ /obj/closet/syndicate/personal/New()
+ 
+ 	..()

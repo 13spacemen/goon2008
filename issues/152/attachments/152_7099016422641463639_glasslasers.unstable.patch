@@ -1,0 +1,107 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 486)
++++ code/atoms.dm	(working copy)
+@@ -215,6 +215,7 @@
+ 	anchored = 1.0
+ /obj/beam
+ 	name = "beam"
++	flags = TABLEPASS|GLASSPASS
+ /obj/beam/a_laser
+ 	name = "a laser"
+ 	icon = 'weap_sat.dmi'
+@@ -224,11 +225,11 @@
+ 	var/xo = null
+ 	var/current = null
+ 	var/life = 50.0
+-	anchored = 1.0
+-	flags = 2.0
++	anchored = 1
+ /obj/beam/a_laser/s_laser
+ 	name = "s laser"
+ 	icon_state = "spark"
++	flags = TABLEPASS // this should not pass through glass
+ /obj/beam/i_beam
+ 	name = "i beam"
+ 	icon = 'weap_sat.dmi'
+@@ -238,8 +239,7 @@
+ 	var/limit = null
+ 	var/visible = 0.0
+ 	var/left = null
+-	anchored = 1.0
+-	flags = 2.0
++	anchored = 1
+ /obj/bedsheetbin
+ 	name = "Linen Bin"
+ 	desc = "A bin for containing bedsheets."
+Index: code/globals.dm
+===================================================================
+--- code/globals.dm	(revision 486)
++++ code/globals.dm	(working copy)
+@@ -226,6 +226,8 @@
+ 
+ 	// for remote signallers
+ 	SENDSRSIGNAL = 1 << 12
++	// reusing the same flag for obj/beam
++	GLASSPASS = 1 << 12
+ 
+ 	// channel numbers for power
+ 
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 486)
++++ code/game/demo.dm	(working copy)
+@@ -75,6 +75,8 @@
+ /obj/machinery/door/window/CheckPass(atom/movable/O as mob|obj, target as turf)
+ 
+ 	if (src.density)
++		if (istype(O, /obj/beam) && O.flags & GLASSPASS)
++			return 1
+ 		var/direct = get_dir(O, target)
+ 		if ((direct == NORTH && src.dir & 12))
+ 			return 0
+@@ -86,6 +88,8 @@
+ /obj/machinery/door/window/CheckExit(atom/movable/O as mob|obj, target as turf)
+ 
+ 	if (src.density)
++		if (istype(O, /obj/beam) && O.flags & GLASSPASS)
++			return 1
+ 		var/direct = get_dir(O, target)
+ 		if ((direct == SOUTH && src.dir & 12))
+ 			return 0
+@@ -98,6 +102,8 @@
+ /obj/machinery/door/window/alt/CheckPass(atom/movable/O as mob|obj, target as turf)
+ 
+ 	if (src.density)
++		if (istype(O, /obj/beam) && O.flags & GLASSPASS)
++			return 1
+ 		var/direct = get_dir(O, target)
+ 		if ((direct == SOUTH && src.dir & 12))
+ 			return 0
+@@ -109,6 +115,8 @@
+ /obj/machinery/door/window/alt/CheckExit(atom/movable/O as mob|obj, target as turf)
+ 
+ 	if (src.density)
++		if (istype(O, /obj/beam) && O.flags & GLASSPASS)
++			return 1
+ 		var/direct = get_dir(O, target)
+ 		if ((direct == NORTH && src.dir & 12))
+ 			return 0
+@@ -2180,7 +2188,7 @@
+ 
+ /obj/window/CheckPass(atom/movable/O as mob|obj, target as turf)
+ 
+-	if (istype(O, /obj/beam))
++	if (istype(O, /obj/beam) && O.flags & GLASSPASS)
+ 		return 1
+ 	if (src.dir == SOUTHWEST)
+ 		return 0
+@@ -2192,7 +2200,7 @@
+ 
+ /obj/window/CheckExit(atom/movable/O as mob|obj, target as turf)
+ 
+-	if (istype(O, /obj/beam))
++	if (istype(O, /obj/beam) && O.flags & GLASSPASS)
+ 		return 1
+ 	if (get_dir(O.loc, target) == src.dir)
+ 		return 0

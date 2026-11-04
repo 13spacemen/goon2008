@@ -1,0 +1,29 @@
+Index: code/game/mob.dm
+===================================================================
+--- code/game/mob.dm	(revision 64)
++++ code/game/mob.dm	(working copy)
+@@ -5536,10 +5536,7 @@
+ 			continue
+ 
+ 		var/name = M.name
+-		
+-		if (M.rname && M.rname != M.name)
+-			name += " \[[M.rname]\]"
+-		
++
+ 		if (name in names)
+ 			namecounts[name]++
+ 			name = "[name] ([namecounts[name]])"
+@@ -5547,6 +5544,12 @@
+ 			names.Add(name)
+ 			namecounts[name] = 1
+ 
++		if (M.rname && M.rname != M.name)
++			name += " \[[M.rname]\]"
++
++		if (M.stat == 2) // dead
++			name += " \[dead\]"
++
+ 		creatures[name] = M
+ 
+ 	src.client.perspective = EYE_PERSPECTIVE

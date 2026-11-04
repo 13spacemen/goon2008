@@ -1,0 +1,244 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 216)
++++ code/atoms.dm	(working copy)
+@@ -2015,8 +2015,6 @@
+ 	throwforce = 7.0
+ 	w_class = 2.0
+ 
+-#define CELLRATE 0.002
+-
+ /obj/item/weapon/cell
+ 	name = "power cell"
+ 	desc = "A rechargable electrochemical power cell."
+@@ -2888,7 +2886,7 @@
+ 	var/area/area
+ 	var/obj/item/weapon/cell/cell
+ 	var/start_charge = 90				// initial cell charge %
+-	var/cell_type = 1					// 0=no cell, 1=regular, 2=high-cap (x5)
++	var/cell_type = 2500				// 0=no cell, 1=regular, 2=high-cap (x5) <- old, now it's just 0=no cell, otherwise dictate cellcapacity by changing this value. 1 used to be 1000, 2 was 2500
+ 	var/opened = 0
+ 	var/lighting = 3
+ 	var/equipment = 3
+@@ -2907,6 +2905,9 @@
+ 	var/lastused_environ = 0
+ 	var/lastused_total = 0
+ 	var/main_status = 0
++	var/light_consumption = 0
++	var/equip_consumption = 0
++	var/environ_consumption = 0
+ 	netnum = -1		// set so that APCs aren't found as powernet nodes
+ 
+ /obj/machinery/power/terminal
+Index: code/data/changelog.dm
+===================================================================
+--- code/data/changelog.dm	(revision 184)
++++ code/data/changelog.dm	(working copy)
+@@ -1,9 +1,66 @@
+ var/changes = {"<FONT color='blue'>
+-<P><B>Current Version: KURPER'S VERSION NUMBER THREE!</b></p>
++<P><B>Current Version: KURPER'S VERSION NUMBER FOUR!</b></p>
+ <P>This version is a fork of Rick's currently running server,
+ and is a testbed of proposed fixes, changes, and features.</p>
+ <HR>
+ 
++<P><B>Modified Tuesday, June 24th 2008 (Revision ):</b><BR>
++<ul>
++<li>Server crash where a non-player-human died has been resolved (ie: monkeys-turned-humans or logged-off-humans)</li>
++<li>You can now observe your own corpse</li>
++<li>Examining someone will now show what is on their belt and glove slots</li>
++<li>You can now examine yourself</li>
++<li>OOC and SAY verbs now have a character limit of 1024 (so you can type long sonnets)</li>
++<li>Emptying Pockets before game start caused a server error; no longer the case</li>
++<li>The FLOWRATE global constant has been changed to 0.99. This should speed up gaseous flow in pipes (and therefore make the engine run smoother) but may have big unforseen consequences. Keep eyes open for bugs.</li>
++<li>Fixed engine z-level definition preventing it from ejecting</li>
++<li>Access_Medical_Records permission has been set appropriately (nobody could do it before)</li>
++<li>Added power_sinks invisible object to artificially increase room power draw</li>
++<li>There are now 3 atmos techs and 3 station techs instead of 5 and 1</li>
++<li>CO2 now does 50 damage per second, and it takes 5 seconds to knock you out (instead of just being an insta-kill)</li>
++<li>Added beer to the game, complete with HARM and HURT effects (when clicking on both yourself and others). It'll need some tweaking in the damage-dishing department before it becomes a common fixture on maps (it's a bit too powerful right now)</li>
++<li>Admins can now manually authorize pubbies to enter the game (and to make them monkeys)</li>
++<li>The traitor's radio is now hidden inside a normal radio device, so that you cannot figure out who the traitor is just by looking at his inventory.</li>
++<li>Camera view now allows you to read papers one square away (AI and security terminals)</li>
++<li>Camera view can papers more than one square away in a garbled state (similar to monkey reading)</li>
++<li>Camera view can not see papers in people's hands, however, people can now hold papers up to the cameras (by clicking on them) which pops up a window on the AI's screen</li>
++<li>Camera views are now cancelled when the camera is cut (it used to stay on until you switched)</li>
++<li>Level 3 Biohazard closets no longer come with gas masks, oxygen, gloves, or lab coats.</li>
++<li>Medical closets no longer come with gloves.</li>
++<li>Fixed a bug that affected intercept-sending in traitor mode.</li>
++<li>Fixed a bug that threw errors server side when playing with your belt</li>
++<li>New area type - "AI Monitored" - with accompanying new "Motion Detection" camera. This will throw a warning to the AI player if anybody enters (currently in use in EVA storage)</li>
++<li>Motion cameras can be deactivated now (10 seconds + screwdriver)</li>
++<li>The AI is now notified if Oxygen or FireAlarms are tripped.</li>
++<li>Monkeyizing sometimes threw an exception error - now fixed.</li>
++<li>Fixed bug that stopped DNA_ADD to work correctly (it tried to add the data to the other disk)</li>
++<li>The radio is no longer lockable in Nuke mode</li>
++<li>Access levels are no longer reset when giving a custom job (to make it easier to give yourself Captain access and rename it after)</li>
++<li>Fixed the ADMINHELP verb for this fork</li>
++<li>Fixed a bug where you would stop in space if you laid down</li>
++<li>Head of Research now has security access (so he can leave the bridge)</li>
++<li>Fixed a floating point error that made radios go to 148.2 instead of 148.1</li>
++<li>Made the endgame explosion in blob mode do more damage (to compensate for the bigger map)</li>
++<li>Fire alarms no longer go off in space</li>
++<li>Re-added the ENTER Verb in case you have trouble spawning</li>
++<li>Added a two second delay between accepting READY and ENTER verbs to hopefully fix a spawning problem</li>
++<li>VOTE_NO_DEAD is now defaulted to OFF</li>
++<li>AI can no longer "Follow" people hiding in closets (or similarly hidden)</li>
++<li>Meteor mode now has 10x the meteors</li>
++<li>There are now 2 Engineering positions</li>
++<li>Clicking on closets with grab activated threw errors; now fixed</li>
++<li>All security and forensic officers now have security_records access</li>
++<li>The AI 'wander-off-camera' delay is now 5 seconds instead of 30</li>
++<li>You can now wirecut atmos alert panels</li>
++<li>Fixed a bug with AI cameras</li>
++<li>Chaplain job fixes</li>
++<li>APCs now have customizable cell capacities in the mapmaker(this will break old map power grids but is an easy fix)</li>
++<li>APCs now have 3 "power draw" attributes in the mapmaker that allows you to artificially pump up the rooms power consumption</li>
++<li>Removed previously-introduced power_sink object</li>
++<li>Added the most recent map changes to the SVN.</li>
++</ul>
++</p>
++
+ <p><B>Modified Thursday, June 19th 2008 (Revision 172):</b><BR>
+ <ul>
+ <li>Airlock access bug fixed</li>
+Index: code/game/power.dm
+===================================================================
+--- code/game/power.dm	(revision 216)
++++ code/game/power.dm	(working copy)
+@@ -61,7 +61,7 @@
+ 
+ // the power cell
+ // charge from 0 to 100%
+-// fits in PDU to provide backup power
++// fits in APC to provide backup power
+ 
+ /obj/item/weapon/cell/New()
+ 	..()
+@@ -74,7 +74,7 @@
+ 
+ /obj/item/weapon/cell/proc/updateicon()
+ 
+-	if(maxcharge == 1000)
++	if(maxcharge <= 2500)
+ 		icon_state = "cell"
+ 	else
+ 		icon_state = "hpcell"
+@@ -94,13 +94,11 @@
+ /obj/item/weapon/cell/examine()
+ 	set src in view(1)
+ 	if(usr && !usr.stat)
+-		if(maxcharge == 1000)
+-			usr << "[desc]\nThe charge meter reads [round(src.percent() )]%."
++		if(maxcharge <= 2500)
++			usr << "[desc]\nThe manufacturer's label states this cell has a power rating of [maxcharge], and that you should not swallow it.\nThe charge meter reads [round(src.percent() )]%."
+ 		else
+-			usr << "A high-capacity rechargable electrochemical power cell.\nThe charge meter reads [round(src.percent() )]%."
++			usr << "This power cell has an exciting chrome finish, as it is an uber-capacity cell type! It has a power rating of [maxcharge]!!!\nThe charge meter reads [round(src.percent() )]%."
+ 
+-
+-
+ // common helper procs for all power machines
+ 
+ /obj/machinery/power/proc/add_avail(var/amount)
+@@ -161,14 +159,12 @@
+ 	pixel_x = (tdir & 3)? 0 : (tdir == 4 ? 24 : -24)
+ 	pixel_y = (tdir & 3)? (tdir ==1 ? 24 : -24) : 0
+ 
+-
+ 	// is starting with a power cell installed, create it and set its charge level
+ 	if(cell_type)
+ 		src.cell = new/obj/item/weapon/cell(src)
+-		cell.maxcharge = cell_type==1 ? 1000 : 2500				// if type=2, make a hp cell
++		cell.maxcharge = cell_type	// cell_type is maximum charge (old default was 1000 or 2500 (values one and two respectively)
+ 		cell.charge = start_charge * cell.maxcharge / 100.0 		// (convert percentage to actual value)
+ 
+-
+ 	var/area/A = src.loc.loc
+ 
+ 	if(isarea(A))
+@@ -533,6 +529,13 @@
+ 	if(!area.requires_power)
+ 		return
+ 
++	if (equipment > 1) // off=0, off auto=1, on=2, on auto=3
++		use_power(src.equip_consumption, EQUIP)
++	if (lighting > 1) // off=0, off auto=1, on=2, on auto=3
++		use_power(src.light_consumption, LIGHT)
++	if (environ > 1) // off=0, off auto=1, on=2, on auto=3
++		use_power(src.environ_consumption, ENVIRON)
++
+ 	area.calc_lighting()
+ 
+ 	lastused_light = area.usage(LIGHT)
+@@ -542,14 +545,12 @@
+ 
+ 	lastused_total = lastused_light + lastused_equip + lastused_environ
+ 
+-
+ 	//store states to update icon if any change
+ 	var/last_lt = lighting
+ 	var/last_eq = equipment
+ 	var/last_en = environ
+ 	var/last_ch = charging
+ 
+-
+ 	var/excess = surplus()
+ 
+ 	if(!src.avail())
+@@ -571,8 +572,6 @@
+ 
+ 		cell.charge -= cellused
+ 
+-
+-
+ 		// set channels depending on how much charge we have left
+ 
+ 		if(cell.charge <= 0)					// zero charge, turn all off
+Index: code/globals.dm
+===================================================================
+--- code/globals.dm	(revision 184)
++++ code/globals.dm	(working copy)
+@@ -129,8 +129,7 @@
+ 	list/reg_dna = list(  )
+ 	list/banned = list(  )
+ 
+-
+-        //
++	CELLRATE = 0.002 // how quickly APCs recharge
+ 	shuttle_z = 2	//default
+ 	airtunnel_start = 68 // default
+ 	airtunnel_stop = 68 // default
+Index: InSpace.dme
+===================================================================
+--- InSpace.dme	(revision 216)
++++ InSpace.dme	(working copy)
+@@ -3,12 +3,6 @@
+ // New source code should be placed in .dm files: choose File/New --> Code File.
+ 
+ // BEGIN_INTERNALS
+-/*
+-FILE: code\game\verbs\ooc.dm
+-DIR: code code\atoms code\game code\game\area code\game\item code\game\item\weapon code\game\machinery code\game\modes code\game\verbs icons\ss13 maps
+-MAP_ICON_TYPE: 0
+-AUTO_FILE_DIR: ON
+-*/
+ // END_INTERNALS
+ // BEGIN_FILE_DIR
+ #define FILE_DIR .
+@@ -27,6 +21,7 @@
+ #define FILE_DIR "icons/ss13"
+ #define FILE_DIR "interface"
+ #define FILE_DIR "maps"
++#define FILE_DIR "maps/backup"
+ // END_FILE_DIR
+ 
+ // BEGIN_PREFERENCES
+@@ -50,7 +45,6 @@
+ #include "code\atoms\closet.dm"
+ #include "code\atoms\configuration.dm"
+ #include "code\atoms\false_wall.dm"
+-#include "code\atoms\power_sink.dm"
+ #include "code\atoms\secure_closet.dm"
+ #include "code\atoms\sun.dm"
+ #include "code\atoms\turf.dm"

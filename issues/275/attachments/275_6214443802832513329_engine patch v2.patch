@@ -1,0 +1,903 @@
+Index: code/game/airtunnel.dm
+===================================================================
+--- code/game/airtunnel.dm	(revision 552)
++++ code/game/airtunnel.dm	(working copy)
+@@ -352,22 +352,18 @@
+ 	return src.interact(user)
+ 
+ obj/machinery/door_control/interact(mob/user as mob)
+-
+-	if(stat & NOPOWER)
+-		return
++	if(stat & (BROKEN|NOPOWER)) return
+ 	use_power(5)
+ 	icon_state = "doorctrl1"
+ 
+ 	for(var/obj/machinery/door/poddoor/M in machines)
+-		if (M.id == src.id)
+-			if (M.density)
+-				spawn( 0 )
+-					M.openpod()
+-					return
+-			else
+-				spawn( 0 )
+-					M.closepod()
+-					return
++		if(M.id != src.id) continue
++		if(M.density)
++			spawn(0)
++				M.openpod()
++		else
++			spawn(0)
++				M.closepod()
+ 
+ 	spawn(15)
+ 		if(!(stat & NOPOWER))
+Index: code/game/atmo_control.dm
+===================================================================
+--- code/game/atmo_control.dm	(revision 552)
++++ code/game/atmo_control.dm	(working copy)
+@@ -1,30 +1,16 @@
++/obj/machinery/proc/process()					{	return					}
++/obj/machinery/proc/gas_flow()					{	return					}
++/obj/machinery/proc/orient_pipe(source as obj)	{	return					}
++/obj/machinery/proc/cut_pipes()					{	return					}
++/obj/machinery/proc/disc_pipe(target as obj)	{	return					}
++/obj/machinery/proc/buildnodes()				{	return					}
++/obj/machinery/proc/getline()					{	if(p_dir) return src	}
++/obj/machinery/proc/setline()					{	return					}
++/obj/machinery/proc/ispipe()					{	return					}
++/obj/machinery/proc/next()						{	return null				}
++/obj/machinery/proc/get_gas_val(from)			{	return null				}
++/obj/machinery/proc/get_gas(from)				{	return null				}
+ 
+-/obj/machinery/proc/process()
+-	return
+-/obj/machinery/proc/gas_flow()
+-	return
+-/obj/machinery/proc/orient_pipe(source as obj)
+-	return
+-/obj/machinery/proc/cut_pipes()
+-	return
+-/obj/machinery/proc/disc_pipe(target as obj)
+-	return
+-/obj/machinery/proc/buildnodes()
+-	return
+-/obj/machinery/proc/getline()
+-	if(p_dir)
+-		return src
+-/obj/machinery/proc/setline()
+-	return
+-/obj/machinery/proc/ispipe()
+-	return 0
+-/obj/machinery/proc/next()
+-	return null
+-/obj/machinery/proc/get_gas_val(from)
+-	return null
+-/obj/machinery/proc/get_gas(from)
+-	return null
+-
+ /obj/machinery/meter/New()
+ 
+ 	..()
+Index: code/game/cell_process.dm
+===================================================================
+--- code/game/cell_process.dm	(revision 552)
++++ code/game/cell_process.dm	(working copy)
+@@ -188,6 +188,7 @@
+ 
+ /turf/space/New()
+ 	gas.clear()
++	gas.temp=TCMB
+ 	reset_phases()
+ 	if((src.x & 1) == (src.y & 1))
+ 		src.checkfire = 0
+Index: code/game/machinery/computer/pod.dm
+===================================================================
+--- code/game/machinery/computer/pod.dm	(revision 552)
++++ code/game/machinery/computer/pod.dm	(working copy)
+@@ -114,8 +114,8 @@
+ 	if(src.operating)	return 0
+ 	if(stat & NOPOWER)	return 0
+ 
++	use_power(50)
+ 	src.operating = 1
+-	use_power(50)
+ 	flick("pdoorc0", src)
+ 	src.icon_state = "pdoor0"
+ 	sleep(15)
+@@ -131,7 +131,7 @@
+ /obj/machinery/door/poddoor/proc/closepod()
+ 	set src in oview(1)
+ 
+-	if(!src.density)	return 0
++	if(src.density)		return 0
+ 	if(src.operating)	return 0
+ 	if(stat & NOPOWER)	return 0
+ 
+Index: code/game/machinery/pipes/heat_exchangers.dm
+===================================================================
+--- code/game/machinery/pipes/heat_exchangers.dm	(revision 0)
++++ code/game/machinery/pipes/heat_exchangers.dm	(revision 0)
+@@ -0,0 +1,34 @@
++/obj/machinery/pipes/heat_exch/get_dirs()
++	var/b1
++	var/b2
++	for(var/sdir in cardinal)
++		if(!(h_dir & sdir)) continue
++		if(!b1)			b1 = sdir
++		else if(!b2)	b2 = sdir
++	return list(b1, b2, h_dir)
++
++/obj/machinery/pipes/heat_exch/buildnodes(var/linenum)
++	if(plnum) return
++	src.level = 2		// h/e pipe cannot be put underfloor
++	return ..()
++
++/obj/machinery/pipes/proc/heat_exchange(var/datum/substance/gas/gas, var/tot_node, var/numnodes, var/temp, var/dbg=0)
++	var/turf/T = src.loc		// turf location of pipe
++	if(T.density) return
++	ASSERT(numnodes)
++	ASSERT(insulation)
++
++	// heat exchange less efficient in space (no conduction)
++	if(istype(T,/turf/space))
++		gas.temp += (T.gas.temp - temp) / (3.0 * insulation * numnodes)
++		return
++
++	if(src.level == 1) return	// no heat exchange for under-floor pipes
++	var/delta_T = (T.gas.temp - temp) / (insulation)
++	gas.temp += delta_T	/ numnodes
++
++	var/tot_turf = max(1, T.gas.total());
++	T.gas.temp -= delta_T*min(10,tot_node/tot_turf)		// also heat the turf due to pipe temp
++	// should clamp max temp change to prevent thermal runaway if low amount of gas in turf
++
++	T.reset_phases()
+\ No newline at end of file
+Index: code/game/newpipe.dm
+===================================================================
+--- code/game/newpipe.dm	(revision 552)
++++ code/game/newpipe.dm	(working copy)
+@@ -1,125 +1,55 @@
+-// pipeline datum for storings inter-machine links
+-
+-
+-// create a pipeline
+-
+ /obj/machinery/pipeline/New()
+ 	..()
+-
+ 	gas = new/datum/substance/gas(src)
+ 	ngas = new/datum/substance/gas()
+-
+ 	gasflowlist += src
+ 
+ // find the pipeline that contains the /obj/machine (including pipe)
+ /proc/findline(var/obj/machinery/M)
+-
+ 	for(var/obj/machinery/pipeline/P in plines)
+-
+ 		for(var/obj/machinery/O in P.nodes)
+-
+-			if(M==O)
+-				return P
+-
++			if(M==O) return P
+ 	return null
+ 
+ // sets the vnode1&2 terminators to the joining machines (or null)
+ /obj/machinery/pipeline/proc/setterm()
+-
+-	//first make sure pipes are oriented correctly
+-
+ 	var/obj/machinery/M = null
+-
+ 	for(var/obj/machinery/pipes/P in nodes)
+-		if(!M)			// special case for 1st pipe
+-			if(P.node1 && P.node1.ispipe())
+-				P.flip()		// flip if node1 is a pipe
+-		else
+-			if(P.node1 != M)		//other cases, flip if node1 doesn't point to previous node
+-				P.flip()			// (including if it is null)
+-
+-
++		if(!M)	if(P.node1 && P.node1.ispipe())	P.flip()	// flip if node1 is a pipe
++		else	if(P.node1 != M)				P.flip()	// (including if it is null)
+ 		M = P
+ 
+-
+ 	// pipes are now ordered so that n1/n2 is in same order as pipeline list
+-
+ 	var/obj/machinery/pipes/P = nodes[1]		// 1st node in list
+ 	vnode1 = P.node1							// n1 points to 1st machine
+ 	P = nodes[nodes.len]						// last node in list
+ 	vnode2 = P.node2							// n2 points to last machine
+ 
++/obj/machinery/pipeline/get_gas_val(from)	{	return gas.total()/capmult		}
++/obj/machinery/pipeline/get_gas(from)		{	return gas						}
++/obj/machinery/pipeline/gas_flow()			{	gas.replace_by(ngas)			}
+ 
+-	return
+-
+-
+-/obj/machinery/pipeline/get_gas_val(from)
+-	return gas.total()/capmult
+-/obj/machinery/pipeline/get_gas(from)
+-	return gas
+-
+-
+-
+-/obj/machinery/pipeline/gas_flow()
+-
+-	//if(suffix == "d" && Debug) world.log << "PLF1  [gas.total()] ~ [ngas.total()]"
+-
+-	gas.replace_by(ngas)
+-
+-	//if(suffix == "d" && Debug) world.log << "PLF2  [gas.total()] ~ [ngas.total()]"
+-
+ /obj/machinery/pipeline/process()
++	var/gtemp = ngas.temp
++	var/tot_node = ngas.total() / numnodes
+ 
+-	// heat exchange for whole pipeline
+-
+-	//if(suffix=="dbgp")
+-	//	world.log << "PLP"
+-	//	Plasma()
+-
+-//	var/dbg = (suffix == "d") && Debug
+-
+-	//if(dbg) world.log << "PLP1 [gas.total()] ~ [ngas.total()]"
+-
+-
+-	var/gtemp = ngas.temp // cached temperature for heat exch calc
+-	var/tot_node = ngas.total() / numnodes // fraction of gas in this node
+-
+-	//if(dbg) world.log << "PLHE: [gtemp] [tot_node]"
+-
+ 	if(tot_node>0.1)		// no pipe contents, don't heat
+ 		for(var/obj/machinery/pipes/P in src.nodes)		// for each segment of pipe
+ 			P.heat_exchange(ngas, tot_node, numnodes, gtemp) //, dbg)	// exchange heat with its turf
+ 
+-
+-	// now do standard gas flow proc
+-
+-
+-	//if(dbg) world.log << "PLP2 [ngas.total()]"
+-
+ 	var/delta_gt
+-
+-	if(vnode1)
+-		delta_gt = FLOWFRAC * ( vnode1.get_gas_val(src) - gas.total() / capmult)
+-		calc_delta( src, gas, ngas, vnode1, delta_gt)//, dbg)
+-
+-		//if(dbg) world.log << "PLT1 [delta_gt] >> [gas.total()] ~ [ngas.total()]"
+-
+-		flow = delta_gt
++	if(!vnode1) leak_to_turf(1)
+ 	else
+-		leak_to_turf(1)
++		delta_gt = FLOWFRAC * (vnode1.get_gas_val(src) - gas.total() / capmult)
++		calc_delta(src, gas, ngas, vnode1, delta_gt)//, dbg)
++		flow = delta_gt
+ 
+-	if(vnode2)
+-		delta_gt = FLOWFRAC * ( vnode2.get_gas_val(src) - gas.total() / capmult)
+-		calc_delta( src, gas, ngas, vnode2, delta_gt)//, dbg)
+-
+-		//if(dbg) world.log << "PLT2 [delta_gt] >> [gas.total()] ~ [ngas.total()]"
+-
+-		flow -= delta_gt
++	if(!vnode2) leak_to_turf(2)
+ 	else
+-		leak_to_turf(2)
++		delta_gt = FLOWFRAC * (vnode2.get_gas_val(src) - gas.total() / capmult)
++		calc_delta(src, gas, ngas, vnode2, delta_gt)//, dbg)
++		flow -= delta_gt
+ 
+-
+-
+ /obj/machinery/pipeline/proc/leak_to_turf(var/port)
+ 
+ 	var/turf/T
+@@ -129,52 +59,32 @@
+ 	switch(port)
+ 		if(1)
+ 			P = nodes[1]		// 1st node in list
+-			if (P==null)
+-				T = src.loc
++			if(!P) T = src.loc
+ 			else
+ 				ndirs = P.get_node_dirs()
+-
+ 				T = get_step(P, ndirs[1])
+ 
+-
+ 		if(2)
+ 			P = nodes[nodes.len]	// last node in list
+-			if (P==null)
+-				T = src.loc
++			if(!P) T = src.loc
+ 			else
+-
+ 				ndirs = P.get_node_dirs()
+ 				T = get_step(P, ndirs[2])
+-	if (T==null)
+-		return
+-	if(T.density)
+-		return
+-
++	if(!T)	return
++	if(T.density)	return
+ 	flow_to_turf(gas, ngas, T)
+ 
+-
+ // build the pipelines
+ /proc/makepipelines()
+-
+ 	var/linecount = 0		// the line number
+-
+ 	for(var/obj/machinery/pipes/P in machines)		// look for a pipe
+-
+-		if(!P.plnum)							// if not already part of a line
+-			P.buildnodes(++linecount)			// add it, and spread to all connected pipes
+-
+-			//world.log<<"Line #[linecount] started at [P] ([P.x],[P.y],[P.z])"
+-
+-
++		if(!P.plnum) P.buildnodes(++linecount)
+ 	for(var/L = 1 to linecount)					// for count of lines found
+ 		var/obj/machinery/pipeline/PL = new()	// make a pipeline virtual object
+ 		PL.name = "pipeline #[L]"
+ 		plines += PL							// and add it to the list
+ 
+-
+-
+ 	for(var/obj/machinery/pipes/P in machines)		// look for pipes
+-
+ 		if(P.termination)						// true if pipe is terminated (ends in blank or a machine)
+ 			var/obj/machinery/pipeline/PL = plines[P.plnum]		// get the pipeline from the pipe's pl-number
+ 
+@@ -184,21 +94,12 @@
+ 			PL.numnodes = pipes.len				// with this many nodes
+ 			PL.capmult = PL.numnodes+1	// with this flow multiplier
+ 
++	for(var/obj/machinery/pipes/P in machines)			// all pipes
++		P.setline()										// 	set the pipeline object for this pipe
++		if(P.tag == "dbg")	P.pl.tag = "dbg"			//add debug tag to line containing debug pipe
++		if(P.suffix == "dbgpp")	P.pl.suffix = "dbgp"	//add debug tag to line containing debug pipe
++		if(P.suffix == "d")	P.pl.suffix = "d"			//add debug tag to line containing debug pipe
+ 
+-
+-	for(var/obj/machinery/pipes/P in machines)		// all pipes
+-		P.setline()								// 	set the pipeline object for this pipe
+-
+-		if(P.tag == "dbg")		//add debug tag to line containing debug pipe
+-			P.pl.tag = "dbg"
+-
+-		if(P.suffix == "dbgpp")		//add debug tag to line containing debug pipe
+-			P.pl.suffix = "dbgp"
+-
+-		if(P.suffix == "d")		//add debug tag to line containing debug pipe
+-			P.pl.suffix = "d"
+-
+-
+ 	for(var/obj/machinery/M in machines)			// for all machines
+ 		if(M.p_dir)								// which are pipe-connected
+ 			if(!M.ispipe())						// is not a pipe itself
+@@ -234,31 +135,21 @@
+ 
+ // flip the nodes of a pipe
+ /obj/machinery/pipes/proc/flip()
+-
+ 	var/obj/machinery/tempnode = node1
+ 	node1 = node2
+ 	node2 = tempnode
+-	return
+ 
+-
+ // return the next pipe in the node chain
+ /obj/machinery/pipes/next(var/obj/machinery/from)
++	if(!from)
++		if(node1 && node1.ispipe())	return node1
++		if(node2 && node2.ispipe()) return node2
++		return null
++	if(from == node1) return node2
++	if(from == node2) return node1
++	return null
+ 
+-	if(from == null)		// if from null, then return the next actual pipe
+-		if(node1 && node1.ispipe() )
+-			return node1
+-		if(node2 && node2.ispipe() )
+-			return node2
+-		return null			// else return null if no real pipe connected
+-
+-	else if(from == node1)		// otherwise, return the node opposite the incoming one
+-		return node2
+-	else
+-		return node1
+-
+-
+ // set the pipeline obj from the pl-number and global list of pipelines
+-
+ /obj/machinery/pipes/setline()
+ 	src.pl = plines[plnum]
+ 	return
+@@ -408,71 +299,6 @@
+ 	else
+ 		termination++
+ 
+-
+-/obj/machinery/pipes/heat_exch/get_dirs()
+-	var/b1
+-	var/b2
+-
+-	for(var/d in cardinal)
+-		if(h_dir & d)
+-			if(!b1)
+-				b1 = d
+-			else if(!b2)
+-				b2 = d
+-
+-	return list(b1, b2, h_dir)
+-
+-/obj/machinery/pipes/heat_exch/buildnodes(var/linenum)
+-
+-	if(plnum)
+-		return
+-
+-	src.level = 2		// h/e pipe cannot be put underfloor
+-
+-	var/list/dirs = get_dirs()
+-
+-	node1 = get_he_machine(level, src.loc, dirs[1])
+-	node2 = get_he_machine(level, src.loc, dirs[2])
+-
+-	update()
+-
+-	plnum = linenum
+-
+-	termination = 0
+-
+-	if(node1 && node1.ispipe() )
+-
+-		node1.buildnodes(linenum)
+-	else
+-		termination++
+-
+-	if(node2 && node2.ispipe() )
+-		node2.buildnodes(linenum)
+-	else
+-		termination++
+-
+-
+-/obj/machinery/pipes/proc/heat_exchange(var/datum/substance/gas/gas, var/tot_node, var/numnodes, var/temp, var/dbg=0)
+-	if(src.level == 1) return	// no heat exchange for under-floor pipes
+-	var/turf/T = src.loc		// turf location of pipe
+-	if(T.density) return
+-	ASSERT(numnodes)
+-	ASSERT(insulation)
+-
+-	// heat exchange less efficient in space (no conduction)
+-	if(istype(T,/turf/space))
+-		gas.temp += ( T.gas.temp - gas.temp) / (3.0 * insulation * numnodes)
+-		return
+-
+-	var/tot_turf = max(1, T.gas.total());	if(!tot_turf) return
+-	var/delta_T = (T.gas.temp - gas.temp) / (insulation)	// normal turf
+-	gas.temp += delta_T	/ numnodes			// heat the pipe due to turf temperature
+-
+-	T.gas.temp -= delta_T*min(10,tot_node/tot_turf)		// also heat the turf due to pipe temp
+-	// clamp max temp change to prevent thermal runaway if low amount of gas in turf
+-
+-	T.reset_phases()	// ensure turf tmp vars are updated
+-
+ // amount of gas that can be received = pipe capacity - amount already present
+ /*
+ /obj/machinery/pipes/receive_amount()
+@@ -904,7 +730,7 @@
+ 		leak_to_turf(3)
+ 
+ 	// transfer gas from ngas->f_ngas according to extraction rate, but only if we have power
+-	if(! (stat & NOPOWER) ) 
++	if(! (stat & NOPOWER) )
+ 		var/datum/substance/gas/ndelta = src.get_extract()
+ 		ngas.sub_delta(ndelta)
+ 		f_ngas.add_delta(ndelta)
+@@ -1134,118 +960,66 @@
+ 		//if(dbg) world.log << "CLT2: [gas.tostring()] ~ [ngas.tostring()]\nTg = [T.tostring()]"
+ 
+ 
+-
+ /obj/machinery/junction/New()
+ 	..()
+ 	gas = new/datum/substance/gas(src)
+ 	ngas = new/datum/substance/gas()
+ 	gasflowlist += src
+-
+-	h_dir = dir					// the h/e pipe is in obj dir
+ 	p_dir = turn(dir, 180)		// the reg pipe is in opposite dir
++	h_dir = dir					// the h/e pipe is in obj dir
+ 
+-
+ /obj/machinery/junction/buildnodes()
+-
+ 	var/turf/T = src.loc
+-
+-	node1 = get_he_machine(level, T, h_dir )		// the h/e pipe
+-
+-	node2 = get_machine(level, T , p_dir )	// the regular pipe
+-
++	node1 = get_he_machine(level, T, h_dir)	// the h/e pipe
++	node2 = get_machine(level, T , p_dir)	// the regular pipe
+ 	if(node1) vnode1 = node1.getline()
+ 	if(node2) vnode2 = node2.getline()
+ 
+-	return
+-
+-
+ /obj/machinery/junction/gas_flow()
+-
+-	//var/dbg
+-	//if(tag == "dbg1")
+-	//	dbg = 1
+-	//else if(tag == "dbg2")
+-	//	dbg = 2
+-
+-	//if(dbg)	world.log << "J[dbg]F1: [gas.tostring()] ~ [ngas.tostring()]"
+-
+-
+ 	gas.replace_by(ngas)
+ 
+-	//if(dbg)	world.log << "J[dbg]F2: [gas.tostring()] ~ [ngas.tostring()]"
+-
+ /obj/machinery/junction/process()
+-
+-	//var/dbg
+-	//if(tag == "dbg1")
+-	//	dbg = 1
+-	//else if(tag == "dbg2")
+-	//	dbg = 2
+-
+-	//if(dbg)	world.log << "J[dbg]P: [gas.tostring()] ~ [ngas.tostring()]"
+-
+ 	var/delta_gt
+ 
+-	if(vnode1)
+-		delta_gt = FLOWFRAC * ( vnode1.get_gas_val(src) - gas.total() / capmult)
+-		calc_delta( src, gas, ngas, vnode1, delta_gt) //, dbg)
+-
+-	//	if(dbg)	world.log << "J[dbg]T1: [delta_gt] >> [gas.tostring()] ~ [ngas.tostring()]"
++	if(!vnode1)	leak_to_turf(1)
+ 	else
+-		leak_to_turf(1)
++		delta_gt = FLOWFRAC * (vnode1.get_gas_val(src) - gas.total() / capmult)
++		calc_delta(src, gas, ngas, vnode1, delta_gt)
+ 
+-	if(vnode2)
+-		delta_gt = FLOWFRAC * ( vnode2.get_gas_val(src) - gas.total() / capmult)
+-		calc_delta( src, gas, ngas, vnode2, delta_gt) //, dbg)
+-
+-	//	if(dbg)	world.log << "J[dbg]T2: [delta_gt] >> [gas.tostring()] ~ [ngas.tostring()]"
++	if(!vnode2) leak_to_turf(2)
+ 	else
+-		leak_to_turf(2)
++		delta_gt = FLOWFRAC * (vnode2.get_gas_val(src) - gas.total() / capmult)
++		calc_delta(src, gas, ngas, vnode2, delta_gt)
+ 
+ 
+-/obj/machinery/junction/get_gas_val(from)
+-	return gas.total()/capmult
+-/obj/machinery/junction/get_gas(from)
+-	return gas
++/obj/machinery/junction/get_gas_val(from)	{	return gas.total()/capmult	}
++/obj/machinery/junction/get_gas(from)		{	return gas					}
+ 
+ /obj/machinery/junction/proc/leak_to_turf(var/port)
+-
+ 	var/turf/T
+-
+-
+ 	switch(port)
+-		if(1)
+-			T = get_step(src, dir)
+-		if(2)
+-			T = get_step(src, turn(dir, 180) )
+-
++		if(1)	T = get_step(src, dir)
++		if(2)	T = get_step(src, turn(dir, 180))
+ 	if(T.density)
+ 		T = src.loc
+-		if(T.density)
+-			return
+-
++		if(T.density) return
+ 	flow_to_turf(gas, ngas, T)
+ 
+-
+-
+ /proc/calc_delta(obj/machinery/source, datum/substance/gas/sgas, datum/substance/gas/sngas, obj/machinery/target, amount, dbg=0)
+ 	var/datum/substance/gas/tgas = target.get_gas(source)
+ 	var/datum/substance/gas/ndelta = new()
+ 
+-	if(amount < 0)		// then flowing from source to target
++	if(amount < 0)							// flowing from source to target
+ 		var/sTotal = sgas.total()
+-		if(!sTotal)
+-			return
+-		ndelta.copy_gas(sgas)
++		if(!sTotal) return
++		ndelta.copy_all(sgas)
+ 		ndelta.multiply_gas(-amount/sTotal) // this is fraction of the gas which will be transfered to other node
+-		sngas.sub_delta(ndelta)		// subtract off the fraction which is gone
+-	else				// flowing from target to source
++		sngas.sub_delta(ndelta)				// subtract off the fraction which is gone
++	else									// flowing from target to source
+ 		var/tTotal = tgas.total()
+-		if(!tTotal)
+-			return
+-		ndelta.copy_gas(tgas)
+-		ndelta.multiply_gas(amount/tTotal)
+-			// fraction of gas from the other node
++		if(!tTotal) return
++		ndelta.copy_all(tgas)
++		ndelta.multiply_gas(amount/tTotal)	// fraction of gas from the other node
+ 		sngas.add_delta(ndelta)				// add the fraction to the new gas resv
+ 
+ /obj/machinery/vent/New()
+Index: code/game/power.dm
+===================================================================
+--- code/game/power.dm	(revision 552)
++++ code/game/power.dm	(working copy)
+@@ -711,16 +711,11 @@
+ // using this solves the problem of having the APC in a wall yet also inside an area
+ 
+ /obj/machinery/power/terminal/New()
+-
+ 	..()
+-
+ 	var/turf/T = src.loc
+-
+ 	if(level==1) hide(T.intact)
+ 
+-
+ /obj/machinery/power/terminal/hide(var/i)
+-
+ 	if(i)
+ 		invisibility = 101
+ 		icon_state = "term-f"
+@@ -728,17 +723,6 @@
+ 		invisibility = 0
+ 		icon_state = "term"
+ 
+-
+-
+-// dummy generator object for testing
+-
+-/*/obj/machinery/power/generator/verb/set_amount(var/g as num)
+-	set src in view(1)
+-
+-	gen_amount = g
+-
+-*/
+-
+ /obj/machinery/power/generator/New()
+ 	..()
+ 
+@@ -751,87 +735,112 @@
+ 		updateicon()
+ 
+ /obj/machinery/power/generator/proc/updateicon()
++	overlays = null
++	if(stat & (NOPOWER|BROKEN)) return
++	if(lastgenlev)	overlays += image('power.dmi', "teg-op[lastgenlev]")
++	overlays += image('power.dmi', "teg-oc[c1on][c2on]")
+ 
+-	if(stat & (NOPOWER|BROKEN))
+-		overlays = null
+-	else
+-		overlays = null
++/*
++//	Aproximating:	Work = -(enthalpy2 - enthalpy1) kj/kg
++//					Energy = Work * MassFlow = kJ/s = kW
++/proc/enthalpy(var/datum/substance/gas/G)
++	//	Oxygen Enthalpy:	f(t) = t^1.01 * 31.58
++	//	Plasma Enthalpy:	f(t) = t^1.01 * 66.21
++	//	Nitrogen Enthalpy:	f(t) = t^1.01 * 29.86
++	//	CO2 Enthalpy:		f(t) = t^1.01 * 45.94
++	//	NO2 Enthalpy:		f(t) = t^1.01 * 43.33
++	var/result = 0
++	result += 31.58 * G.oxygen
++	result += 66.21 * G.plasma
++	result += 29.86 * G.nitrogen
++	result += 45.94 * G.co2
++	result += 43.33 * G.no2
++	return (G.temp ** 1.01)*result
+ 
+-		if(lastgenlev != 0)
+-			overlays += image('power.dmi', "teg-op[lastgenlev]")
++//	Work = mass-flow * (enthalpy(gas1)-enthalpy(gas2)) - waste energy
++/proc/molarmass(var/datum/substance/gas/G)
++	var/total = G.total()
++	if(!total) return 0
++	var/result = 0
++	result += 32 * G.oxygen
++	result += 50 * G.plasma
++	result += 28 * G.plasma
++	result += 44 * G.co2
++	result += 46 * G.no2
++	return result / (total/1e9)
++*/
+ 
+-		overlays += image('power.dmi', "teg-oc[c1on][c2on]")
++#define GENRATE 0.17			// generator output coefficient from Q
++//#define GENRATE 0.0017			// generator output coefficient from Q
++/obj/machinery/power/generator/process()
++	if(!circ1 || !c1on)	return
++	if(!circ2 || !c2on)	return
++/*
++	var/h1 = enthalpy(circ2.ngas1)
++	var/h2 = enthalpy(circ2.ngas2)
++	var/m1 = molarmass(circ2.ngas1)
++	var/m2 = molarmass(circ2.ngas2)
++	var/t1 = max(0.01,circ2.ngas1.temp)
++	var/t2 = max(0.01,circ2.ngas2.temp)
+ 
+-#define GENRATE 0.0017			// generator output coefficient from Q
++	var/efficiency = (1 - t1/t2)*0.65	//	65% Carnot
++	lastgen = efficiency * (m1-m2)*(h1-h2)
++	add_avail(lastgen)
+ 
+-/obj/machinery/power/generator/process()
+-
++	world << "Produced Work: [lastgen]"
++	world << "Gas1: [circ2.gas1.tostring()]"
++	world << "Gas2: [circ2.gas2.tostring()]"
++	world << "Ngas1: [circ2.ngas1.tostring()]"
++	world << "Ngas2: [circ2.ngas2.tostring()]"
++*/
+ /*	if(circ && circ.gas1)
+ 		var/gen = circ.gas2.total()*max(0, circ.gas2.temp - 298)/300
+ 		circ.ngas2.temp = max(298, circ.ngas2.temp - 50)
+ 
+ 		add_avail(gen)
+ */
++	var/gc = circ1.gas2.shc()
++	var/gh = circ2.gas2.shc()
+ 
+-	if(circ1 && circ2)
++	var/tc = circ1.gas2.temp
++	var/th = circ2.gas2.temp
++	var/deltat = th-tc
+ 
++	var/eta = (1-tc/th)*0.65		// efficiency 65% of Carnot
+ 
+-		var/gc = circ1.gas2.shc()
+-		var/gh = circ2.gas2.shc()
++	if(gc > 0 && deltat >0)		// require some cold gas (for sink) and a positive temp gradient
++		var/ghoc = gh/gc
+ 
+-		var/tc = circ1.gas2.temp
+-		var/th = circ2.gas2.temp
+-		var/deltat = th-tc
++		var/fdt = 1/((1-eta)*ghoc + 1)	// min timestep
+ 
+-		var/eta = (1-tc/th)*0.65		// efficiency 65% of Carnot
++		fdt = min(fdt, 0.1)	// max timestep
+ 
+-		if(gc > 0 && deltat >0)		// require some cold gas (for sink) and a positive temp gradient
+-			var/ghoc = gh/gc
++		var/q = fdt*eta*gh*(deltat)	// heat generated
++		var/thp = th - fdt * deltat
++		var/tcp = tc + fdt * (1 - eta) * (ghoc) * deltat
+ 
+-			//var/qc = gc*tc
+-			//var/qh = gh*th
++		lastgen = q * GENRATE
++		add_avail(lastgen)
+ 
+-			var/fdt = 1/( (1-eta)*ghoc + 1)	// min timestep
++		circ1.ngas2.temp = tcp
++		circ2.ngas2.temp = thp
+ 
+-			fdt = min(fdt, 0.1)	// max timestep
++	else
++		lastgen = 0
+ 
+-			var/q = fdt*eta*gh*(deltat)	// heat generated
++	// update icon overlays only if displayed level has changed
++	var/genlev = max(0, min( round(11*lastgen / 100000), 11))
++	if(genlev != lastgenlev)
++		lastgenlev = genlev
++		updateicon()
+ 
+-			var/thp = th - fdt * deltat
+-			var/tcp = tc + fdt * (1 - eta) * (ghoc) * deltat
++	src.updateDialog()
+ 
+-			lastgen = q * GENRATE
+-			add_avail(lastgen)
+-
+-			circ1.ngas2.temp = tcp
+-			circ2.ngas2.temp = thp
+-
+-		else
+-			lastgen = 0
+-
+-
+-
+-
+-
+-		// update icon overlays only if displayed level has changed
+-
+-		var/genlev = max(0, min( round(11*lastgen / 100000), 11))
+-		if(genlev != lastgenlev)
+-			lastgenlev = genlev
+-			updateicon()
+-
+-		src.updateDialog()
+-
+ /obj/machinery/power/generator/interact(mob/user)
+-
+ 	add_fingerprint(user)
+-
+ 	if(stat & (BROKEN|NOPOWER)) return
+-
+ 	interaction(user)
+ 
+-
+-
+ /obj/machinery/power/generator/proc/interaction(mob/user)
+ 
+ 	if ( (get_dist(src, user) > 1 ) && (!istype(user, /mob/silicon/ai)))
+Index: maps/Space Station 13.dmp
+===================================================================
+--- maps/Space Station 13.dmp	(revision 552)
++++ maps/Space Station 13.dmp	(working copy)
+@@ -792,7 +792,7 @@
+ "pl" = (/obj/machinery/pipes,/obj/grille,/obj/window{icon_state = "rwindow"; dir = 4; invisibility = 0; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 8; reinf = 1},/turf/station/floor,/area/engine/engine_control)
+ "pm" = (/obj/machinery/pipes,/obj/item/weapon/crowbar,/turf/station/floor,/area/engine/engine_control)
+ "pn" = (/obj/machinery/pipes,/obj/watertank,/turf/station/floor,/area/engine/engine_control)
+-"po" = (/obj/machinery/valve{dir = 4},/turf/station/floor,/area/engine/engine_control)
++"po" = (/obj/machinery/valve/mvalve{dir = 4},/turf/station/floor,/area/engine/engine_control)
+ "pp" = (/obj/machinery/pipes,/obj/machinery/meter,/turf/station/floor,/area/engine/engine_control)
+ "pq" = (/obj/machinery/connector{dir = 8; p_dir = 8},/turf/station/floor,/area/engine/engine_control)
+ "pr" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/turf/station/floor,/area/engine/engine_control)
+@@ -856,7 +856,7 @@
+ "qx" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/obj/machinery/door/window{dir = 4},/turf/station/floor,/area/hallway/primary/west)
+ "qy" = (/turf/station/wall,/area/engine/engine_mon)
+ "qz" = (/obj/item/weapon/crowbar,/obj/machinery/alarm{pixel_x = -31},/turf/station/floor,/area/engine/engine_mon)
+-"qA" = (/obj/machinery/valve,/turf/station/floor,/area/engine/engine_mon)
++"qA" = (/obj/machinery/valve/mvalve,/turf/station/floor,/area/engine/engine_mon)
+ "qB" = (/obj/machinery/light_switch{name = "E lightswitch"; dir = 4; pixel_x = 24},/turf/station/floor,/area/engine/engine_mon)
+ "qC" = (/turf/station/r_wall,/area/engine/engine_control)
+ "qD" = (/obj/start{name = "Station Engineer"},/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/turf/station/floor,/area/engine/engine_control)
+@@ -972,7 +972,7 @@
+ "sJ" = (/obj/machinery/igniter,/turf/station/engine/floor{name = "engine floor"; oxygen = 2.1e+006; poison = 0; n2 = 0},/area/engine/combustion)
+ "sK" = (/obj/machinery/vent{tag = "2"; dir = 4; p_dir = 4},/turf/station/engine/floor{name = "engine floor"; oxygen = 2.1e+006; poison = 0; n2 = 0},/area/engine/combustion)
+ "sL" = (/obj/grille,/obj/machinery/pipes,/obj/window{icon_state = "rwindow"; dir = 10; reinf = 1},/turf/station/floor,/area/engine/engine_mon)
+-"sM" = (/obj/machinery/valve{dir = 4},/turf/station/floor,/area/engine/engine_mon)
++"sM" = (/obj/machinery/valve/mvalve{dir = 4},/turf/station/floor,/area/engine/engine_mon)
+ "sN" = (/obj/machinery/pipes,/obj/machinery/meter,/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/turf/station/floor,/area/engine/engine_mon)
+ "sO" = (/obj/machinery/connector{dir = 8; p_dir = 8},/obj/machinery/atmoalter/canister/poisoncanister{anchored = 1; c_status = 1},/turf/station/floor,/area/engine/engine_mon)
+ "sP" = (/obj/item/weapon/radio/beacon,/turf/station/floor,/area/engine/engine_mon)
+@@ -1671,7 +1671,7 @@
+ "Gg" = (/obj/machinery/pipes{tag = ""; icon_state = "6"; p_dir = 6},/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/obj/machinery/camera{dir = 4; c_tag = "Prototype Engine North"},/obj/item/weapon/radio/intercom{name = "Station Intercom (Experimental Engine)"; pixel_x = -27; pixel_y = 0; freq = 1475},/turf/station/floor{name = "damaged floor"; icon_state = "Floor1"; intact = 0; oxygen = 0; n2 = 0; checkfire = 0; health = 100; burnt = 1},/area/prototype/prototype_engine)
+ "Gh" = (/obj/machinery/pipes,/turf/station/floor{name = "damaged floor"; icon_state = "Floor1"; intact = 0; oxygen = 0; n2 = 0; checkfire = 0; health = 100; burnt = 1},/area/prototype/prototype_engine)
+ "Gi" = (/obj/machinery/pipes{tag = ""; icon_state = "10"; p_dir = 10},/turf/station/floor{name = "damaged floor"; icon_state = "Floor1"; intact = 0; oxygen = 0; n2 = 0; checkfire = 0; health = 100; burnt = 1},/area/prototype/prototype_engine)
+-"Gj" = (/obj/machinery/valve,/turf/station/floor{name = "damaged floor"; icon_state = "Floor1"; intact = 0; oxygen = 0; n2 = 0; checkfire = 0; health = 100; burnt = 1},/area/prototype/prototype_engine)
++"Gj" = (/obj/machinery/valve/mvalve,/turf/station/floor{name = "damaged floor"; icon_state = "Floor1"; intact = 0; oxygen = 0; n2 = 0; checkfire = 0; health = 100; burnt = 1},/area/prototype/prototype_engine)
+ "Gk" = (/obj/window{icon_state = "rwindow"; dir = 8; reinf = 1},/turf/station/floor{name = "damaged floor"; icon_state = "Floor1"; intact = 0; oxygen = 0; n2 = 0; checkfire = 0; health = 100; burnt = 1},/area/prototype/prototype_engine)
+ "Gl" = (/obj/machinery/pipes{tag = ""; icon_state = "3"; p_dir = 3},/obj/machinery/meter,/obj/cable{icon_state = "2-4"; d1 = 2; d2 = 4},/turf/station/floor{name = "damaged floor"; icon_state = "Floor1"; intact = 0; oxygen = 0; n2 = 0; checkfire = 0; health = 100; burnt = 1},/area/prototype/prototype_engine)
+ "Gm" = (/obj/machinery/pipes{tag = ""; icon_state = "3"; p_dir = 3},/obj/machinery/meter,/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/turf/station/floor{name = "damaged floor"; icon_state = "Floor1"; intact = 0; oxygen = 0; n2 = 0; checkfire = 0; health = 100; burnt = 1},/area/prototype/prototype_engine)
+@@ -1722,7 +1722,7 @@
+ "Hf" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/obj/cable{icon_state = "2-4"; d1 = 2; d2 = 4},/turf/station/floor{name = "damaged floor"; icon_state = "Floor1"; intact = 0; oxygen = 0; n2 = 0; checkfire = 0; health = 100; burnt = 1},/area/prototype/prototype_engine)
+ "Hg" = (/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/obj/machinery/camera{c_tag = "Prototype Engine South"},/turf/station/floor{name = "damaged floor"; icon_state = "Floor1"; intact = 0; oxygen = 0; n2 = 0; checkfire = 0; health = 100; burnt = 1},/area/prototype/prototype_engine)
+ "Hh" = (/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/obj/machinery/pipes{tag = ""; icon_state = "5"; p_dir = 9},/turf/station/floor{name = "damaged floor"; icon_state = "Floor1"; intact = 0; oxygen = 0; n2 = 0; checkfire = 0; health = 100; burnt = 1},/area/prototype/prototype_engine)
+-"Hi" = (/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/obj/machinery/valve{dir = 4},/turf/station/floor{name = "damaged floor"; icon_state = "Floor1"; intact = 0; oxygen = 0; n2 = 0; checkfire = 0; health = 100; burnt = 1},/area/prototype/prototype_engine)
++"Hi" = (/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/obj/machinery/valve/mvalve{dir = 4},/turf/station/floor{name = "damaged floor"; icon_state = "Floor1"; intact = 0; oxygen = 0; n2 = 0; checkfire = 0; health = 100; burnt = 1},/area/prototype/prototype_engine)
+ "Hj" = (/obj/cable{icon_state = "2-8"; d1 = 2; d2 = 8},/obj/machinery/pipes{tag = ""; icon_state = "10"; p_dir = 10},/turf/station/floor{name = "damaged floor"; icon_state = "Floor1"; intact = 0; oxygen = 0; n2 = 0; checkfire = 0; health = 100; burnt = 1},/area/prototype/prototype_engine)
+ "Hk" = (/obj/machinery/power/terminal{dir = 4},/obj/cable{icon_state = "0-2"; d2 = 2},/obj/cable,/turf/station/floor{name = "damaged floor"; icon_state = "Floor1"; intact = 0; oxygen = 0; n2 = 0; checkfire = 0; health = 100; burnt = 1},/area/prototype/prototype_engine)
+ "Hl" = (/obj/machinery/pipes{tag = ""; icon_state = "6"; p_dir = 6},/turf/station/floor{name = "damaged floor"; icon_state = "Floor1"; intact = 0; oxygen = 0; n2 = 0; checkfire = 0; health = 100; burnt = 1},/area/prototype/prototype_engine)

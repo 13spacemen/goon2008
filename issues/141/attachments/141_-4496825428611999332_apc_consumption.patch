@@ -1,0 +1,44 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 231)
++++ code/atoms.dm	(working copy)
+@@ -2907,6 +2907,9 @@
+ 	var/lastused_environ = 0
+ 	var/lastused_total = 0
+ 	var/main_status = 0
++	var/light_consumption = 0
++	var/equip_consumption = 0
++	var/environ_consumption = 0
+ 	netnum = -1		// set so that APCs aren't found as powernet nodes
+ 
+ /obj/machinery/power/terminal
+Index: code/game/power.dm
+===================================================================
+--- code/game/power.dm	(revision 231)
++++ code/game/power.dm	(working copy)
+@@ -533,6 +533,10 @@
+ 	if(!area.requires_power)
+ 		return
+ 
++	use_power(src.environ_consumption, EQUIP)
++	use_power(src.light_consumption, LIGHT)
++	use_power(src.environ_consumption, ENVIRON)
++
+ 	area.calc_lighting()
+ 
+ 	lastused_light = area.usage(LIGHT)
+@@ -542,14 +546,12 @@
+ 
+ 	lastused_total = lastused_light + lastused_equip + lastused_environ
+ 
+-
+ 	//store states to update icon if any change
+ 	var/last_lt = lighting
+ 	var/last_eq = equipment
+ 	var/last_en = environ
+ 	var/last_ch = charging
+ 
+-
+ 	var/excess = surplus()
+ 
+ 	if(!src.avail())

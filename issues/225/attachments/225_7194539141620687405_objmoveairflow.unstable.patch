@@ -1,0 +1,134 @@
+Index: maps/Space Station 13.dmp
+===================================================================
+--- maps/Space Station 13.dmp	(revision 484)
++++ maps/Space Station 13.dmp	(working copy)
+@@ -1245,7 +1245,7 @@
+ "xW" = (/obj/grille,/obj/window{icon_state = "rwindow"; dir = 4; invisibility = 0; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 8; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 1; reinf = 1},/obj/cable{icon_state = "0-2"; d2 = 2},/turf/station/floor{name = "plating"; icon_state = "Floor1"; intact = 0},/area/maintenance/south)
+ "xX" = (/obj/table{icon_state = "sides"; dir = 4},/obj/item/weapon/timer,/turf/station/floor,/area/bridge)
+ "xY" = (/obj/window{icon_state = "rwindow"; dir = 1; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 8; reinf = 1},/turf/space,/area)
+-"xZ" = (/obj/shuttle/door{req_access_txt = null},/turf/station/shuttle/floor,/area/arrival/shuttle)
++"xZ" = (/obj/move/shuttle/door{req_access_txt = null},/turf/station/shuttle/floor,/area/arrival/shuttle)
+ "ya" = (/obj/item/weapon/paper{tag = ""; name = "Used Toilet paper"; desc = "Disgusting!"; info = "POO"},/turf/space,/area)
+ "yb" = (/obj/machinery/door/window{dir = 4},/obj/machinery/camera{dir = 4; c_tag = "Female Crew Quarters West"},/turf/station/floor,/area/crew_quarters/female)
+ "yc" = (/obj/machinery/door/window{dir = 4},/turf/station/floor,/area/crew_quarters/female)
+@@ -1766,7 +1766,7 @@
+ "HX" = (/obj/item/weapon/pill_canister/antitoxin,/obj/item/weapon/pill_canister/antitoxin,/turf/station/floor,/area/syndicate_station)
+ "HY" = (/obj/move/wall{icon_state = "diagonalWall"; dir = 8},/turf/space,/area/shuttle)
+ "HZ" = (/obj/move/wall,/turf/space,/area/shuttle)
+-"Ia" = (/obj/move/floor,/obj/shuttle/door{req_access_txt = null},/turf/space,/area/shuttle)
++"Ia" = (/obj/move/floor,/obj/move/shuttle/door{req_access_txt = null},/turf/space,/area/shuttle)
+ "Ib" = (/obj/move/floor,/obj/grille,/obj/window{icon_state = "rwindow"; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 1; reinf = 1},/turf/space,/area/shuttle)
+ "Ic" = (/obj/move/wall{icon_state = "diagonalWall"; dir = 1},/turf/space,/area/shuttle)
+ "Id" = (/obj/move/floor,/obj/move/wall,/turf/space,/area/shuttle)
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 484)
++++ code/atoms.dm	(working copy)
+@@ -2859,9 +2859,9 @@
+ 
+ 	var/list/parts = list(  )
+ 
+-/obj/shuttle
++/obj/move/shuttle
+ 	name = "shuttle"
+-/obj/shuttle/door
++/obj/move/shuttle/door
+ 	name = "door"
+ 	icon = 'shuttle.dmi'
+ 	icon_state = "door1"
+Index: code/game/shuttle.dm
+===================================================================
+--- code/game/shuttle.dm	(revision 484)
++++ code/game/shuttle.dm	(working copy)
+@@ -230,7 +230,7 @@
+ 		else
+ 	return
+ 
+-/obj/shuttle/door/attackby(obj/item/I as obj, mob/user as mob)
++/obj/move/shuttle/door/attackby(obj/item/I as obj, mob/user as mob)
+ 	if (src.operating)
+ 		return
+ 	if (src.density)
+@@ -238,10 +238,10 @@
+ 	else
+ 		return close()
+ 
+-/obj/shuttle/door/interact(mob/user as mob)
++/obj/move/shuttle/door/interact(mob/user as mob)
+ 	return attackby(user, user)
+ 
+-/obj/shuttle/door/proc/open()
++/obj/move/shuttle/door/proc/open()
+ 	src.add_fingerprint(usr)
+ 	if (src.operating)
+ 		return
+@@ -256,7 +256,7 @@
+ 	src.loc.buildlinks()
+ 	return
+ 
+-/obj/shuttle/door/proc/close()
++/obj/move/shuttle/door/proc/close()
+ 	src.add_fingerprint(usr)
+ 	if (src.operating)
+ 		return
+Index: code/game/cell_process.dm
+===================================================================
+--- code/game/cell_process.dm	(revision 484)
++++ code/game/cell_process.dm	(working copy)
+@@ -52,11 +52,11 @@
+ 		A.loc = T
+ 
+ /obj/move/proc/process()
+-	if(locate(/obj/shuttle/door, src.loc))
+-		var/obj/shuttle/door/D = locate(/obj/shuttle/door, src.loc)
+-		src.updatecell = !D.density
+-		if(!src.updatecell)
+-			return
++	// if(locate(/obj/move/shuttle/door, src.loc))
++	//	var/obj/move/shuttle/door/D = locate(/obj/move/shuttle/door, src.loc)
++	//	src.updatecell = !D.density
++	//	if(!src.updatecell)
++	//		return
+ 
+ 	src.checkfire = !src.checkfire
+ 	UpdateGasses(src, src.FindTurfs())
+@@ -75,8 +75,9 @@
+ 	DiffuseAir = gas.DiffusionLinks(src.loc)
+ 	ConductHeat= gas.ConductionLinks(src.loc)
+ 
+-/obj/move/wall/process()
+-	src.updatecell = 0
++// /obj/move/wall/process()
++// 	src.updatecell = 0
++
+ /obj/move/wall/blob_act()
+ 	del(src)
+ 
+@@ -215,6 +216,11 @@
+ /datum/substance/gas/proc/DiffusionLinks(var/turf/T)
+ 	if(T.density) // if this is a dense turf (wall, closed false_wall etc, just return nothing)
+ 		return list()
++	
++	for(var/obj/move/M in T) // are there any dense obj/move in this turf?
++		if(!M.density)
++			continue
++		return list()
+ 
+ 	var/list/L = cardinal.Copy()
+ 	for(var/obj/window/D in T)
+@@ -279,8 +285,14 @@
+ 
+ 	srcDir = turn(srcDir, 180)
+ 
++	for(var/obj/move/M in target)
++		if(!M.density)
++			continue
++		return 0
++
+ 	for(var/obj/window/D in target)
+-		if(!D.density) continue;
++		if(!D.density)
++			continue
+ 		if(D.dir == SOUTHWEST)
+ 			return 0
+ 		if(D.dir == srcDir)

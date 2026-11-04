@@ -1,0 +1,76 @@
+Index: code/game/machinery/turrets.dm
+===================================================================
+--- code/game/machinery/turrets.dm	(revision 67)
++++ code/game/machinery/turrets.dm	(working copy)
+@@ -54,7 +54,8 @@
+ 	var/obj/machinery/turretcover/cover = null
+ 	var/popping = 0
+ 	var/wasvalid = 0
+-	
++	var/lastfired = 0
++	var/const/shot_delay = 30 //3 seconds between shots
+ 
+ /obj/machinery/turretcover
+ 	name = "pop-up turret cover"
+@@ -88,12 +89,15 @@
+ /obj/machinery/turret/proc/setState(var/enabled, var/lethal)
+ 	src.enabled = enabled
+ 	src.lasers = lethal
+-	
++
+ 	src.power_change()
+ 
+ /obj/machinery/turret/process()
+ 	if(stat & (NOPOWER|BROKEN))
+ 		return
++	if(lastfired && world.time - lastfired < shot_delay)
++		return
++	lastfired = world.time
+ 	if (src.cover==null)
+ 		src.cover = new /obj/machinery/turretcover(src.loc)
+ 	use_power(50)
+Index: code/game/mob.dm
+===================================================================
+--- code/game/mob.dm	(revision 67)
++++ code/game/mob.dm	(working copy)
+@@ -4169,8 +4169,9 @@
+ 							d = d / 2
+ 						d = d / 5
+ 		if (src.stat != 2)
+-			if (istype(src.organs["chest"], /obj/item/weapon/organ/external))
+-				var/obj/item/weapon/organ/external/temp = src.organs["chest"]
++			var/organ = src.organs[ran_zone("chest")]
++			if (istype(organ, /obj/item/weapon/organ/external))
++				var/obj/item/weapon/organ/external/temp = organ
+ 				temp.take_damage(d, 0)
+ 			src.UpdateDamageIcon()
+ 			src.health = 100 - src.oxyloss - src.toxloss - src.fireloss - src.bruteloss
+@@ -4218,8 +4219,9 @@
+ 								d = d / 2
+ 							d = d / 2
+ 			if (src.stat != 2)
+-				if (istype(src.organs["chest"], /obj/item/weapon/organ/external))
+-					var/obj/item/weapon/organ/external/temp = src.organs["chest"]
++				var/organ = src.organs[ran_zone("chest")]
++				if (istype(organ, /obj/item/weapon/organ/external))
++					var/obj/item/weapon/organ/external/temp = organ
+ 					temp.take_damage(d, 0)
+ 				src.UpdateDamageIcon()
+ 				src.health = 100 - src.oxyloss - src.toxloss - src.fireloss - src.bruteloss
+Index: code/game/weapons.dm
+===================================================================
+--- code/game/weapons.dm	(revision 67)
++++ code/game/weapons.dm	(working copy)
+@@ -1531,6 +1531,12 @@
+ 		del(src)
+ 		return
+ 	step_towards(src, src.current)
++	// make it able to hit lying-down folk
++	var/list/dudes = list()
++	for(var/mob/M in src.loc)
++		dudes += M
++	if(dudes.len)
++		src.Bump(pick(dudes))
+ 	//world << text("laser stepped, now [] []:[], target is [] []:[]", src.loc, src.x, src.y, src.current, src.current:x, src.current:y)
+ 	src.life--
+ 	if (src.life <= 0)

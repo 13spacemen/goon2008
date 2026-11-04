@@ -1,0 +1,114 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 571)
++++ code/atoms.dm	(working copy)
+@@ -1191,6 +1191,14 @@
+ 	flags = 322.0
+ 	s_istate = "electronic"
+ 
++/obj/item/weapon/jammer
++	name = "Camera Jammer"
++	desc = "Creates an EM field that blocks camera tracking."
++	icon_state = "jammer0"
++	var/on = 0
++	flags = FPRINT|ONBELT
++	s_istate = "electronic"
++
+ /obj/item/weapon/t_scanner
+ 	name = "T-ray scanner"
+ 	desc = "A terahertz-ray emitter and scanner used to detect underfloor objects such as cables and pipes."
+Index: code/game/items.dm
+===================================================================
+--- code/game/items.dm	(revision 571)
++++ code/game/items.dm	(working copy)
+@@ -614,7 +614,7 @@
+ 			var/dat2 = ""
+ 			if (src.origradio)
+ 				dat2 = text("\n<A href='?src=\ref[];lock=1'>Lock</A><BR>\n<HR>", src)
+-			dat = text("<B>Syndicate Uplink Console:</B>\n<HR>\nTele-Crystals left: []<BR>\n<B>Request item:</B> (uses 1 tele-crystal)<BR>\n<A href='?src=\ref[];item_emag=1'>Electromagnet Card</A><BR>\n<A href='?src=\ref[];item_sleepypen=1'>Sleepy Pen</A><BR>\n<A href='?src=\ref[];item_cyanide=1'>Cyanide Pill</A><BR>\n<A href='?src=\ref[];item_cloak=1'>Cloaking Device</A><BR>\n<A href='?src=\ref[];item_revolver=1'>Revolver</A><BR>\n<A href='?src=\ref[];item_imp_freedom=1'>Implant- Freedom (with injector)</A><BR>\n<A href='?src=\ref[];item_ai_module=1'>'OxygenIsToxicToHumans' AI Module</A><BR>\n<HR>[]\n<A href='?src=\ref[];selfdestruct=1'>Self-Destruct</A>", src.uses, src, src, src, src, src, src, src, dat2, src)
++			dat = text("<B>Syndicate Uplink Console:</B>\n<HR>\nTele-Crystals left: []<BR>\n<B>Request item:</B> (uses 1 tele-crystal)<BR>\n<A href='?src=\ref[];item_emag=1'>Electromagnet Card</A><BR>\n<A href='?src=\ref[];item_sleepypen=1'>Sleepy Pen</A><BR>\n<A href='?src=\ref[];item_cyanide=1'>Cyanide Pill</A><BR>\n<A href='?src=\ref[];item_cloak=1'>Cloaking Device</A><BR>\n<A href='?src=\ref[];item_jammer=1'>Camera Jammer</A><BR>\n<A href='?src=\ref[];item_revolver=1'>Revolver</A><BR>\n<A href='?src=\ref[];item_imp_freedom=1'>Implant- Freedom (with injector)</A><BR>\n<A href='?src=\ref[];item_ai_module=1'>'OxygenIsToxicToHumans' AI Module</A><BR>\n<HR>[]\n<A href='?src=\ref[];selfdestruct=1'>Self-Destruct</A>", src.uses, src, src, src, src, src, src, src, src, dat2, src)
+ 	ss13_browse(user, dat, "window=radio")
+ 	return
+ 
+@@ -643,6 +643,10 @@
+ 			if (src.uses > 0)
+ 				src.uses--
+ 				new /obj/item/weapon/cloaking_device( H.loc )
++		else if (href_list["item_jammer"])
++			if (src.uses > 0)
++				src.uses--
++				new /obj/item/weapon/jammer( H.loc )
+ 		else if (href_list["item_revolver"])
+ 			if (src.uses > 0)
+ 				src.uses--
+Index: code/game/mob/carbon/equipment.dm
+===================================================================
+--- code/game/mob/carbon/equipment.dm	(revision 571)
++++ code/game/mob/carbon/equipment.dm	(working copy)
+@@ -497,6 +497,12 @@
+ 			src.invisibility = 2
+ 			return
+ 
++/mob/carbon/proc/CameraInvisible()
++	for(var/obj/item/weapon/jammer/S in src)
++		if(S.on)
++			return 1
++		return 0
++
+ /mob/carbon/proc/drop_item_v()
+ 	if (src.is_active())
+ 		drop_item()
+Index: code/game/mob/carbon/var.dm
+===================================================================
+--- code/game/mob/carbon/var.dm	(revision 571)
++++ code/game/mob/carbon/var.dm	(working copy)
+@@ -123,3 +123,4 @@
+ 	icon_state = "monkey1"
+ 
+ 	var/fingerprint = null
++	var/jammed = 0
+Index: code/game/mob/silicon/ai/verbs.dm
+===================================================================
+--- code/game/mob/silicon/ai/verbs.dm	(revision 571)
++++ code/game/mob/silicon/ai/verbs.dm	(working copy)
+@@ -66,6 +66,8 @@
+ 			continue
+ 		if(M.invisibility) //cloaked
+ 			continue
++		if(M.CameraInvisible())
++			continue
+ 
+ 		var/name = M.name
+ 		if (name in names)
+@@ -95,7 +97,7 @@
+ 			if (usr:cameraFollow == null)
+ 				return
+ 			else if (istype(target.id, /obj/item/weapon/card/id/syndicate))
+-				usr << "Follow camera mode ended."
++				usr << "Tracking error."
+ 				usr:cameraFollow = null
+ 				return
+ 			else if (!target || !istype(target.loc, /turf)) //in a closet
+Index: code/game/newitems.dm
+===================================================================
+--- code/game/newitems.dm	(revision 571)
++++ code/game/newitems.dm	(working copy)
+@@ -37,3 +37,13 @@
+ 
+ 
+ 		sleep(10)
++
++/obj/item/weapon/jammer/attack_self(mob/user)
++	src.add_fingerprint(user)
++	on = !on
++	icon_state = "jammer[on]"
++	for(var/mob/silicon/ai/AI in world)
++		if(AI.cameraFollow == user)
++			AI << "Tracking error!"
++			AI.cancel_camera()
++			return
+\ No newline at end of file
+Index: icons/ss13/items.dmi
+===================================================================
+Cannot display: file marked as a binary type.
+svn:mime-type = application/octet-stream

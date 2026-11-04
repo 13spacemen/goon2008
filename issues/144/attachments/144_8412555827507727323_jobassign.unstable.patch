@@ -1,0 +1,150 @@
+Index: code/game/jobs.dm
+===================================================================
+--- code/game/jobs.dm	(revision 414)
++++ code/game/jobs.dm	(working copy)
+@@ -17,10 +17,10 @@
+ 		if (level == 1 && M.char_job1 == job)
+ 			candidates += M
+ 
+-		if (level == 2 && M.char_job2 == job)
++		if (level == 2 && (M.char_job2 == job || M.char_job1 == job))
+ 			candidates += M
+ 
+-		if (level == 3 && M.char_job3 == job)
++		if (level == 3 && (M.char_job3 == job || M.char_job2 == job || M.char_job1 == job))
+ 			candidates += M
+ 
+ 	return candidates
+@@ -77,50 +77,91 @@
+ 	else
+ 		captain_choice.Assign_Rank("Captain")
+ 
+-	for (var/level = 1 to 3)
+-		if (unassigned.len == 0)
+-			break
+-
+-		for (var/occupation in assistant_occupations)
+-			if (unassigned.len == 0)
++	//for (var/level = 1 to 3)
++	//	if (unassigned.len == 0)
++	//		break
++	//
++	//	for (var/occupation in assistant_occupations)
++	//		if (unassigned.len == 0)
++	//			break
++	//		var/list/candidates = FindOccupationCandidates(unassigned, occupation, level)
++	//		for (var/mob/prespawn/candidate in candidates)
++	//			candidate.Assign_Rank(occupation)
++	//			unassigned -= candidate
++	//
++	//	for (var/occupation in occupation_choices)
++	//		if (unassigned.len == 0)
++	//			break
++	//		var/eligible = occupation_eligible[occupation]
++	//		if (eligible == 0)
++	//			continue
++	//		var/list/candidates = FindOccupationCandidates(unassigned, occupation, level)
++	//		var/eligiblechange = 0
++	//		while (eligible--)
++	//			var/mob/prespawn/candidate = PickOccupationCandidate(candidates)
++	//			if (candidate == null)
++	//				break
++	//			candidate.Assign_Rank(occupation)
++	//			unassigned -= candidate
++	//			eligiblechange++
++	//		occupation_eligible[occupation] -= eligiblechange
++	//
++	//if (unassigned.len)
++	//	unassigned = shuffle(unassigned)
++	//	for (var/occupation in occupation_choices)
++	//		if (unassigned.len == 0)
++	//			break
++	//		var/eligible = occupation_eligible[occupation]
++	//		while (eligible-- && unassigned.len > 0)
++	//			var/mob/prespawn/candidate = unassigned[1]
++	//			if (candidate == null)
++	//				break
++	//			candidate.Assign_Rank(occupation)
++	//			unassigned -= candidate
++	// new job assignment algorithm
++	// objective: give everyone their desired job if we can.
++	for (var/mob/prespawn/M in unassigned)
++		if(!M || !istype(M, /mob/prespawn)) 
++			unassigned -= M
++			continue // already has an assignment
++		for(var/level = 1 to 3) // try to pick you the ideal job...
++			var/job = null
++			switch(level)
++				if(1)
++					if (M.char_job1 != "No Preference")
++						job = M.char_job1
++				if(2)
++					if (M.char_job2 != "No Preference")
++						job = M.char_job2
++				if(3)
++					if (M.char_job3 != "No Preference")
++						job = M.char_job3
++			if (job == null)
++				break // since you don't care at this point you get an auto job (later)!
++			if (job in assistant_occupations) // just assign you the assistant job and break
++				M.Assign_Rank(job)
+ 				break
+-			var/list/candidates = FindOccupationCandidates(unassigned, occupation, level)
+-			for (var/mob/prespawn/candidate in candidates)
+-				candidate.Assign_Rank(occupation)
+-				unassigned -= candidate
++			if (occupation_eligible[job] == 0)
++				continue // job's already taken, try your next selection
++			var/list/candidates = FindOccupationCandidates(unassigned, job, level) // get the candidates 
++			var/mob/prespawn/candidate = PickOccupationCandidate(candidates)
++			candidate.Assign_Rank(job)
++			unassigned -= candidate
++			occupation_eligible[job] -= 1
++			if(candidate == M) break // don't bother finding you another job, you have your ideal one!
+ 
+-		for (var/occupation in occupation_choices)
+-			if (unassigned.len == 0)
+-				break
+-			var/eligible = occupation_eligible[occupation]
+-			if (eligible == 0)
+-				continue
+-			var/list/candidates = FindOccupationCandidates(unassigned, occupation, level)
+-			var/eligiblechange = 0
+-			while (eligible--)
+-				var/mob/prespawn/candidate = PickOccupationCandidate(candidates)
+-				if (candidate == null)
+-					break
+-				candidate.Assign_Rank(occupation)
+-				unassigned -= candidate
+-				eligiblechange++
+-			occupation_eligible[occupation] -= eligiblechange
+-
+-	if (unassigned.len)
+-		unassigned = shuffle(unassigned)
+-		for (var/occupation in occupation_choices)
+-			if (unassigned.len == 0)
+-				break
+-			var/eligible = occupation_eligible[occupation]
+-			while (eligible-- && unassigned.len > 0)
+-				var/mob/prespawn/candidate = unassigned[1]
+-				if (candidate == null)
+-					break
+-				candidate.Assign_Rank(occupation)
+-				unassigned -= candidate
+-
++	unassigned = shuffle(unassigned)
++	var/list/priorityranks = list("Head of Personnel", "Head of Research", "Medical Doctor", "Station Engineer", "AI")
+ 	for (var/mob/prespawn/M in unassigned)
+-		M.Assign_Rank(pick(assistant_occupations))
++		// check for unassigned main jobs
++		var/assign = pick(assistant_occupations)
++		if(!M || !istype(M, /mob/prespawn))
++			continue // looks like you're already assigned
++		for(var/occupation in priorityranks)
++			if(occupation_eligible[occupation])
++				assign = occupation
++				occupation_eligible[occupation] -= 1
++		M.Assign_Rank(assign)
+ 
+ 	for (var/mob/silicon/ai/aiPlayer in world)
+ 		spawn(0)

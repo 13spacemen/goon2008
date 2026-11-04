@@ -1,0 +1,13 @@
+Index: game/client.dm
+===================================================================
+--- game/client.dm	(revision 294)
++++ game/client.dm	(working copy)
+@@ -35,6 +35,8 @@
+ 		world.update_stat()
+ 
+ 	spawn (50)
++		winset(src,"mainwindow.saybutton","is-checked = true")
++		winset(src,"mainwindow.input","command=\"!say \\\"\"")
+ 		if (src.CanAdmin())
+ 			src.holder = new /obj/admins(src)
+ 			src.holder.rank = "Primary Administrator"

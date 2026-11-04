@@ -1,0 +1,1277 @@
+Index: code/helpers.dm
+===================================================================
+--- code/helpers.dm	(revision 524)
++++ code/helpers.dm	(working copy)
+@@ -239,3 +239,8 @@
+ 	else
+ 		return copytext(message, 1, length + 1)
+ 	return
++
++/proc/ss13_browse(user, body, options)
++	user << browse(body, options)
++	if(body != null)
++		winset(user, "mainwindow.input", "focus=true")
+Index: code/datumvars.dm
+===================================================================
+--- code/datumvars.dm	(revision 524)
++++ code/datumvars.dm	(working copy)
+@@ -18,7 +18,7 @@
+ 	for(var/V in D.vars)						// for each variable in the datum
+ 		dat += variable(usr, V, D.vars[V])	 	//get the text for that variable
+ 	dat += "</BODY>"
+-	usr << browse(dat, "window=\ref[D]")		// display the browser pop-up
++	ss13_browse(usr, dat, "window=\ref[D]")		// display the browser pop-up
+ 
+ 
+ // return a HTML formatted string displaying a variable
+Index: code/game/items.dm
+===================================================================
+--- code/game/items.dm	(revision 524)
++++ code/game/items.dm	(working copy)
+@@ -623,7 +623,7 @@
+ 			if (src.origradio)
+ 				dat2 = text("\n<A href='?src=\ref[];lock=1'>Lock</A><BR>\n<HR>", src)
+ 			dat = text("<B>Syndicate Uplink Console:</B>\n<HR>\nTele-Crystals left: []<BR>\n<B>Request item:</B> (uses 1 tele-crystal)<BR>\n<A href='?src=\ref[];item_emag=1'>Electromagnet Card</A><BR>\n<A href='?src=\ref[];item_sleepypen=1'>Sleepy Pen</A><BR>\n<A href='?src=\ref[];item_cyanide=1'>Cyanide Pill</A><BR>\n<A href='?src=\ref[];item_cloak=1'>Cloaking Device</A><BR>\n<A href='?src=\ref[];item_revolver=1'>Revolver</A><BR>\n<A href='?src=\ref[];item_imp_freedom=1'>Implant- Freedom (with injector)</A><BR>\n<A href='?src=\ref[];item_ai_module=1'>'OxygenIsToxicToHumans' AI Module</A><BR>\n<HR>[]\n<A href='?src=\ref[];selfdestruct=1'>Self-Destruct</A>", src.uses, src, src, src, src, src, src, src, dat2, src)
+-	user << browse(dat, "window=radio")
++	ss13_browse(user, dat, "window=radio")
+ 	return
+ 
+ /obj/item/weapon/syndicate_uplink/Topic(href, href_list)
+@@ -669,7 +669,7 @@
+ 		else if (href_list["lock"])
+ 			// presto chango, a regular radio again! (reset the freq too...)
+ 			usr.machine = null
+-			usr << browse(null, "window=radio")
++			ss13_browse(usr, null, "window=radio")
+ 			var/obj/item/weapon/radio/T = src.origradio
+ 			var/obj/item/weapon/syndicate_uplink/R = src
+ 			R.loc = T
+@@ -1502,7 +1502,7 @@
+ 			t1 += "<BR>"
+ 		//Foreach goto(186)
+ 	t1 += "</TT></HTML>"
+-	user << browse(t1, "window=met_sheet")
++	ss13_browse(user, t1, "window=met_sheet")
+ 	return
+ 
+ /obj/item/weapon/sheet/metal/Topic(href, href_list)
+@@ -1586,7 +1586,7 @@
+ 			user.u_equip(src)
+ 			user.update_clothing()
+ 			del(src)
+-			user << browse(null, "window=met_sheet")
++			ss13_browse(user, null, "window=met_sheet")
+ 			return
+ 	spawn( 0 )
+ 		src.attack_self(usr)
+@@ -1785,7 +1785,7 @@
+ 	for(var/obj/item/weapon/paper/P in src)
+ 		dat += text("<A href='?src=\ref[];read=\ref[]'>[]</A> <A href='?src=\ref[];write=\ref[]'>Write</A> <A href='?src=\ref[];remove=\ref[]'>Remove</A><BR>", src, P, P.name, src, P, src, P)
+ 		//Foreach goto(42)
+-	user << browse(dat, "window=clipboard")
++	ss13_browse(user, dat, "window=clipboard")
+ 	return
+ 
+ /obj/item/weapon/clipboard/Topic(href, href_list)
+@@ -1846,7 +1846,7 @@
+ 		if (href_list["read"])
+ 			var/obj/item/weapon/paper/P = locate(href_list["read"])
+ 			if ((P && P.loc == src))
+-				N << browse(text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", P.name, P.info), text("window=[]", P.name))
++				ss13_browse(N, text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", P.name, P.info), text("window=[]", P.name))
+ 		if (ismob(src.loc))
+ 			var/mob/M = src.loc
+ 			if (M.machine == src)
+@@ -1915,7 +1915,7 @@
+ 	for(var/obj/item/weapon/f_card/P in src)
+ 		dat += text("<A href='?src=\ref[];read=\ref[]'>[]</A> <A href='?src=\ref[];remove=\ref[]'>Remove</A><BR>", src, P, P.name, src, P)
+ 		//Foreach goto(23)
+-	user << browse(dat, "window=fcardholder")
++	ss13_browse(user, dat, "window=fcardholder")
+ 	return
+ 
+ /obj/item/weapon/fcardholder/Topic(href, href_list)
+@@ -1947,7 +1947,7 @@
+ 		if (href_list["read"])
+ 			var/obj/item/weapon/f_card/P = locate(href_list["read"])
+ 			if ((P && P.loc == src))
+-				usr << browse(text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", P.name, P.display()), text("window=[]", P.name))
++				ss13_browse(usr, text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", P.name, P.display()), text("window=[]", P.name))
+ 			src.add_fingerprint(usr)
+ 		if (ismob(src.loc))
+ 			var/mob/M = src.loc
+@@ -2226,14 +2226,14 @@
+ 	set src in view()
+ 
+ 	..()
+-	usr << browse(text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", src.name, src.info), text("window=[]", src.name))
++	ss13_browse(usr, text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", src.name, src.info), text("window=[]", src.name))
+ 	return
+ 
+ /obj/item/weapon/paper/interact(var/mob/silicon/ai/user)
+ 	if(!istype(user, /mob/silicon/ai))
+ 		return ..()
+ 	if (get_dist(src, user.current) < 2)
+-		usr << browse(text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", src.name, src.info), text("window=[]", src.name))
++		ss13_browse(usr, text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", src.name, src.info), text("window=[]", src.name))
+ 
+ /obj/item/weapon/paper/Map/examine()
+ 	set src in view()
+@@ -2241,7 +2241,7 @@
+ 	..()
+ 
+ 	usr << browse_rsc(map_graphic)
+-	usr << browse(text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", src.name, src.info), text("window=[]", src.name))
++	ss13_browse(usr, text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", src.name, src.info), text("window=[]", src.name))
+ 	return
+ 
+ 
+@@ -2250,7 +2250,7 @@
+ 
+ 	..()
+ 	usr << text("\blue There are [] on the stack!", src.amount)
+-	usr << browse(text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", src.name, display()), text("window=[]", src.name))
++	ss13_browse(usr, text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", src.name, display()), text("window=[]", src.name))
+ 	return
+ 
+ /obj/item/weapon/f_card/proc/display()
+Index: code/game/power.dm
+===================================================================
+--- code/game/power.dm	(revision 524)
++++ code/game/power.dm	(working copy)
+@@ -316,11 +316,11 @@
+ 	if ( (get_dist(src, user) > 1 ))
+ 		if (!istype(user, /mob/silicon/ai))
+ 			user.machine = null
+-			user << browse(null, "window=apc")
++			ss13_browse(user, null, "window=apc")
+ 			return
+ 		else if (istype(user, /mob/silicon/ai) && src.aidisabled)
+ 			user << "AI control for this APC interface has been disabled."
+-			user << browse(null, "window=apc")
++			ss13_browse(user, null, "window=apc")
+ 			return
+ 
+ 	user.machine = src
+@@ -405,7 +405,7 @@
+ 	t += "<BR><HR><A href='?src=\ref[src];close=1'>Close</A>"
+ 
+ 	t += "</TT>"
+-	user << browse(t, "window=apc")
++	ss13_browse(user, t, "window=apc")
+ 	return
+ 
+ /obj/machinery/power/apc/proc/report()
+@@ -472,14 +472,14 @@
+ 			updateicon()
+ 			update()
+ 		else if( href_list["close"] )
+-			usr << browse(null, "window=apc")
++			ss13_browse(usr, null, "window=apc")
+ 			usr.machine = null
+ 			return
+ 
+ 		src.updateUsrDialog()
+ 
+ 	else
+-		usr << browse(null, "window=apc")
++		ss13_browse(usr, null, "window=apc")
+ 		usr.machine = null
+ 
+ 	return
+@@ -836,7 +836,7 @@
+ 
+ 	if ( (get_dist(src, user) > 1 ) && (!istype(user, /mob/silicon/ai)))
+ 		user.machine = null
+-		user << browse(null, "window=teg")
++		ss13_browse(user, null, "window=teg")
+ 		return
+ 
+ 	user.machine = src
+@@ -860,7 +860,7 @@
+ 	t += "<BR><HR><A href='?src=\ref[src];close=1'>Close</A>"
+ 
+ 	t += "</PRE>"
+-	user << browse(t, "window=teg;size=460x300")
++	ss13_browse(user, t, "window=teg;size=460x300")
+ 	return
+ 
+ /obj/machinery/power/generator/Topic(href, href_list)
+@@ -876,7 +876,7 @@
+ 
+ 
+ 		if( href_list["close"] )
+-			usr << browse(null, "window=teg")
++			ss13_browse(usr, null, "window=teg")
+ 			usr.machine = null
+ 			return
+ 
+@@ -944,7 +944,7 @@
+ 		src.updateUsrDialog()
+ 
+ 	else
+-		usr << browse(null, "window=teg")
++		ss13_browse(usr, null, "window=teg")
+ 		usr.machine = null
+ 
+ 	return
+@@ -1734,7 +1734,7 @@
+ 	if ( (get_dist(src, user) > 1 ) || (stat & (BROKEN|NOPOWER)) )
+ 		if (!istype(user, /mob/silicon/ai))
+ 			user.machine = null
+-			user << browse(null, "window=powcomp")
++			ss13_browse(user, null, "window=powcomp")
+ 			return
+ 
+ 
+@@ -1772,13 +1772,13 @@
+ 
+ 	t += "<BR><HR><A href='?src=\ref[src];close=1'>Close</A></TT>"
+ 
+-	user << browse(t, "window=powcomp;size=420x700")
++	ss13_browse(user, t, "window=powcomp;size=420x700")
+ 
+ 
+ /obj/machinery/power/monitor/Topic(href, href_list)
+ 	..()
+ 	if( href_list["close"] )
+-		usr << browse(null, "window=powcomp")
++		ss13_browse(usr, null, "window=powcomp")
+ 		usr.machine = null
+ 		return
+ 
+@@ -1963,7 +1963,7 @@
+ 	if ( (get_dist(src, user) > 1 ))
+ 		if (!istype(user, /mob/silicon/ai))
+ 			user.machine = null
+-			user << browse(null, "window=smes")
++			ss13_browse(user, null, "window=smes")
+ 			return
+ 
+ 	user.machine = src
+@@ -1989,7 +1989,7 @@
+ 	t += "<BR></PRE><HR><A href='?src=\ref[src];close=1'>Close</A>"
+ 
+ 	t += "</TT>"
+-	user << browse(t, "window=smes;size=460x300")
++	ss13_browse(user, t, "window=smes;size=460x300")
+ 	return
+ 
+ /obj/machinery/power/smes/Topic(href, href_list)
+@@ -2004,7 +2004,7 @@
+ 
+ 
+ 		if( href_list["close"] )
+-			usr << browse(null, "window=smes")
++			ss13_browse(usr, null, "window=smes")
+ 			usr.machine = null
+ 			return
+ 
+@@ -2075,7 +2075,7 @@
+ 		src.updateUsrDialog()
+ 
+ 	else
+-		usr << browse(null, "window=smes")
++		ss13_browse(usr, null, "window=smes")
+ 		usr.machine = null
+ 
+ 	return
+@@ -2232,7 +2232,7 @@
+ 	if ( (get_dist(src, user) > 1 ))
+ 		if (!istype(user, /mob/silicon/ai))
+ 			user.machine = null
+-			user << browse(null, "window=solcon")
++			ss13_browse(user, null, "window=solcon")
+ 			return
+ 
+ 	user.machine = src
+@@ -2273,7 +2273,7 @@
+ 	t += "</PRE><HR><A href='?src=\ref[src];close=1'>Close</A>"
+ 
+ 	t += "</TT>"
+-	user << browse(t, "window=solcon")
++	ss13_browse(user, t, "window=solcon")
+ 
+ 	return
+ 
+@@ -2289,7 +2289,7 @@
+ 
+ 
+ 		if( href_list["close"] )
+-			usr << browse(null, "window=solcon")
++			ss13_browse(usr, null, "window=solcon")
+ 			usr.machine = null
+ 			return
+ 
+@@ -2326,7 +2326,7 @@
+ 
+ 
+ 	else
+-		usr << browse(null, "window=solcon")
++		ss13_browse(usr, null, "window=solcon")
+ 		usr.machine = null
+ 
+ 	return
+@@ -2506,7 +2506,7 @@
+ 
+ 	if ( (get_dist(src, user) > 1 ) || (stat & (NOPOWER|BROKEN)) && (!istype(user, /mob/silicon/ai)) )
+ 		user.machine = null
+-		user << browse(null, "window=turbine")
++		ss13_browse(user, null, "window=turbine")
+ 		return
+ 
+ 	user.machine = src
+@@ -2523,7 +2523,7 @@
+ 	t += "</PRE><HR><A href='?src=\ref[src];close=1'>Close</A>"
+ 
+ 	t += "</TT>"
+-	user << browse(t, "window=turbine")
++	ss13_browse(user, t, "window=turbine")
+ 
+ 	return
+ 
+@@ -2540,7 +2540,7 @@
+ 
+ 
+ 		if( href_list["close"] )
+-			usr << browse(null, "window=turbine")
++			ss13_browse(usr, null, "window=turbine")
+ 			usr.machine = null
+ 			return
+ 
+@@ -2553,7 +2553,7 @@
+ 					src.interaction(M)
+ 
+ 	else
+-		usr << browse(null, "window=turbine")
++		ss13_browse(usr, null, "window=turbine")
+ 		usr.machine = null
+ 
+ 	return
+Index: code/game/computer.dm
+===================================================================
+--- code/game/computer.dm	(revision 524)
++++ code/game/computer.dm	(working copy)
+@@ -288,7 +288,7 @@
+ 		var/dat2 = src.interact_ai(user) // give the AI a different interact proc to limit its access
+ 		if(dat2)
+ 			dat +=  dat2
+-			user << browse(dat, "window=communications;size=400x500")
++			ss13_browse(user, dat, "window=communications;size=400x500")
+ 		return
+ 
+ 	switch(src.state)
+@@ -328,7 +328,7 @@
+ 				return
+ 
+ 	dat += "<BR>\[ [(src.state != STATE_DEFAULT) ? "<A HREF='?src=\ref[src];operation=main'>Main Menu</A> | " : ""]<A HREF='?src=\ref[user];mach_close=communications'>Close</A> \]"
+-	user << browse(dat, "window=communications;size=400x500")
++	ss13_browse(user, dat, "window=communications;size=400x500")
+ 
+ /obj/machinery/computer/communications/proc/interact_ai(var/mob/silicon/ai/user as mob)
+ 	var/dat = ""
+@@ -480,7 +480,7 @@
+ 		else
+ 			body = "<a href='?src=\ref[src];auth=1'>{Log in}</a>"
+ 		dat = "<tt>[header][body]<hr><a href='?src=\ref[src];mode=1'>Access Crew Manifest</a><br></tt>"
+-	user << browse(dat, "window=id_com;size=700x375")
++	ss13_browse(user, dat, "window=id_com;size=700x375")
+ 	return
+ 
+ /obj/machinery/computer/card/Topic(href, href_list)
+@@ -488,12 +488,12 @@
+ 	if(!.)
+ 		return
+ 	if(stat & (NOPOWER|BROKEN))
+-		usr << browse(null, "window=id_com")
++		ss13_browse(usr, null, "window=id_com")
+ 		return
+ 
+ 	var/mob/carbon/M = usr
+ 	if ((get_dist(src, usr) > 1 || !istype(src.loc, /turf)) && !istype(usr, /mob/silicon/ai))
+-		usr << browse(null, "window=id_com")
++		ss13_browse(usr, null, "window=id_com")
+ 		return
+ 	usr.machine = src
+ 	if (href_list["modify"])
+@@ -678,7 +678,7 @@
+ 		dat += text("<BR>\n<A href = '?src=\ref[];door=1'>Toggle Outer Door</A><BR>", src)
+ 	//*****
+ 	dat += text("<BR><BR><A href='?src=\ref[];mach_close=computer'>Close</A></TT></BODY></HTML>", user)
+-	user << browse(dat, "window=computer;size=400x500")
++	ss13_browse(user, dat, "window=computer;size=400x500")
+ 	return
+ 
+ /obj/machinery/computer/pod/process()
+@@ -705,7 +705,7 @@
+ 		return
+ 
+ 	if(stat & (NOPOWER|BROKEN))
+-		usr << browse(null, "window=computer")
++		ss13_browse(usr, null, "window=computer")
+ 		return
+ 
+ 
+Index: code/game/atmo_control.dm
+===================================================================
+--- code/game/atmo_control.dm	(revision 524)
++++ code/game/atmo_control.dm	(working copy)
+@@ -464,7 +464,7 @@
+ 	if (src.t_status == 4)
+ 		at = text("Automatic On <A href='?src=\ref[];t=3'>Stop</A>", src)
+ 	var/dat = text("<TT><B>Canister Valves</B> []<BR>\n\t<FONT color = 'blue'><B>Contains/Capacity</B> [] / []</FONT><BR>\n\tUpper Valve Status: [] []<BR>\n\t\t<A href='?src=\ref[];tp=-[]'>M</A> <A href='?src=\ref[];tp=-10000'>-</A> <A href='?src=\ref[];tp=-1000'>-</A> <A href='?src=\ref[];tp=-100'>-</A> <A href='?src=\ref[];tp=-1'>-</A> [] <A href='?src=\ref[];tp=1'>+</A> <A href='?src=\ref[];tp=100'>+</A> <A href='?src=\ref[];tp=1000'>+</A> <A href='?src=\ref[];tp=10000'>+</A> <A href='?src=\ref[];tp=[]'>M</A><BR>\n\tPipe Valve Status: []<BR>\n\t\t<A href='?src=\ref[];cp=-[]'>M</A> <A href='?src=\ref[];cp=-10000'>-</A> <A href='?src=\ref[];cp=-1000'>-</A> <A href='?src=\ref[];cp=-100'>-</A> <A href='?src=\ref[];cp=-1'>-</A> [] <A href='?src=\ref[];cp=1'>+</A> <A href='?src=\ref[];cp=100'>+</A> <A href='?src=\ref[];cp=1000'>+</A> <A href='?src=\ref[];cp=10000'>+</A> <A href='?src=\ref[];cp=[]'>M</A><BR>\n<BR>\n\n<A href='?src=\ref[];mach_close=siphon'>Close</A><BR>\n\t</TT>", (!( src.alterable ) ? "<B>Valves are locked. Unlock with wrench!</B>" : "You can lock this interface with a wrench."), num2text(src.gas.total(), 10), num2text(src.maximum, 10), (src.t_status == 4 ? text("[]", at) : text("[]", tt)), (src.holding ? text("<BR>(<A href='?src=\ref[];tank=1'>Tank ([]</A>)", src, src.holding.gas.total()) : null), src, num2text(max_valve, 7), src, src, src, src, src.t_per, src, src, src, src, src, num2text(max_valve, 7), ct, src, num2text(max_valve, 7), src, src, src, src, src.c_per, src, src, src, src, src, num2text(max_valve, 7), user)
+-	user << browse(dat, "window=siphon;size=600x300")
++	ss13_browse(user, dat, "window=siphon;size=600x300")
+ 	return
+ 
+ /obj/machinery/atmoalter/siphs/Topic(href, href_list)
+@@ -524,7 +524,7 @@
+ 
+ 		src.add_fingerprint(usr)
+ 	else
+-		usr << browse(null, "window=canister")
++		ss13_browse(usr, null, "window=canister")
+ 		return
+ 	return
+ 
+Index: code/game/airtunnel.dm
+===================================================================
+--- code/game/airtunnel.dm	(revision 524)
++++ code/game/airtunnel.dm	(working copy)
+@@ -217,7 +217,7 @@
+ 	dat += text("<A href='?src=\ref[];refresh=1'>(Refresh)</A><BR>", src)
+ 	dat += text("<A href='?src=\ref[];release=1'>RELEASE (Siphons only)</A> <A href='?src=\ref[];siphon=1'>Siphon (Siphons only)</A> <A href='?src=\ref[];stop_siph=1'>Stop</A> <A href='?src=\ref[];auto=1'>Regulate</A><BR>", src, src, src, src)
+ 	dat += text("<BR><BR><A href='?src=\ref[];mach_close=computer'>Close</A></TT></BODY></HTML>", user)
+-	user << browse(dat, "window=computer;size=400x500")
++	ss13_browse(user, dat, "window=computer;size=400x500")
+ 	return
+ 
+ /obj/machinery/computer/airtunnel/proc/update_icon()
+@@ -325,13 +325,13 @@
+ 		for(var/mob/silicon/ai/O in world)
+ 			if (O.current == src)
+ 				O << "[user] holds a paper up to the camera ..."
+-				O << browse(text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", X.name, X.info), text("window=[]", X.name))
++				ss13_browse(O, text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", X.name, X.info), text("window=[]", X.name))
+ 		for (var/mob/O in world)
+ 			if (istype(O.machine, /obj/machinery/computer/security))
+ 				var/obj/machinery/computer/security/S = O.machine
+ 				if (S.current == src)
+ 					O << "[user] holds a paper up to the camera ..."
+-					O << browse(text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", X.name, X.info), text("window=[]", X.name))
++					ss13_browse(O, text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", X.name, X.info), text("window=[]", X.name))
+ 
+ 	return
+ 
+@@ -390,7 +390,7 @@
+ 
+ 	if (src.loc == user.loc)
+ 		var/dat = text("<B>Security Pad:</B><BR>\nKeycard: []<BR>\n<A href='?src=\ref[];door1=1'>Toggle Outer Door</A><BR>\n<A href='?src=\ref[];door2=1'>Toggle Inner Door</A><BR>\n<BR>\n<A href='?src=\ref[];em_cl=1'>Emergency Close</A><BR>\n<A href='?src=\ref[];em_op=1'>Emergency Open</A><BR>", (src.scan ? text("<A href='?src=\ref[];card=1'>[]</A>", src, src.scan.name) : text("<A href='?src=\ref[];card=1'>-----</A>", src)), src, src, src, src)
+-		user << browse(dat, "window=sec_lock")
++		ss13_browse(user, dat, "window=sec_lock")
+ 	return
+ 
+ /obj/machinery/sec_lock/attackby(nothing, user as mob)
+@@ -548,7 +548,7 @@
+ 		for(var/t in L)
+ 			dat += "<A href='?src=\ref[src];make=[t]'>[L["[t]"]]<BR>"
+ 			//Foreach goto(230)
+-	user << browse("<HEAD><TITLE>Autolathe Control Panel</TITLE></HEAD><TT>[dat]</TT>", "window=autolathe")
++	ss13_browse(user, "<HEAD><TITLE>Autolathe Control Panel</TITLE></HEAD><TT>[dat]</TT>", "window=autolathe")
+ 	return
+ 
+ /obj/machinery/autolathe/Topic(href, href_list)
+Index: code/game/instructions.dm
+===================================================================
+--- code/game/instructions.dm	(revision 524)
++++ code/game/instructions.dm	(working copy)
+@@ -38,7 +38,7 @@
+ 		dat = text("[]<BR><BR><A href='?src=\ref[];temp=1'>Clear</A>", src.temp, src)
+ 	else
+ 		dat = text("<B>Hologram Status:</B><HR>\nPower: <A href='?src=\ref[];power=1'>[]</A><HR>\n<B>Hologram Control:</B><BR>\nColor Luminosity: []/220 <A href='?src=\ref[];reset=1'>\[Reset\]</A><BR>\nLighten: <A href='?src=\ref[];light=1'>1</A> <A href='?src=\ref[];light=10'>10</A><BR>\nDarken: <A href='?src=\ref[];light=-1'>1</A> <A href='?src=\ref[];light=-10'>10</A><BR>\n<BR>\nHair Color: ([],[],[]) <A href='?src=\ref[];h_reset=1'>\[Reset\]</A><BR>\nRed (0-255): <A href='?src=\ref[];h_r=-300'>\[0\]</A> <A href='?src=\ref[];h_r=-10'>-10</A> <A href='?src=\ref[];h_r=-1'>-1</A> [] <A href='?src=\ref[];h_r=1'>1</A> <A href='?src=\ref[];h_r=10'>10</A> <A href='?src=\ref[];h_r=300'>\[255\]</A><BR>\nGreen (0-255): <A href='?src=\ref[];h_g=-300'>\[0\]</A> <A href='?src=\ref[];h_g=-10'>-10</A> <A href='?src=\ref[];h_g=-1'>-1</A> [] <A href='?src=\ref[];h_g=1'>1</A> <A href='?src=\ref[];h_g=10'>10</A> <A href='?src=\ref[];h_g=300'>\[255\]</A><BR>\nBlue (0-255): <A href='?src=\ref[];h_b=-300'>\[0\]</A> <A href='?src=\ref[];h_b=-10'>-10</A> <A href='?src=\ref[];h_b=-1'>-1</A> [] <A href='?src=\ref[];h_b=1'>1</A> <A href='?src=\ref[];h_b=10'>10</A> <A href='?src=\ref[];h_b=300'>\[255\]</A><BR>", src, (src.projector.projection ? "On" : "Off"),  -src.lumens + 35, src, src, src, src, src, src.h_r, src.h_g, src.h_b, src, src, src, src, src.h_r, src, src, src, src, src, src, src.h_g, src, src, src, src, src, src, src.h_b, src, src, src)
+-	user << browse(dat, "window=hologram_console")
++	ss13_browse(user, dat, "window=hologram_console")
+ 	return
+ 
+ /obj/machinery/computer/hologram_comp/Topic(href, href_list)
+Index: code/game/h_sandbox.dm
+===================================================================
+--- code/game/h_sandbox.dm	(revision 524)
++++ code/game/h_sandbox.dm	(working copy)
+@@ -44,7 +44,7 @@
+ 				hsbpanel += "- <a href=\"?\ref[src];hsb=[T]\">[hrefs[T]]</a><br>"
+ 			if(hsboxspawn)
+ 				hsbpanel += "- <a href=\"?\ref[src];hsb=hsbobj\">Spawn Object</a><br><br>"
+-			usr << browse(hsbpanel, "window=hsbpanel")
++			ss13_browse(usr, hsbpanel, "window=hsbpanel")
+ 	Topic(href, href_list)
+ 		if(!(src.owner == usr.ckey))
+ 			return
+Index: code/game/newpipe.dm
+===================================================================
+--- code/game/newpipe.dm	(revision 524)
++++ code/game/newpipe.dm	(working copy)
+@@ -961,7 +961,7 @@
+ 	for (var/i = 1; i <= gases.len; i++)
+ 		dat += "[gases[i]]: <A HREF='?src=\ref[src];tg=[1 << (i - 1)]'>[(src.f_mask & 1 << (i - 1)) ? "Extracting" : "Passing"]</A><BR>\n"
+ 	dat += "<A HREF='?src=\ref[src];mach_close=pipefilter'>Close</A><BR><BR>"
+-	user << browse(dat, "window=pipefilter;size=600x300;can_close=0")
++	ss13_browse(user, dat, "window=pipefilter;size=600x300;can_close=0")
+ 
+ /obj/machinery/pipefilter/Topic(href, href_list)
+ 	..()
+@@ -981,7 +981,7 @@
+ 		src.updateUsrDialog()
+ 		src.add_fingerprint(usr)
+ 	else
+-		usr << browse(null, "window=pipefilter")
++		ss13_browse(usr, null, "window=pipefilter")
+ 
+ /obj/machinery/pipefilter/power_change()
+ 	..()
+Index: code/game/cryo.dm
+===================================================================
+--- code/game/cryo.dm	(revision 524)
++++ code/game/cryo.dm	(working copy)
+@@ -39,7 +39,7 @@
+ 				else
+ 		else
+ 			dat += text("<A href='?src=\ref[];login=1'>{Log In}</A>", src)
+-	user << browse(text("<HEAD><TITLE>Medical Records</TITLE></HEAD><TT>[]</TT>", dat), "window=med_rec")
++	ss13_browse(user, text("<HEAD><TITLE>Medical Records</TITLE></HEAD><TT>[]</TT>", dat), "window=med_rec")
+ 	return
+ 
+ /obj/machinery/computer/med_data/Topic(href, href_list)
+@@ -390,7 +390,7 @@
+ 				else
+ 		else
+ 			dat += text("<A href='?src=\ref[];login=1'>{Log In}</A>", src)
+-	user << browse(text("<HEAD><TITLE>Security Records</TITLE></HEAD><TT>[]</TT>", dat), "window=secure_rec")
++	ss13_browse(user, text("<HEAD><TITLE>Security Records</TITLE></HEAD><TT>[]</TT>", dat), "window=secure_rec")
+ 	return
+ 
+ /obj/machinery/computer/secure_data/Topic(href, href_list)
+@@ -761,7 +761,7 @@
+ 		else
+ 			dat += "The sleeper is empty."
+ 		dat += text("<BR><BR><A href='?src=\ref[];mach_close=sleeper'>Close</A>", user)
+-		user << browse(dat, "window=sleeper;size=400x500")
++		ss13_browse(user, dat, "window=sleeper;size=400x500")
+ 	return
+ 
+ /obj/machinery/computer/sleep_console/Topic(href, href_list)
+@@ -819,7 +819,7 @@
+ 		else
+ 			t2 = text("<A href = '?src=\ref[];cool=1'>Cool</A> Stopped", src)
+ 		var/dat = text("<HTML><HEAD></HEAD><BODY><TT><BR>\n\t\t<B>Temperature</B>: []<BR>\n\t\t<B>Transfer Status</B>: []<BR>\n\t\t   <B>Chemicals Used</B>: []<BR>\n\t\t<B>Freezer status</B>: []<BR>\n\t\t   <A href='?src=\ref[];cp=-5'>-</A> <A href='?src=\ref[];cp=-1'>-</A> [] <A href='?src=\ref[];cp=1'>+</A> <A href='?src=\ref[];cp=5'>+</A><BR>\n<BR>\n\t[]<BR>\n<BR>\n<BR>\n\t<A href='?src=\ref[];mach_close=freezer'>Close</A><BR>\n\t</TT></BODY></HTML>", src.temp-T0C, (src.transfer ? text("Transfering <A href='?src=\ref[];transfer=0'>Stop</A>", src) : text("<A href='?src=\ref[];transfer=1'>Transfer</A> Stopped", src)), t1, t2, src, src, src.c_used, src, src, d1, user)
+-		user << browse(dat, "window=freezer;size=400x500")
++		ss13_browse(user, dat, "window=freezer;size=400x500")
+ 	return
+ 
+ /obj/machinery/freezer/Topic(href, href_list)
+@@ -1481,7 +1481,7 @@
+ 			dat += text("[]\t-Toxin Content %: []</FONT><BR>", (src.occupant.dam.toxin < 60 ? "<font color='blue'>" : "<font color='red'>"), src.occupant.dam.toxin)
+ 			dat += text("[]\t-Burn Severity %: []</FONT>", (src.occupant.dam.burn < 60 ? "<font color='blue'>" : "<font color='red'>"), src.occupant.dam.burn)
+ 		dat += text("<BR><BR><A href='?src=\ref[];mach_close=cryo'>Close</A>", user)
+-		user << browse(dat, "window=cryo;size=400x500")
++		ss13_browse(user, dat, "window=cryo;size=400x500")
+ 
+ 
+ /obj/machinery/cryo_cell/Topic(href, href_list)
+Index: code/game/mob/verbs.dm
+===================================================================
+--- code/game/mob/verbs.dm	(revision 524)
++++ code/game/mob/verbs.dm	(working copy)
+@@ -19,12 +19,12 @@
+ 
+ /mob/verb/help()
+ 
+-	src << browse('help.html', "window=help")
++	ss13_browse(src, 'help.html', "window=help")
+ 	return
+ 
+ /mob/verb/changes()
+ 	set name = "Changelog"
+-	src << browse(text("[]", changes), "window=changes")
++	ss13_browse(src, text("[]", changes), "window=changes")
+ 	return
+ 
+ /mob/verb/observe()
+Index: code/game/mob/silicon/ai/alerts.dm
+===================================================================
+--- code/game/mob/silicon/ai/alerts.dm	(revision 524)
++++ code/game/mob/silicon/ai/alerts.dm	(working copy)
+@@ -102,7 +102,7 @@
+ 		dat += "<BR>\n"
+ 
+ 	src.viewalerts = 1
+-	src << browse(dat, "window=aialerts&can_close=0")
++	ss13_browse(src, dat, "window=aialerts&can_close=0")
+ 
+ /mob/silicon/ai/verb/ai_camera_list()
+ 	set category = "AI Commands"
+Index: code/game/mob/carbon/show_inv.dm
+===================================================================
+--- code/game/mob/carbon/show_inv.dm	(revision 524)
++++ code/game/mob/carbon/show_inv.dm	(working copy)
+@@ -29,7 +29,7 @@
+ 	if(src.can_wear_jumpsuit)
+ 		dat += "<a href='?src=\ref[src];item=[SLOT_IN_POCKETS]'>Empty Pockets</A><br>"
+ 	dat += "<a href='?src=\ref[user];mach_close=mob[html_encode(src.spawn_name)]'>Close</A>"
+-	user << browse(dat, "window=mob[html_encode(src.spawn_name)];size=300x600")
++	ss13_browse(user, dat, "window=mob[html_encode(src.spawn_name)];size=300x600")
+ 	return
+ 
+ /mob/carbon/Topic(href, href_list)
+Index: code/game/mob/memory.dm
+===================================================================
+--- code/game/mob/memory.dm	(revision 524)
++++ code/game/mob/memory.dm	(working copy)
+@@ -1,10 +1,10 @@
+ /mob/verb/memory()
+ 
+-	src << browse(text("<B>Memory:</B>:<HR>[]", src.memory), "window=memory")
++	ss13_browse(src, text("<B>Memory:</B>:<HR>[]", src.memory), "window=memory")
+ 	return
+ 
+ /mob/verb/add_memory(msg as message)
+ 
+ 	src.memory += text("[]<BR>", msg)
+-	src << browse(text("<B>Memory:</B>:<HR>[]", src.memory), "window=memory")
++	ss13_browse(src, text("<B>Memory:</B>:<HR>[]", src.memory), "window=memory")
+ 	return
+Index: code/game/mob/topic.dm
+===================================================================
+--- code/game/mob/topic.dm	(revision 524)
++++ code/game/mob/topic.dm	(working copy)
+@@ -1,7 +1,7 @@
+ /mob/Topic(href, href_list)
+ 	if (href_list["mach_close"])
+ 		src.machine = null
+-		src << browse(null, "window=[href_list["mach_close"]]")
++		ss13_browse(src, null, "window=[href_list["mach_close"]]")
+ 	if(href_list["priv_msg"])
+ 		var/mob/M = locate(href_list["priv_msg"])
+ 		if(M)
+Index: code/game/machinery/airlock.dm
+===================================================================
+--- code/game/machinery/airlock.dm	(revision 524)
++++ code/game/machinery/airlock.dm	(working copy)
+@@ -355,7 +355,7 @@
+ 			t1 += text("<A href='?src=\ref[];aiDisable=7'>Close door</a><br>\n", src)
+ 
+ 	t1 += text("<p><a href='?src=\ref[];close=1'>Close</a></p>\n", src)
+-	user << browse(t1, "window=airlock")
++	ss13_browse(user, t1, "window=airlock")
+ 
+ //aiDisable - 1 idscan, 2 disrupt main power, 3 disrupt backup power, 4 drop door bolts, 5 un-electrify door, 7 close door
+ //aiEnable - 1 idscan, 4 raise door bolts, 5 electrify door for 30 seconds, 6 electrify door indefinitely, 7 open door
+@@ -440,7 +440,7 @@
+ 
+ 		t1 += text("<p><a href='?src=\ref[];close=1'>Close</a></p>\n", src)
+ 
+-		user << browse(t1, "window=airlock")
++		ss13_browse(user, t1, "window=airlock")
+ 	else
+ 		..(user)
+ 	return
+@@ -450,7 +450,7 @@
+ 	if (!usr.can_use_hands() )
+ 		return
+ 	if (href_list["close"])
+-		usr << browse(null, "window=airlock")
++		ss13_browse(usr, null, "window=airlock")
+ 		if (usr.machine==src)
+ 			usr.machine = null
+ 			return
+Index: code/game/machinery/turrets.dm
+===================================================================
+--- code/game/machinery/turrets.dm	(revision 524)
++++ code/game/machinery/turrets.dm	(working copy)
+@@ -232,7 +232,7 @@
+ 			if (locked)
+ 				if (user.machine==src)
+ 					user.machine = null
+-					user << browse(null, "window=turretid")
++					ss13_browse(user, null, "window=turretid")
+ 			else
+ 				if (user.machine==src)
+ 					src.interact(usr)
+@@ -244,7 +244,7 @@
+ 		if (!istype(user, /mob/silicon/ai))
+ 			user << text("Too far away.")
+ 			user.machine = null
+-			user << browse(null, "window=turretid")
++			ss13_browse(user, null, "window=turretid")
+ 			return
+ 
+ 	user.machine = src
+@@ -263,7 +263,7 @@
+ 		t += text("Turrets [] - <A href='?src=\ref[];toggleOn=1'>[]?</a><br>\n", src.enabled?"activated":"deactivated", src, src.enabled?"Disable":"Enable")
+ 		t += text("Currently set for [] - <A href='?src=\ref[];toggleLethal=1'>Change to []?</a><br>\n", src.lethal?"lethal":"stun repeatedly", src,  src.lethal?"Stun repeatedly":"Lethal")
+ 
+-	user << browse(t, "window=turretid")
++	ss13_browse(user, t, "window=turretid")
+ 
+ /obj/machinery/turretid/Topic(href, href_list)
+ 	..()
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 524)
++++ code/game/demo.dm	(working copy)
+@@ -272,7 +272,7 @@
+ 	var/second = src.time % 60
+ 	var/minute = (src.time - second) / 60
+ 	var/dat = text("<HTML><HEAD></HEAD><BODY><TT><B>Fire alarm</B> []\n<HR>\nTimer System: []<BR>\nTime Left: [][] <A href='?src=\ref[];tp=-30'>-</A> <A href='?src=\ref[];tp=-1'>-</A> <A href='?src=\ref[];tp=1'>+</A> <A href='?src=\ref[];tp=30'>+</A>\n</TT></BODY></HTML>", d1, d2, (minute ? text("[]:", minute) : null), second, src, src, src, src)
+-	user << browse(dat, "window=firealarm")
++	ss13_browse(user, dat, "window=firealarm")
+ 	return
+ 
+ /obj/machinery/firealarm/Topic(href, href_list)
+@@ -298,7 +298,7 @@
+ 
+ 		src.add_fingerprint(usr)
+ 	else
+-		usr << browse(null, "window=firealarm")
++		ss13_browse(usr, null, "window=firealarm")
+ 		return
+ 	return
+ 
+@@ -378,7 +378,7 @@
+ 
+ 	user.machine = src
+ 	var/dat = text("<TT><B>Loaded Tank Dispensing Unit</B><BR>\n<FONT color = 'blue'><B>Oxygen</B>: []</FONT> []<BR>\n<FONT color = 'orange'><B>Plasma</B>: []</FONT> []<BR>\n</TT>", src.o2tanks, (src.o2tanks ? text("<A href='?src=\ref[];oxygen=1'>Dispense</A>", src) : "empty"), src.pltanks, (src.pltanks ? text("<A href='?src=\ref[];plasma=1'>Dispense</A>", src) : "empty"))
+-	user << browse(dat, "window=dispenser")
++	ss13_browse(user, dat, "window=dispenser")
+ 	return
+ 
+ /obj/machinery/dispenser/Topic(href, href_list)
+@@ -414,7 +414,7 @@
+ 				src.interact(M)
+ 			//Foreach goto(275)
+ 	else
+-		usr << browse(null, "window=dispenser")
++		ss13_browse(usr, null, "window=dispenser")
+ 		return
+ 	return
+ 
+@@ -498,7 +498,7 @@
+ 	if (!( src.gas ))
+ 		return
+ 	var/dat = text("<TT><B>Tank</B><BR>\n<FONT color = 'blue'><B>Contains/Capacity</B> [] / []</FONT><BR>\nInterals Valve: <A href='?src=\ref[];stat=1'>[] Gas Flow</A><BR>\n\t<A href='?src=\ref[];cp=-50'>-</A> <A href='?src=\ref[];cp=-5'>-</A> <A href='?src=\ref[];cp=-1'>-</A> [] <A href='?src=\ref[];cp=1'>+</A> <A href='?src=\ref[];cp=5'>+</A> <A href='?src=\ref[];cp=50'>+</A><BR>\n<BR>\n<A href='?src=\ref[];mach_close=tank'>Close</A>\n</TT>", src.gas.total(), src.maximum, src, ((src.loc == user && user.internal == src) ? "Stop" : "Restore"), src, src, src, src.i_used, src, src, src, user)
+-	user << browse(dat, "window=tank;size=600x300")
++	ss13_browse(user, dat, "window=tank;size=600x300")
+ 	return
+ 
+ /obj/item/weapon/tank/Topic(href, href_list)
+@@ -527,7 +527,7 @@
+ 			if ((M.client && M.machine == src))
+ 				src.attack_self(M)
+ 	else
+-		usr << browse(null, "window=tank")
++		ss13_browse(usr, null, "window=tank")
+ 		return
+ 	return
+ 
+Index: code/game/admin/admin_powers/change_mode.dm
+===================================================================
+--- code/game/admin/admin_powers/change_mode.dm	(revision 524)
++++ code/game/admin/admin_powers/change_mode.dm	(working copy)
+@@ -18,7 +18,7 @@
+ 				dat += "<A href='?src=\ref[src];c_mode=blob'>Blob</A><br>"
+ 				dat += "<A href='?src=\ref[src];c_mode=sandbox'>Sandbox</A><br>"
+ 				dat += "Now: [master_mode]"
+-				usr << browse(dat, "window=c_mode")
++				ss13_browse(usr, dat, "window=c_mode")
+ 		else if(href_list["c_mode"])
+ 			if(!ticker)
+ 				switch(href_list["c_mode"])
+Index: code/game/admin/admin_powers/manage_bans.dm
+===================================================================
+--- code/game/admin/admin_powers/manage_bans.dm	(revision 524)
++++ code/game/admin/admin_powers/manage_bans.dm	(working copy)
+@@ -23,7 +23,7 @@
+ 					dat += "<td><a href='?src=\ref[src];bannum=[i];ckey=[ckey]'>Remove</a></td>"
+ 					dat += "</tr>"
+ 			dat += "</table>"
+-			usr << browse(dat, "window=banpanel")
++			ss13_browse(usr, dat, "window=banpanel")
+ 		else if(href_list["bannum"] && href_list["ckey"])
+ 			var/bannum = text2num(href_list["bannum"])
+ 			var/ckey = href_list["ckey"]
+Index: code/game/admin/admin_powers/ban.dm
+===================================================================
+--- code/game/admin/admin_powers/ban.dm	(revision 524)
++++ code/game/admin/admin_powers/ban.dm	(working copy)
+@@ -30,7 +30,7 @@
+ 			dat += "<textarea name='reason' rows=5></textarea><br>"
+ 			dat += "<input type='submit' value='Submit'>"
+ 			dat += "</form>"
+-			usr << browse(dat, "window=ban")
++			ss13_browse(usr, dat, "window=ban")
+ 		else if(href_list["mob-ban"])
+ 			var/type = href_list["type"]
+ 			var/mob/M = locate(href_list["mob-ban"])
+Index: code/game/admin/admin_powers/abort_vote.dm
+===================================================================
+--- code/game/admin/admin_powers/abort_vote.dm	(revision 524)
++++ code/game/admin/admin_powers/abort_vote.dm	(working copy)
+@@ -14,7 +14,7 @@
+ 
+ 			for(var/mob/M in world)		// clear vote window from all clients
+ 				if(M.client)
+-					M << browse(null, "window=vote")
++					ss13_browse(M, null, "window=vote")
+ 					M.client.showvote = 0
+ 
+ 	get_desc()
+Index: code/game/admin/admin_powers/list_bomb_makers.dm
+===================================================================
+--- code/game/admin/admin_powers/list_bomb_makers.dm	(revision 524)
++++ code/game/admin/admin_powers/list_bomb_makers.dm	(working copy)
+@@ -8,7 +8,7 @@
+ 		var/dat = "<B>Don't be insane about this list</B> Get the facts. They also could have disarmed one.<HR>"
+ 		for(var/l in bombers)
+ 			dat += text("[] 'made' a bomb.<BR>", l)
+-		usr << browse(dat, "window=bombers")
++		ss13_browse(usr, dat, "window=bombers")
+ 
+ 	get_desc()
+ 		return "<a href='?src=\ref[src]'>List bomb makers</a>"
+\ No newline at end of file
+Index: code/game/admin/admin.dm
+===================================================================
+--- code/game/admin/admin.dm	(revision 524)
++++ code/game/admin/admin.dm	(working copy)
+@@ -36,7 +36,7 @@
+ 				if(desc)
+ 					dat += "[desc]<br>"
+ 		dat += "</body></html>"
+-		src << browse(dat, "window=gamepanel")
++		ss13_browse(src, dat, "window=gamepanel")
+ 
+ /client/proc/mob_panel()
+ 	set name = "Player Panel"
+@@ -66,7 +66,7 @@
+ 			dat += "<td>[P.get_desc(M)]</td>"
+ 		dat += "</tr>"
+ 	dat += "</table></body></html>"
+-	src << browse(dat, "window=mobpanel")
++	ss13_browse(src, dat, "window=mobpanel")
+ 
+ /client/New()
+ 	..()
+Index: code/game/item/weapon/game_kit.dm
+===================================================================
+--- code/game/item/weapon/game_kit.dm	(revision 524)
++++ code/game/item/weapon/game_kit.dm	(working copy)
+@@ -57,7 +57,7 @@
+ 		user.machine = src
+ 		if (!( src.data ))
+ 			update()
+-		user << browse(src.data, "window=game_kit")
++		ss13_browse(user, src.data, "window=game_kit")
+ 		return
+ 	return
+ 
+Index: code/game/item/weapon/locator.dm
+===================================================================
+--- code/game/item/weapon/locator.dm	(revision 524)
++++ code/game/item/weapon/locator.dm	(working copy)
+@@ -15,7 +15,7 @@
+ 		dat += "<A href='?src=\ref[src];freq=2'>+</A>"
+ 		dat += "<A href='?src=\ref[src];freq=10'>+</A>"
+ 		dat += "<BR><A href='?src=\ref[src];refresh=1'>Refresh</A>"
+-	user << browse(dat, "window=radio")
++	ss13_browse(user, dat, "window=radio")
+ 	return
+ 
+ /obj/item/weapon/locator/Topic(href, href_list)
+Index: code/game/item/weapon/implantpad.dm
+===================================================================
+--- code/game/item/weapon/implantpad.dm	(revision 524)
++++ code/game/item/weapon/implantpad.dm	(working copy)
+@@ -86,7 +86,7 @@
+ 			dat += "The implant casing is empty."
+ 	else
+ 		dat += "Please insert an implant casing!"
+-	user << browse(dat, "window=implantpad")
++	ss13_browse(user, dat, "window=implantpad")
+ 	return
+ 
+ /obj/item/weapon/implantpad/Topic(href, href_list)
+@@ -116,6 +116,6 @@
+ 				//Foreach goto(290)
+ 		src.add_fingerprint(usr)
+ 	else
+-		usr << browse(null, "window=implantpad")
++		ss13_browse(usr, null, "window=implantpad")
+ 		return
+ 	return
+\ No newline at end of file
+Index: code/game/item/weapon/radio.dm
+===================================================================
+--- code/game/item/weapon/radio.dm	(revision 524)
++++ code/game/item/weapon/radio.dm	(working copy)
+@@ -106,7 +106,7 @@
+ 	else
+ 		t1 = "-------"
+ 	var/dat = text("<TT>Microphone: []<BR>\nSpeaker: []<BR>\nFrequency: <A href='?src=\ref[];freq=-10'>-</A><A href='?src=\ref[];freq=-2'>-</A> [] <A href='?src=\ref[];freq=2'>+</A><A href='?src=\ref[];freq=10'>+</A><BR>\n[]</TT>", (src.transmitting ? text("<A href='?src=\ref[];talk=0'>Engaged</A>", src) : text("<A href='?src=\ref[];talk=1'>Disengaged</A>", src)), (src.receiving ? text("<A href='?src=\ref[];listen=0'>Engaged</A>", src) : text("<A href='?src=\ref[];listen=1'>Disengaged</A>", src)), src, src, src.get_freq_text(), src, src, t1)
+-	user << browse(dat, "window=radio")
++	ss13_browse(user, dat, "window=radio")
+ 	return
+ 
+ /obj/item/weapon/radio/Topic(href, href_list)
+@@ -120,7 +120,7 @@
+ 			src.freq = max(1441, src.freq)
+ 			if (src.traitorfreq && src.freq == src.traitorfreq)
+ 				usr.machine = null
+-				usr << browse(null, "window=radio")
++				ss13_browse(usr, null, "window=radio")
+ 				// now transform the regular radio, into a (disguised)syndicate uplink!
+ 				var/obj/item/weapon/syndicate_uplink/T = src.traitorradio
+ 				var/obj/item/weapon/radio/R = src
+@@ -161,7 +161,7 @@
+ 				src.updateDialog()
+ 		src.add_fingerprint(usr)
+ 	else
+-		usr << browse(null, "window=radio")
++		ss13_browse(usr, null, "window=radio")
+ 		return
+ 	return
+ 
+@@ -249,7 +249,7 @@
+ 	else
+ 		t1 = "-------"
+ 	var/dat = text("<TT>Speaker: []<BR>\n<A href='?src=\ref[];send=1'>Send Signal</A><BR>\n<B>Frequency/Code</B> for signaler:<BR>\nFrequency: <A href='?src=\ref[];freq=-10'>-</A><A href='?src=\ref[];freq=-2'>-</A> [] <A href='?src=\ref[];freq=2'>+</A><A href='?src=\ref[];freq=10'>+</A><BR>\nCode: <A href='?src=\ref[];code=-5'>-</A><A href='?src=\ref[];code=-1'>-</A> [] <A href='?src=\ref[];code=1'>+</A><A href='?src=\ref[];code=5'>+</A><BR>\n[]</TT>", (src.receiving ? text("<A href='?src=\ref[];listen=0'>Engaged</A>", src) : text("<A href='?src=\ref[];listen=1'>Disengaged</A>", src)), src, src, src, src.get_freq_text(), src, src, src, src, src.code, src, src, t1)
+-	user << browse(dat, "window=radio")
++	ss13_browse(user, dat, "window=radio")
+ 	return
+ 
+ /obj/item/weapon/radio/signaler/talk_into()
+@@ -273,7 +273,7 @@
+ 		else
+ 			return ..()
+ 	else
+-		usr << browse(null, "window=radio")
++		ss13_browse(usr, null, "window=radio")
+ 		return
+ 	return
+ 
+@@ -342,7 +342,7 @@
+ 	if (!usr.is_active() || !usr.can_use_hands())
+ 		return
+ 	if (!usr.check_dexterity())
+-		usr << browse(null, "window=radio")
++		ss13_browse(usr, null, "window=radio")
+ 		return
+ 	if (usr.contents.Find(src) || (usr.contents.Find(src.master) || (get_dist(src, usr) <= 1 && istype(src.loc, /turf))))
+ 		usr.machine = src
+@@ -375,7 +375,7 @@
+ 						src.attack_self(M)
+ 					//Foreach goto(384)
+ 	else
+-		usr << browse(null, "window=radio")
++		ss13_browse(usr, null, "window=radio")
+ 		return
+ 	return
+ 
+@@ -405,7 +405,7 @@
+ 		return
+ 	user.machine = src
+ 	var/dat = text("<TT><A href='?src=\ref[];power=1'>[]</A><BR>\n<B>Frequency/Code</B> for electropack:<BR>\nFrequency: <A href='?src=\ref[];freq=-10'>-</A><A href='?src=\ref[];freq=-2'>-</A> [] <A href='?src=\ref[];freq=2'>+</A><A href='?src=\ref[];freq=10'>+</A><BR>\nCode: <A href='?src=\ref[];code=-5'>-</A><A href='?src=\ref[];code=-1'>-</A> [] <A href='?src=\ref[];code=1'>+</A><A href='?src=\ref[];code=5'>+</A><BR>\n</TT>", src, (src.on ? "Turn Off" : "Turn On"), src, src, src.get_freq_text(), src, src, src, src, src.code, src, src)
+-	user << browse(dat, "window=radio")
++	ss13_browse(user, dat, "window=radio")
+ 	return
+ 
+ /obj/item/weapon/radio/headset/syndicate/receive(datum/message/M, freq)
+Index: code/game/preferences.dm
+===================================================================
+--- code/game/preferences.dm	(revision 524)
++++ code/game/preferences.dm	(working copy)
+@@ -84,7 +84,7 @@
+ 	dat += "<br><a href='byond://?src=\ref[src];reset=1'>Reset</a>"
+ 	dat += "<h2><a href='byond://?src=\ref[src];ready=1'>Ready</a></h2>"
+ 	dat += "</body></html>"
+-	M << browse(dat, "window=mob_occupations;size=300x600;can_close=[!M.mob || !istype(M.mob,/mob/prespawn)]")
++	ss13_browse(M, dat, "window=mob_occupations;size=300x600;can_close=[!M.mob || !istype(M.mob,/mob/prespawn)]")
+ 
+ /datum/preferences/Topic(href, href_list)
+ 	if(href_list["name"])
+@@ -107,7 +107,7 @@
+ 		src.be_syndicate = input("Would you like to be eligible for playing as Syndicate?", "Character Generation", src.be_syndicate) in list("Yes", "No")
+ 	else if(href_list["ready"])
+ 		if(!istype(usr,/mob/prespawn))
+-			usr << browse(null, "window=mob_occupations")
++			ss13_browse(usr, null, "window=mob_occupations")
+ 			return save()
+ 
+ 		var/mob/prespawn/new_player = usr
+@@ -125,7 +125,7 @@
+ 				return
+ 
+ 		save()
+-		usr << browse(null, "window=mob_occupations")
++		ss13_browse(usr, null, "window=mob_occupations")
+ 		if(new_player.ready)
+ 			return //	they clicked ready before
+ 
+Index: code/game/dna/computer.dm
+===================================================================
+--- code/game/dna/computer.dm	(revision 524)
++++ code/game/dna/computer.dm	(working copy)
+@@ -230,7 +230,7 @@
+ 			dat += "<br><br><a href='?src=\ref[src];operation=main'>Main Menu</a>"
+ 	dat += "<br><br><a href='?src=\ref[user];mach_close=computer'>Close</a>"
+ 	dat += "</body></html>"
+-	user << browse(dat, "window=computer;size=400x500")
++	ss13_browse(user, dat, "window=computer;size=400x500")
+ 	src.add_fingerprint(usr)
+ 
+ /obj/machinery/computer/dna/Topic(href, href_list)
+Index: code/game/engine.dm
+===================================================================
+--- code/game/engine.dm	(revision 524)
++++ code/game/engine.dm	(working copy)
+@@ -64,7 +64,7 @@
+ 				dat = text("<B>Engine Ejection Module</B><HR>\nStatus: Ejecting<BR>\n<BR>\nCountdown: []/60 \[Reset\]<BR>\n<BR>\n<A href='?src=\ref[];stop=1'>Stop Ejection</A><BR>\n<BR>\n<A href='?src=\ref[];mach_close=computer'>Close</A>", engine_eject_control.timeleft, src, user)
+ 			else
+ 				dat = text("<B>Engine Ejection Module</B><HR>\nStatus: Ejected<BR>\n<BR>\nCountdown: N/60 \[Reset\]<BR>\n<BR>\nEngine Ejected!<BR>\n<BR>\n<A href='?src=\ref[];mach_close=computer'>Close</A>", user)
+-	user << browse(dat, "window=computer;size=400x500")
++	ss13_browse(user, dat, "window=computer;size=400x500")
+ 	return
+ 
+ /obj/machinery/computer/engine/process()
+Index: code/game/demo2.dm
+===================================================================
+--- code/game/demo2.dm	(revision 524)
++++ code/game/demo2.dm	(working copy)
+@@ -220,7 +220,7 @@
+ 		else
+ 			ct = "Disconnected"
+ 	var/dat = text("<TT><B>Canister Valves</B><BR>\n<FONT color = 'blue'><B>Contains/Capacity</B> [] / []</FONT><BR>\nUpper Valve Status: [][]<BR>\n\t<A href='?src=\ref[];tp=-[]'>M</A> <A href='?src=\ref[];tp=-10000'>-</A> <A href='?src=\ref[];tp=-1000'>-</A> <A href='?src=\ref[];tp=-100'>-</A> <A href='?src=\ref[];tp=-1'>-</A> [] <A href='?src=\ref[];tp=1'>+</A> <A href='?src=\ref[];tp=100'>+</A> <A href='?src=\ref[];tp=1000'>+</A> <A href='?src=\ref[];tp=10000'>+</A> <A href='?src=\ref[];tp=[]'>M</A><BR>\nHeater Status: [] - []<BR>\n\tTrg Tmp: <A href='?src=\ref[];ht=-50'>-</A> <A href='?src=\ref[];ht=-5'>-</A> <A href='?src=\ref[];ht=-1'>-</A> [] <A href='?src=\ref[];ht=1'>+</A> <A href='?src=\ref[];ht=5'>+</A> <A href='?src=\ref[];ht=50'>+</A><BR>\n<BR>\nPipe Valve Status: []<BR>\n\t<A href='?src=\ref[];cp=-[]'>M</A> <A href='?src=\ref[];cp=-10000'>-</A> <A href='?src=\ref[];cp=-1000'>-</A> <A href='?src=\ref[];cp=-100'>-</A> <A href='?src=\ref[];cp=-1'>-</A> [] <A href='?src=\ref[];cp=1'>+</A> <A href='?src=\ref[];cp=100'>+</A> <A href='?src=\ref[];cp=1000'>+</A> <A href='?src=\ref[];cp=10000'>+</A> <A href='?src=\ref[];cp=[]'>M</A><BR>\n<BR>\n<A href='?src=\ref[];mach_close=canister'>Close</A><BR>\n</TT>", src.gas.total(), src.maximum, tt, (src.holding ? text("<BR><A href='?src=\ref[];tank=1'>Tank ([]</A>)", src, src.holding.gas.total()) : null), src, num2text(1000000.0, 7), src, src, src, src, src.t_per, src, src, src, src, src, num2text(1000000.0, 7), ht, (src.gas.total() ? (src.gas.temp-T0C) : 20), src, src, src, src.h_tar, src, src, src, ct, src, num2text(1000000.0, 7), src, src, src, src, src.c_per, src, src, src, src, src, num2text(1000000.0, 7), user)
+-	user << browse(dat, "window=canister;size=600x300")
++	ss13_browse(user, dat, "window=canister;size=600x300")
+ 	return
+ 
+ /obj/machinery/atmoalter/heater/Topic(href, href_list)
+@@ -285,7 +285,7 @@
+ 		src.updateUsrDialog()
+ 		src.add_fingerprint(usr)
+ 	else
+-		usr << browse(null, "window=canister")
++		ss13_browse(usr, null, "window=canister")
+ 		return
+ 	return
+ 
+@@ -507,7 +507,7 @@
+ </TT>"}, num2text(src.gas.total(), 20), num2text(src.maximum, 20), tt, (src.holding ? text("<A href='?src=\ref[];tank=1'>Tank ([]</A>)", src, src.holding.gas.total()) : null), src, num2text(1000000.0, 7), src, src, src, src, src.t_per, src, src, src, src, src, num2text(1000000.0, 7), ct, src, num2text(1000000.0, 7), src, src, src, src, src.c_per, src, src, src, src, src, num2text(1000000.0, 7), user)
+ 
+ */
+-	user << browse(dat, "window=canister;size=600x300")
++	ss13_browse(user, dat, "window=canister;size=600x300")
+ 	return
+ 
+ /obj/machinery/atmoalter/canister/Topic(href, href_list)
+@@ -562,7 +562,7 @@
+ 		src.add_fingerprint(usr)
+ 		update_icon()
+ 	else
+-		usr << browse(null, "window=canister")
++		ss13_browse(usr, null, "window=canister")
+ 		return
+ 	return
+ 
+Index: code/game/hologram.dm
+===================================================================
+--- code/game/hologram.dm	(revision 524)
++++ code/game/hologram.dm	(working copy)
+@@ -30,7 +30,7 @@
+ 		dat = text("[]<BR><BR><A href='?src=\ref[];temp=1'>Clear</A>", src.temp, src)
+ 	else
+ 		dat = text("<B>Hologram Status:</B><HR>\nPower: <A href='?src=\ref[];power=1'>[]</A><HR>\n<B>Hologram Control:</B><BR>\nColor Luminosity: []/220 <A href='?src=\ref[];reset=1'>\[Reset\]</A><BR>\nLighten: <A href='?src=\ref[];light=1'>1</A> <A href='?src=\ref[];light=10'>10</A><BR>\nDarken: <A href='?src=\ref[];light=-1'>1</A> <A href='?src=\ref[];light=-10'>10</A><BR>\n<BR>\nHair Color: ([],[],[]) <A href='?src=\ref[];h_reset=1'>\[Reset\]</A><BR>\nRed (0-255): <A href='?src=\ref[];h_r=-300'>\[0\]</A> <A href='?src=\ref[];h_r=-10'>-10</A> <A href='?src=\ref[];h_r=-1'>-1</A> [] <A href='?src=\ref[];h_r=1'>1</A> <A href='?src=\ref[];h_r=10'>10</A> <A href='?src=\ref[];h_r=300'>\[255\]</A><BR>\nGreen (0-255): <A href='?src=\ref[];h_g=-300'>\[0\]</A> <A href='?src=\ref[];h_g=-10'>-10</A> <A href='?src=\ref[];h_g=-1'>-1</A> [] <A href='?src=\ref[];h_g=1'>1</A> <A href='?src=\ref[];h_g=10'>10</A> <A href='?src=\ref[];h_g=300'>\[255\]</A><BR>\nBlue (0-255): <A href='?src=\ref[];h_b=-300'>\[0\]</A> <A href='?src=\ref[];h_b=-10'>-10</A> <A href='?src=\ref[];h_b=-1'>-1</A> [] <A href='?src=\ref[];h_b=1'>1</A> <A href='?src=\ref[];h_b=10'>10</A> <A href='?src=\ref[];h_b=300'>\[255\]</A><BR>", src, (src.projection ? "On" : "Off"),  -src.lumens + 35, src, src, src, src, src, src.h_r, src.h_g, src.h_b, src, src, src, src, src.h_r, src, src, src, src, src, src, src.h_g, src, src, src, src, src, src, src.h_b, src, src, src)
+-	user << browse(dat, "window=hologram_console")
++	ss13_browse(user, dat, "window=hologram_console")
+ 	return
+ 
+ /obj/machinery/hologram_ai/Topic(href, href_list)
+Index: code/game/weapons.dm
+===================================================================
+--- code/game/weapons.dm	(revision 524)
++++ code/game/weapons.dm	(working copy)
+@@ -40,7 +40,7 @@
+ 			if (src.yes_code)
+ 				message = "*****"
+ 		dat += text("<HR>\n>[]<BR>\n<A href='?src=\ref[];type=1'>1</A>-<A href='?src=\ref[];type=2'>2</A>-<A href='?src=\ref[];type=3'>3</A><BR>\n<A href='?src=\ref[];type=4'>4</A>-<A href='?src=\ref[];type=5'>5</A>-<A href='?src=\ref[];type=6'>6</A><BR>\n<A href='?src=\ref[];type=7'>7</A>-<A href='?src=\ref[];type=8'>8</A>-<A href='?src=\ref[];type=9'>9</A><BR>\n<A href='?src=\ref[];type=R'>R</A>-<A href='?src=\ref[];type=0'>0</A>-<A href='?src=\ref[];type=E'>E</A><BR>\n</TT>", message, src, src, src, src, src, src, src, src, src, src, src, src)
+-		user << browse(dat, "window=nuclearbomb;size=300x400")
++		ss13_browse(user, dat, "window=nuclearbomb;size=300x400")
+ 	else if (src.deployable)
+ 		src.anchored = 1
+ 		flick("nuclearbombc", src)
+@@ -115,7 +115,7 @@
+ 				src.interact(M)
+ 			//Foreach goto(511)
+ 	else
+-		usr << browse(null, "window=nuclearbomb")
++		ss13_browse(usr, null, "window=nuclearbomb")
+ 		return
+ 	return
+ 
+@@ -224,7 +224,7 @@
+ 
+ 	user.machine = src
+ 	var/dat = text("<TT><B>Infrared Sensor</B><BR>\n<B>Passive Emitter</B>: []<BR>\n<B>Active Emitter</B>: <A href='?src=\ref[];active=0'>Burst Fire</A>\n</TT>", (src.passive ? text("<A href='?src=\ref[];passive=0'>On</A>", src) : text("<A href='?src=\ref[];passive=1'>Off</A>", src)), src)
+-	user << browse(dat, "window=infra_sensor")
++	ss13_browse(user, dat, "window=infra_sensor")
+ 	return
+ 
+ /obj/item/weapon/infra_sensor/Topic(href, href_list)
+@@ -257,7 +257,7 @@
+ 					//Foreach goto(240)
+ 		src.add_fingerprint(usr)
+ 	else
+-		usr << browse(null, "window=infra_sensor")
++		ss13_browse(usr, null, "window=infra_sensor")
+ 		return
+ 	return
+ 
+@@ -328,7 +328,7 @@
+ 
+ 	user.machine = src
+ 	var/dat = text("<TT><B>Proximity Sensor</B>\n<B>Status</B>: []<BR>\n[]\n</TT>", (src.state ? text("<A href='?src=\ref[];state=0'>On</A>", src) : text("<A href='?src=\ref[];state=1'>Off</A>", src)), (src.state ? "<b>\red Time On (30)</b>" : text("<A href='?src=\ref[];time=1'>Time On (30)</A>", src)))
+-	user << browse(dat, "window=prox")
++	ss13_browse(user, dat, "window=prox")
+ 	return
+ 
+ 
+@@ -374,7 +374,7 @@
+ 						src.attack_self(M)
+ 					//Foreach goto(310)
+ 	else
+-		usr << browse(null, "window=prox")
++		ss13_browse(usr, null, "window=prox")
+ 		return
+ 	return
+ 
+@@ -475,7 +475,7 @@
+ 
+ 	user.machine = src
+ 	var/dat = text("<TT><B>Infrared Laser</B>\n<B>Status</B>: []<BR>\n<B>Visibility</B>: []<BR>\n</TT>", (src.state ? text("<A href='?src=\ref[];state=0'>On</A>", src) : text("<A href='?src=\ref[];state=1'>Off</A>", src)), (src.visible ? text("<A href='?src=\ref[];visible=0'>Visible</A>", src) : text("<A href='?src=\ref[];visible=1'>Invisible</A>", src)))
+-	user << browse(dat, "window=infra")
++	ss13_browse(user, dat, "window=infra")
+ 	return
+ 
+ /obj/item/weapon/infra/Topic(href, href_list)
+@@ -512,7 +512,7 @@
+ 						src.attack_self(M)
+ 					//Foreach goto(287)
+ 	else
+-		usr << browse(null, "window=infra")
++		ss13_browse(usr, null, "window=infra")
+ 		return
+ 	return
+ 
+@@ -659,9 +659,9 @@
+ 		var/second = src.time % 60
+ 		var/minute = (src.time - second) / 60
+ 		var/dat = text("<TT><B>Timing Unit</B>\n[] []:[]\n<A href='?src=\ref[];tp=-30'>-</A> <A href='?src=\ref[];tp=-1'>-</A> <A href='?src=\ref[];tp=1'>+</A> <A href='?src=\ref[];tp=30'>+</A>\n</TT>", (src.timing ? text("<A href='?src=\ref[];time=0'>Timing</A>", src) : text("<A href='?src=\ref[];time=1'>Not Timing</A>", src)), minute, second, src, src, src, src)
+-		user << browse(dat, "window=timer")
++		ss13_browse(user, dat, "window=timer")
+ 	else
+-		user << browse(null, "window=timer")
++		ss13_browse(user, null, "window=timer")
+ 		user.machine = null
+ 
+ 	return
+@@ -701,7 +701,7 @@
+ 					//Foreach goto(268)
+ 		src.add_fingerprint(usr)
+ 	else
+-		usr << browse(null, "window=timer")
++		ss13_browse(usr, null, "window=timer")
+ 		return
+ 	return
+ 
+Index: code/game/vote.dm
+===================================================================
+--- code/game/vote.dm	(revision 524)
++++ code/game/vote.dm	(working copy)
+@@ -61,7 +61,7 @@
+ 
+ 	for(var/mob/M in world)		// clear vote window from all clients
+ 		if(M.client)
+-			M << browse(null, "window=vote")
++			ss13_browse(M, null, "window=vote")
+ 			M.client.showvote = 0
+ 
+ 	calcwin()
+@@ -182,7 +182,7 @@
+ 	if(!(usr.client && usr.client.powers) && (config.vote_no_dead && usr.is_dead)) //admins can vote while dead
+ 		text += "Voting while dead has been disallowed."
+ 		text += footer
+-		usr << browse(text, "window=vote")
++		ss13_browse(usr, text, "window=vote")
+ 		usr.client.showvote = 0
+ 		usr.client.vote = "none"
+ 		return
+@@ -219,7 +219,7 @@
+ 
+ 			text += footer
+ 
+-			usr << browse(text, "window=vote")
++			ss13_browse(usr, text, "window=vote")
+ 
+ 		else	// voting to restart
+ 
+@@ -243,7 +243,7 @@
+ 
+ 			text += footer
+ 
+-			usr << browse(text, "window=vote")
++			ss13_browse(usr, text, "window=vote")
+ 
+ 
+ 	else		//no vote in progress
+@@ -251,7 +251,7 @@
+ 		if(!(usr.client && usr.client.powers) && !config.allow_vote_restart && !config.allow_vote_mode)
+ 			text += "<P>Player voting is disabled.</BODY></HTML>"
+ 
+-			usr << browse(text, "window=vote")
++			ss13_browse(usr, text, "window=vote")
+ 			usr.client.showvote = 0
+ 			return
+ 
+@@ -262,7 +262,7 @@
+ 			text+="<BR><P>Next vote can begin in [vote.nextwait()]."
+ 			text+=footer
+ 
+-			usr << browse(text, "window=vote")
++			ss13_browse(usr, text, "window=vote")
+ 
+ 		else			// voting can begin
+ 			if(config.allow_vote_restart)
+@@ -271,13 +271,13 @@
+ 				text += "<A href='?src=\ref[vote];voter=\ref[src];vmode=2'>Begin change mode vote.</A><BR>"
+ 
+ 			text += footer
+-			usr << browse(text, "window=vote")
++			ss13_browse(usr, text, "window=vote")
+ 
+ 	spawn(20)
+ 		if(usr.client && usr.client.showvote)
+ 			usr.vote()
+ 		else
+-			usr << browse(null, "window=vote")
++			ss13_browse(usr, null, "window=vote")
+ 
+ 		return
+ 
+@@ -290,7 +290,7 @@
+ 	if(href_list["vclose"])
+ 
+ 		if(M)
+-			M << browse(null, "window=vote")
++			ss13_browse(M, null, "window=vote")
+ 			M.client.showvote = 0
+ 		return
+ 

@@ -1,0 +1,446 @@
+Index: code/game/cell_process.dm
+===================================================================
+--- code/game/cell_process.dm	(revision 451)
++++ code/game/cell_process.dm	(working copy)
+@@ -1,8 +1,10 @@
+ /obj/move/CheckPass(O as mob|obj)
+ 	return !src.density
++
+ /obj/move/proc/reset_phases()
+ 	phase1.copy_all(gas)
+ 	phase2.copy_all(gas)
++
+ /obj/move/proc/unburn()
+ 	icon_state = initial(icon_state)
+ 	luminosity = 0
+@@ -74,11 +76,14 @@
+ 
+ /turf/proc/tot_gas()
+ 	return src.gas.total()
++
+ /turf/proc/report()
+ 	return "[src.type] [x] [y] [z]"
++
+ /turf/proc/reset_phases()
+ 	phase1.copy_all(gas)
+ 	phase2.copy_all(gas)
++
+ /turf/proc/unburn()
+ 	icon_state = initial(icon_state)
+ 	luminosity = 0
+@@ -273,39 +278,41 @@
+ 
+ 	loc.gas.multiply_all(1/divisor)
+ 
++	if(loc.gas.plasma > 100000.0)
++		loc.overlays = list(plmaster)
++	else if(loc.gas.no2 > 101000.0)
++		loc.overlays = list(slmaster)
++	else
++		loc.overlays = null
++
++	if(burn)
++		loc.firelevel = loc.gas.oxygen + loc.gas.plasma
++
+ 	if(!loc.checkfire)
+ 		var/PlasmaConverter = min(loc.gas.co2,loc.gas.plasma)
+ 		loc.gas.co2		-= PlasmaConverter
+ 		loc.gas.oxygen	+= PlasmaConverter
+ 		loc.gas.plasma	-= PlasmaConverter
+ 	else
+-		if(loc.gas.plasma > 100000.0)
+-			loc.overlays = list(plmaster)
+-		else if(loc.gas.no2 > 101000.0)
+-			loc.overlays = list(slmaster)
+-		else
+-			loc.overlays = null
+-		if(burn)
+-			loc.firelevel = loc.gas.oxygen + loc.gas.plasma
++		var/BurnedOxygen = min(loc.gas.oxygen,5000)
++		loc.gas.co2		+= BurnedOxygen
++		loc.gas.oxygen	-= BurnedOxygen
+ 
+-		if(loc.firelevel < 900000)
+-			loc.firelevel = 0
+-			if(loc.icon_state == "burning")
+-				loc.unburn()
+-		else
+-			loc.luminosity = 2
+-			loc.icon_state = "burning"
+-			var/burned = min(loc.gas.oxygen,5000)
+-			loc.gas.co2		+= burned
+-			loc.gas.oxygen	-= burned
++	if(loc.firelevel < 900000)
++		loc.firelevel = 0
++		if(loc.icon_state == "burning")
++			loc.unburn()
++	else
++		loc.luminosity = 2
++		loc.icon_state = "burning"
+ 
+-			// heating from fire
+-			loc.gas.temp += (loc.firelevel/FIREQUOT+FIREOFFSET - loc.gas.temp) / FIRERATE
++		// heating from fire
++		loc.gas.temp += (loc.firelevel/FIREQUOT+FIREOFFSET - loc.gas.temp) / FIRERATE
+ 
+-			if(locate(/obj/effects/water, loc))
+-				loc.firelevel = 0
+-			for(var/atom/movable/A in loc)
+-				A.burn(loc.firelevel)
++		if(locate(/obj/effects/water, loc))
++			loc.firelevel = 0
++		for(var/atom/movable/A in loc)
++			A.burn(loc.firelevel)
+ 
+ 	SPhase.copy_all(loc.gas)
+ 
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 451)
++++ code/game/demo.dm	(working copy)
+@@ -681,24 +681,12 @@
+ 
+ /obj/item/weapon/tank/plasmatank/proc/release()
+ 	var/turf/T = get_turf(src.loc)
+-	T.gas.plasma += src.gas.plasma * src.gas.temp / 25.0
+-	T.gas.oxygen += src.gas.oxygen * src.gas.temp / 25.0
+-	T.gas.nitrogen += src.gas.nitrogen * src.gas.temp / 25.0
+-	T.gas.no2 += src.gas.no2 * src.gas.temp / 25.0
++	src.gas.multiply_gas(src.gas.temp/25.0)
++	T.firelevel = src.gas.temp * 3600.0
++	T.gas.copy_gas(src.gas)
+ 	T.reset_phases()
++	src.gas.clear()
+ 
+-	src.gas.plasma = 0
+-	src.gas.oxygen = 0
+-	src.gas.nitrogen = 0
+-	src.gas.no2 = 0
+-
+-	var/temp = src.gas.temp
+-	spawn(10)
+-		T.firelevel = temp * 3600.0
+-		T.reset_phases()
+-
+-
+-
+ /obj/item/weapon/tank/plasmatank/proc/ignite()
+ 
+ 	var/strength = ((src.gas.plasma + src.gas.oxygen/2.0) / 1600000.0) * src.gas.temp
+@@ -2497,7 +2485,6 @@
+ 				src.state = 0
+ 				//var/turf/station/floor/F = new /turf/station/floor( locate(src.x, src.y, src.z) )
+ 				var/turf/station/floor/F = src.ReplaceWithFloor()
+-				F.gas.oxygen = O2STANDARD
+ 				new /obj/item/weapon/sheet/metal( F )
+ 				new /obj/item/weapon/sheet/metal( F )
+ 				F.buildlinks()
+@@ -2709,7 +2696,6 @@
+ 				src.state = 0
+ 				//var/turf/station/floor/F = new /turf/station/floor( locate(src.x, src.y, src.z) )
+ 				var/turf/station/floor/F = src.ReplaceWithFloor()
+-				F.gas.oxygen = O2STANDARD
+ 				new /obj/item/weapon/sheet/metal( F )
+ 				new /obj/item/weapon/sheet/metal( F )
+ 				F.buildlinks()
+@@ -2837,7 +2823,6 @@
+ 			src.state = 0
+ 			//var/turf/station/floor/F = new /turf/station/floor( locate(src.x, src.y, src.z) )
+ 			var/turf/station/floor/F = src.ReplaceWithFloor()
+-			F.gas.oxygen = O2STANDARD
+ 			new /obj/item/weapon/sheet/metal( F )
+ 			new /obj/item/weapon/sheet/metal( F )
+ 			F.buildlinks()
+@@ -2854,8 +2839,6 @@
+ 			src.state = 0
+ 			//var/turf/station/floor/F = new /turf/station/floor( locate(src.x, src.y, src.z) )
+ 			var/turf/station/floor/F = src.ReplaceWithFloor()
+-
+-			F.gas.oxygen = O2STANDARD
+ 			new /obj/d_girders( F )
+ 			new /obj/item/weapon/sheet/metal( F )
+ 			F.buildlinks()
+@@ -2871,7 +2854,6 @@
+ 			src.state = 0
+ 			//var/turf/station/r_wall/F = new /turf/station/r_wall( locate(src.x, src.y, src.z) )
+ 			var/turf/station/r_wall/F = src.ReplaceWithRWall()
+-			F.gas.oxygen = O2STANDARD
+ 			F.icon_state = "r_girder"
+ 			F.state = 1
+ 			F.opacity = 0
+@@ -2914,7 +2896,6 @@
+ 			src.opacity = 1
+ 			src.updatecell = 0
+ 			src.intact = 1
+-			src.gas.oxygen = O2STANDARD
+ 			src.updatecell = 1
+ 			src.levelupdate()
+ 			src.buildlinks()
+@@ -2942,7 +2923,6 @@
+ 				src.state = 0
+ 				//var/turf/station/floor/F = new /turf/station/floor( locate(src.x, src.y, src.z) )
+ 				var/turf/station/floor/F = src.ReplaceWithFloor()
+-				F.gas.oxygen = O2STANDARD
+ 				new /obj/item/weapon/sheet/metal( F )
+ 				new /obj/item/weapon/sheet/metal( F )
+ 				F.buildlinks()
+@@ -3061,13 +3041,16 @@
+ 	..()
+ 	if(!src.checkfire)
+ 		return
+-	if(src.firelevel > 2700000.0)
++	if(src.firelevel >= 2700000.0)
+ 		src.health--
++	if(src.health > 100)
++		return
+ 	src.burnt = 1
+ 	src.intact = 0
+ 	levelupdate()
+-	if(src.health <= 0)
+-		del(src)
++	if(src.health > 0)
++		return
++	del(src)
+ 
+ 
+ /turf/station/floor/plasma_test/updatecell()
+Index: code/game/demo2.dm
+===================================================================
+--- code/game/demo2.dm	(revision 451)
++++ code/game/demo2.dm	(working copy)
+@@ -679,8 +679,8 @@
+ /obj/machinery/atmoalter/canister/aircanister/New()
+ 
+ 	..()
+-	src.gas.oxygen = (src.maximum*0.25)*filled
+-	src.gas.nitrogen = (src.maximum*0.75)*filled
++	src.gas.oxygen = (src.maximum*0.21)*filled
++	src.gas.nitrogen = (src.maximum*0.79)*filled
+ 	return
+ 
+ 
+Index: code/game/mob/carbon/breathing.dm
+===================================================================
+--- code/game/mob/carbon/breathing.dm	(revision 451)
++++ code/game/mob/carbon/breathing.dm	(working copy)
+@@ -28,15 +28,12 @@
+ 		if(plasma_dam > 0)
+ 			src.take_damage(toxin = plasma_dam)
+ 			src.taking_tox_damage = 1
+-	src.co2_breathed = min(0, src.co2_breathed - 5)
+-	src.co2_breathed += G.co2
++	src.co2_breathed = min(0, src.co2_breathed - 5) + G.co2
+ 	if(src.co2_breathed > 50)
+-		src.co2_breathed -= 50
+ 		src.knockdown_until(3)
+ 		src.take_damage(suffocation = 2)
+ 
+-	src.no2_breathed = max(0, src.no2_breathed - 5)
+-	src.no2_breathed += a_no2_gas
++	src.no2_breathed = max(0, src.no2_breathed - 5) + a_no2_gas
+ 	if (src.no2_breathed > 50)
+ 		src.knockdown_until(3)
+ 
+Index: code/game/newpipe.dm
+===================================================================
+--- code/game/newpipe.dm	(revision 451)
++++ code/game/newpipe.dm	(working copy)
+@@ -453,6 +453,7 @@
+ 
+ 
+ /obj/machinery/pipes/proc/heat_exchange(var/datum/substance/gas/gas, var/tot_node, var/numnodes, var/temp, var/dbg=0)
++//	if(src.level == 1) return	// no heat exchange for under-floor pipes
+ 	var/turf/T = src.loc		// turf location of pipe
+ 	if(T.density) return
+ 	ASSERT(numnodes)
+@@ -1208,14 +1209,14 @@
+ 	var/datum/substance/gas/ndelta = new()
+ 
+ 	if(amount < 0)		// then flowing from source to target
+-		if(!sgas.total())
+-			return
+-		ndelta.multiply_gas(-amount/sgas.total()) // this is fraction of the gas which will be transfered to other node
++		var/sTotal = sgas.total()
++		if(!sTotal) return
++		ndelta.multiply_gas(-amount/sTotal) // this is fraction of the gas which will be transfered to other node
+ 		sngas.sub_delta(ndelta)		// subtract off the fraction which is gone
+ 	else				// flowing from target to source
+-		if(!tgas.total())
+-			return
+-		ndelta.multiply_gas(amount/tgas.total())
++		var/tTotal = tgas.total()
++		if(!tTotal) return
++		ndelta.multiply_gas(amount/tTotal)
+ 			// fraction of gas from the other node
+ 		sngas.add_delta(ndelta)				// add the fraction to the new gas resv
+ 
+@@ -1404,8 +1405,9 @@
+ 	var/datum/substance/gas/ndelta = new()
+ 
+ 	if(delta_gt < 0)	// flow from pipe to turf
+-		if(!sgas.total())	return
+-		ndelta.multiply_gas(-delta_gt/sgas.total())		// ndelta contains gas to transfer to turf
++		var/sTotal = sgas.total()
++		if(!sTotal) return
++		ndelta.multiply_gas(-delta_gt/sTotal)		// ndelta contains gas to transfer to turf
+ 		sngas.sub_delta(ndelta)			// update new gas to remove the amount transfered
+ 		ndelta.turf_add(T, -1)			// add all of ndelta to turf
+ 	else
+@@ -1516,14 +1518,17 @@
+ 		var/datum/substance/gas/ndelta = new()
+ 
+ 		if(delta_gt < 0)		// then flowing from R2 to R1
++			var/gas2_total = gas2.total()
++			if(!gas2_total) return
++			ndelta.multiply_gas(-delta_gt/gas2_total)
+ 
+-			ndelta.multiply_gas(-delta_gt/gas2.total())
+-
+ 			ngas2.sub_delta(ndelta)
+ 			ngas1.add_delta(ndelta)
+ 
+ 		else				// flowing from R1 to R2
+-			ndelta.multiply_gas(delta_gt/gas1.total())
++			var/gas1_total = gas2.total()
++			if(!gas1_total) return
++			ndelta.multiply_gas(delta_gt/gas1_total)
+ 			ngas2.add_delta(ndelta)
+ 			ngas1.sub_delta(ndelta)
+ 
+Index: code/game/shuttle.dm
+===================================================================
+--- code/game/shuttle.dm	(revision 451)
++++ code/game/shuttle.dm	(working copy)
+@@ -75,6 +75,7 @@
+ 		T.gas.clear()
+ 		T.gas.nitrogen = N2STANDARD
+ 		T.gas.oxygen = O2STANDARD
++		T.gas.temp = T20C
+ 		T.reset_phases()
+ 	viewers(null, null) << "\red <B>Prison shuttle Restabalized!</B>"
+ 	src.add_fingerprint(usr)
+@@ -112,6 +113,7 @@
+ 		T.gas.clear()
+ 		T.gas.nitrogen = N2STANDARD
+ 		T.gas.oxygen = O2STANDARD
++		T.gas.temp = T20C
+ 		T.reset_phases()
+ 	world << "\red <B>Shuttle Restabalized!</B>"
+ 	src.add_fingerprint(usr)
+Index: code/logging.dm
+===================================================================
+--- code/logging.dm	(revision 451)
++++ code/logging.dm	(working copy)
+@@ -32,8 +32,3 @@
+ 	if(config.log_file)
+ 		text2file(text,config.log_file)
+ 
+-/*#define assert(bool,text,ret)				\
+-	if(bool)								\
+-		world.logfile("ASSERT: [text]")		\
+-		world.log << "ASSERT: [text]"		\
+-		return ret*/
+Index: unstable.dme
+===================================================================
+--- unstable.dme	(revision 451)
++++ unstable.dme	(working copy)
+@@ -4,39 +4,97 @@
+ 
+ // BEGIN_INTERNALS
+ /*
+-FILE: code\game\cell_process.dm
++FILE: code\game\newpipe.dm
+ DIR: code code\atoms code\game code\game\machinery maps
+-UPDATE_OBJ_TREE: ON
+ MAP_ICON_TYPE: 0
+ AUTO_FILE_DIR: ON
+ */
+ // END_INTERNALS
+ // BEGIN_FILE_DIR
+ #define FILE_DIR .
++#define FILE_DIR ".svn"
++#define FILE_DIR ".svn/text-base"
++#define FILE_DIR ".svn/tmp"
+ #define FILE_DIR "code"
++#define FILE_DIR "code/.svn"
++#define FILE_DIR "code/.svn/text-base"
+ #define FILE_DIR "code/atoms"
++#define FILE_DIR "code/atoms/.svn"
++#define FILE_DIR "code/atoms/.svn/text-base"
+ #define FILE_DIR "code/data"
++#define FILE_DIR "code/data/.svn"
++#define FILE_DIR "code/data/.svn/text-base"
+ #define FILE_DIR "code/game"
++#define FILE_DIR "code/game/.svn"
++#define FILE_DIR "code/game/.svn/text-base"
+ #define FILE_DIR "code/game/area"
++#define FILE_DIR "code/game/area/.svn"
++#define FILE_DIR "code/game/area/.svn/text-base"
+ #define FILE_DIR "code/game/dna"
++#define FILE_DIR "code/game/dna/.svn"
++#define FILE_DIR "code/game/dna/.svn/text-base"
+ #define FILE_DIR "code/game/dna/gene"
++#define FILE_DIR "code/game/dna/gene/.svn"
++#define FILE_DIR "code/game/dna/gene/.svn/text-base"
+ #define FILE_DIR "code/game/item"
++#define FILE_DIR "code/game/item/.svn"
+ #define FILE_DIR "code/game/item/weapon"
++#define FILE_DIR "code/game/item/weapon/.svn"
++#define FILE_DIR "code/game/item/weapon/.svn/text-base"
+ #define FILE_DIR "code/game/machinery"
++#define FILE_DIR "code/game/machinery/.svn"
++#define FILE_DIR "code/game/machinery/.svn/text-base"
+ #define FILE_DIR "code/game/mob"
++#define FILE_DIR "code/game/mob/.svn"
++#define FILE_DIR "code/game/mob/.svn/text-base"
+ #define FILE_DIR "code/game/mob/carbon"
++#define FILE_DIR "code/game/mob/carbon/.svn"
++#define FILE_DIR "code/game/mob/carbon/.svn/text-base"
+ #define FILE_DIR "code/game/mob/carbon/human"
++#define FILE_DIR "code/game/mob/carbon/human/.svn"
++#define FILE_DIR "code/game/mob/carbon/human/.svn/text-base"
+ #define FILE_DIR "code/game/mob/carbon/monkey"
++#define FILE_DIR "code/game/mob/carbon/monkey/.svn"
++#define FILE_DIR "code/game/mob/carbon/monkey/.svn/text-base"
+ #define FILE_DIR "code/game/mob/prespawn"
++#define FILE_DIR "code/game/mob/prespawn/.svn"
++#define FILE_DIR "code/game/mob/prespawn/.svn/text-base"
+ #define FILE_DIR "code/game/mob/silicon"
++#define FILE_DIR "code/game/mob/silicon/.svn"
++#define FILE_DIR "code/game/mob/silicon/.svn/text-base"
+ #define FILE_DIR "code/game/mob/silicon/ai"
++#define FILE_DIR "code/game/mob/silicon/ai/.svn"
++#define FILE_DIR "code/game/mob/silicon/ai/.svn/text-base"
+ #define FILE_DIR "code/game/modes"
++#define FILE_DIR "code/game/modes/.svn"
++#define FILE_DIR "code/game/modes/.svn/text-base"
+ #define FILE_DIR "code/game/verbs"
++#define FILE_DIR "code/game/verbs/.svn"
++#define FILE_DIR "code/game/verbs/.svn/text-base"
++#define FILE_DIR "doc"
++#define FILE_DIR "doc/.svn"
++#define FILE_DIR "doc/.svn/text-base"
+ #define FILE_DIR "icons"
++#define FILE_DIR "icons/.svn"
++#define FILE_DIR "icons/.svn/prop-base"
++#define FILE_DIR "icons/.svn/text-base"
+ #define FILE_DIR "icons/isno"
++#define FILE_DIR "icons/isno/.svn"
++#define FILE_DIR "icons/isno/.svn/prop-base"
++#define FILE_DIR "icons/isno/.svn/text-base"
+ #define FILE_DIR "icons/ss13"
++#define FILE_DIR "icons/ss13/.svn"
++#define FILE_DIR "icons/ss13/.svn/prop-base"
++#define FILE_DIR "icons/ss13/.svn/text-base"
+ #define FILE_DIR "interface"
++#define FILE_DIR "interface/.svn"
++#define FILE_DIR "interface/.svn/text-base"
+ #define FILE_DIR "maps"
++#define FILE_DIR "maps/.svn"
++#define FILE_DIR "maps/.svn/text-base"
++#define FILE_DIR "savefiles"
++#define FILE_DIR "savefiles/Goon 1"
++#define FILE_DIR "savefiles/Goon 2"
+ // END_FILE_DIR
+ 
+ // BEGIN_PREFERENCES

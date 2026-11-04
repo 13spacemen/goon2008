@@ -1,0 +1,354 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 361)
++++ code/atoms.dm	(working copy)
+@@ -2303,7 +2303,33 @@
+ 
+ 	capmult = 3
+ 
++/obj/machinery/pipefilter
++	name = "pipe filter"
++	icon = 'pipes2.dmi'
++	icon_state = "filter"
++	desc = "A three-port gas filter."
++	anchored = 1
++	dir = 2
++	p_dir = 14
++	capmult = 3
+ 
++	var/f_mask = 0
++	var/f_per = 0
++
++	var/n1dir
++	var/n2dir
++
++	var/obj/substance/gas/gas = null
++	var/obj/substance/gas/ngas = null
++	var/capacity = 6000000.0
++	var/obj/machinery/node1 = null
++	var/obj/machinery/node2 = null
++	var/obj/machinery/node3 = null
++
++	var/obj/machinery/vnode1
++	var/obj/machinery/vnode2
++	var/obj/machinery/vnode3
++
+ /obj/machinery/junction
+ 	name = "junction"
+ 	icon = 'junct-pipe.dmi'
+Index: code/setup.dm
+===================================================================
+--- code/setup.dm	(revision 361)
++++ code/setup.dm	(working copy)
+@@ -47,6 +47,13 @@
+ #define NOPOWER 1 << 1
+ #define POWEROFF 1 << 2	// tbd
+ #define MAINT 1 << 3	// under maintaince
+-#define EMAGGED 16 // is something (such as airlocks!) emagged?
++#define EMAGGED 1 << 4 // is something (such as airlocks!) emagged?
+ 
+-#define ENGINE_EJECT_Z 2
+\ No newline at end of file
++#define ENGINE_EJECT_Z 2
++
++// bitflags for gases (filtration etc)
++#define GAS_O2 1
++#define GAS_N2 2
++#define GAS_PL 4
++#define GAS_CO2 8
++#define GAS_N2O 16
+Index: code/game/newpipe.dm
+===================================================================
+--- code/game/newpipe.dm	(revision 361)
++++ code/game/newpipe.dm	(working copy)
+@@ -878,9 +878,165 @@
+ 	//	delta = 0
+ 
+ 
++// *** pipe filter
+ 
+ 
++/obj/machinery/pipefilter/New()
+ 
++	..()
++
++	switch(dir)
++		if(NORTH)
++			p_dir = 13 //NORTH|EAST|WEST
++
++		if(SOUTH)
++			p_dir = 14 //SOUTH|EAST|WEST
++
++		if(EAST)
++			p_dir = 7 //EAST|NORTH|SOUTH
++
++		if(WEST)
++			p_dir = 11 //WEST|NORTH|SOUTH
++
++
++
++	src.gas = new /obj/substance/gas( src )
++	src.gas.maximum = src.capacity
++	src.ngas = new /obj/substance/gas()
++	gasflowlist += src
++
++
++/obj/machinery/pipefilter/buildnodes()
++
++	var/turf/T = src.loc
++
++	node3 = get_machine( level, T, dir )		// the injector port
++
++	n1dir = turn(dir, 90)
++	n2dir = turn(dir,-90)
++
++	node1 = get_machine( level, T , n1dir )	// the main flow dir
++	node2 = get_machine( level, T , n2dir )
++
++	if(node1) vnode1 = node1.getline()
++	if(node2) vnode2 = node2.getline()
++	if(node3) vnode3 = node3.getline()
++
++	return
++
++
++/obj/machinery/pipefilter/gas_flow()
++	gas.replace_by(ngas)
++
++/obj/machinery/pipefilter/process()
++	var/delta_gt
++
++	if(vnode1)
++		delta_gt = FLOWFRAC * ( vnode1.get_gas_val(src) - gas.tot_gas() / capmult)
++		calc_delta( src, gas, ngas, vnode1, delta_gt)
++	else
++		leak_to_turf(1)
++
++	if(vnode2)
++		delta_gt = FLOWFRAC * ( vnode2.get_gas_val(src) - gas.tot_gas() / capmult)
++		calc_delta( src, gas, ngas, vnode2, delta_gt)
++	else
++		leak_to_turf(2)
++
++	//if(vnode3)
++	//	delta_gt = FLOWFRAC * ( vnode3.get_gas_val(src) - gas.tot_gas() / capmult)
++	//	calc_delta( src, gas, ngas, vnode3, delta_gt)
++	//else
++	//	leak_to_turf(3)
++	// don't leak to vnode3- this is the filtered node
++
++	// figure out how much to leak to vnode3 based on the filter
++	if (vnode3)
++		var/obj/substance/gas/ndelta = src.get_delta()
++		ngas.sub_delta(ndelta)
++	else
++		leak_to_turf(3)
++
++/obj/machinery/pipefilter/proc/get_delta()
++	var/obj/substance/gas/ndelta = new()
++	if (src.f_mask & GAS_O2)
++		ndelta.oxygen = min(src.f_per, src.gas.oxygen)
++	if (src.f_mask & GAS_N2)
++		ndelta.n2 = min(src.f_per, src.gas.n2)
++	if (src.f_mask & GAS_PL)
++		ndelta.plasma = min(src.f_per, src.gas.plasma)
++	if (src.f_mask & GAS_CO2)
++		ndelta.co2 = min(src.f_per, src.gas.co2)
++	if (src.f_mask & GAS_N2O)
++		ndelta.sl_gas = min(src.f_per, src.gas.sl_gas)
++	return ndelta
++
++
++/obj/machinery/pipefilter/get_gas_val(from)
++	return gas.tot_gas()/capmult
++
++/obj/machinery/pipefilter/get_gas(from)
++	return gas
++
++
++/obj/machinery/pipefilter/proc/leak_to_turf(var/port)
++
++	var/turf/T
++
++
++	switch(port)
++		if(1)
++			T = get_step(src, n1dir)
++		if(2)
++			T = get_step(src, n2dir)
++		if(3)
++			T = get_step(src, dir)
++			if(T.density)
++				T = src.loc
++				if(T.density)
++					return
++			// custom flow- dump the current delta to turf, no backflow allowed
++			var/obj/substance/gas/ndelta = src.get_delta()
++			ngas.sub_delta(ndelta)
++			ndelta.turf_add(T, -1)
++			return
++
++	if(T.density)
++		T = src.loc
++		if(T.density)
++			return
++
++	flow_to_turf(gas, ngas, T)
++
++	//	delta = 0
++
++// pipefilter interact/topic
++
++/obj/machinery/pipefilter/interact(mob/user as mob)
++	var/list/gases = list("O2", "N2", "Plasma", "CO2", "N2O")
++	user.machine = src
++	var/dat = "Filter Extraction Rate:<BR>\n<A href='?src=\ref[src];fp=-[num2text(1000000.0, 7)]'>M</A> <A href='?src=\ref[src];fp=-10000'>-</A> <A href='?src=\ref[src];fp=-1000'>-</A> <A href='?src=\ref[src];fp=-100'>-</A> <A href='?src=\ref[src];fp=-1'>-</A> [src.f_per] <A href='?src=\ref[src];fp=1'>+</A> <A href='?src=\ref[src];fp=100'>+</A> <A href='?src=\ref[src];fp=1000'>+</A> <A href='?src=\ref[src];fp=10000'>+</A> <A href='?src=\ref[src];fp=[num2text(1000000.0, 7)]'>M</A><BR>\n"
++	for (var/i = 1; i <= gases.len; i++)
++		dat += "[gases[i]]: <A HREF='?src=\ref[src];tg=[1 << (i - 1)]'>[(src.f_mask & 1 << (i - 1)) ? "Extracting" : "Passing"]</A><BR>\n"
++	user << browse(dat, "window=pipefilter;size=600x300")
++
++/obj/machinery/pipefilter/Topic(href, href_list)
++	..()
++	if (!usr.can_use_hands())
++		return
++	if (((get_dist(src, usr) <= 1 || istype(usr, /mob/silicon/ai)) && istype(src.loc, /turf)))
++		usr.machine = src
++		if (href_list["fp"])
++			src.f_per = min(max(round(src.f_per + text2num(href_list["fp"])), 0), 1000000.0)
++		else if (href_list["tg"])
++			// toggle gas
++			src.f_mask ^= text2num(href_list["tg"])
++		
++		src.updateUsrDialog()
++		src.add_fingerprint(usr)
++	else
++		usr << browse(null, "window=pipefilter")
++
+ /obj/machinery/connector/New()
+ 
+ 	..()
+@@ -1112,8 +1268,21 @@
+ 
+ /proc/calc_delta(obj/machinery/source, obj/substance/gas/sgas, obj/substance/gas/sngas, obj/machinery/target, amount, dbg=0)
+ 
++	if (istype(target, /obj/machinery/pipefilter))
++		// custom leak from vnode3 of a pipefilter
++		var/obj/machinery/pipefilter/PF = target
++		if (istype(PF.vnode3, /obj/machinery/pipes))
++			var/obj/machinery/pipes/P = PF.vnode3
++			if (P.pl == source || P == source)
++				var/obj/substance/gas/ndelta = PF.get_delta()
++				sngas.add_delta(ndelta)
++				return
++		else if (PF.vnode3 == source)
++			var/obj/substance/gas/ndelta = PF.get_delta()
++			sngas.add_delta(ndelta)
++			return
++
+ 	var/obj/substance/gas/tgas = target.get_gas(source)
+-
+ 	var/obj/substance/gas/ndelta = new()
+ 
+ 	/*if(dbg)
+@@ -1127,7 +1296,6 @@
+ 
+ 
+ 	if(amount < 0)		// then flowing from source to target
+-
+ 	//	if(dbg)
+ 	//		world.log << "[amount]<0"
+ 
+@@ -1137,7 +1305,7 @@
+ 	//		world.log << "ND: [ndelta.tostring()]"
+ 
+ 
+-		sngas.sub_delta(ndelta)		// subtract off the fraction which is gone
++		sngas.sub_delta(ndelta)		// subtract off the fraction which is gone 
+ 
+ 	//	if(dbg)
+ 	//		world.log << "SND: [sngas.tostring()]"
+Index: code/game/demo2.dm
+===================================================================
+--- code/game/demo2.dm	(revision 361)
++++ code/game/demo2.dm	(working copy)
+@@ -576,34 +576,55 @@
+ 		T.loc = src
+ 		src.holding = T
+ 		update_icon()
+-	else
+-		if ((istype(W, /obj/item/weapon/wrench)))
+-			var/obj/machinery/connector/con = locate(/obj/machinery/connector, src.loc)
++	else if ((istype(W, /obj/item/weapon/wrench)))
++		var/obj/machinery/connector/con = locate(/obj/machinery/connector, src.loc)
+ 
+-
+-			if (src.c_status)
+-				src.anchored = 0
+-				src.c_status = 0
+-				user.think("\blue You have disconnected the canister.")
+-				if(con)
+-					con.connected = null
++		if (src.c_status)
++			src.anchored = 0
++			src.c_status = 0
++			user.think("\blue You have disconnected the canister.")
++			if(con)
++				con.connected = null
++		else
++			if(con && !con.connected && !destroyed)
++				src.anchored = 1
++				src.c_status = 3
++				user.think("\blue You have connected the canister.")
++				con.connected = src
+ 			else
+-				if(con && !con.connected && !destroyed)
+-					src.anchored = 1
+-					src.c_status = 3
+-					user.think("\blue You have connected the canister.")
+-					con.connected = src
+-				else
+-					user.think("\blue There is nothing here with which to connect the canister.")
++				user.think("\blue There is nothing here with which to connect the canister.")
++	else if (istype(W, /obj/item/weapon/analyzer) && get_dist(user, src) <= 1)
++		for (var/mob/O in viewers(user, null))
++			O.see("\red [user] has used an analyzer on [src].")
++		var/total = src.gas.tot_gas()
++		var/t1 = 0
++		var/dat = "\blue Results of analysis of [src]:\n"
++		if (total)
++			dat += "\blue Overall: [total] / [src.gas.maximum]\n"
++			t1 = round( src.gas.n2 / total * 100 , 0.0010)
++			dat += "\blue Nitrogen: [t1]%\n"
++			t1 = round( src.gas.oxygen / total * 100 , 0.0010)
++			dat += "\blue Oxygen: [t1]%\n"
++			t1 = round( src.gas.plasma / total * 100 , 0.0010)
++			dat += "\blue Plasma: [t1]%\n"
++			t1 = round( src.gas.co2 / total * 100 , 0.0010)
++			dat += "\blue CO2: [t1]%\n"
++			t1 = round( src.gas.sl_gas / total * 100 , 0.0010)
++			dat += "\blue N2O: [t1]%\n"
++			dat += "\blue Temperature: [src.gas.temperature-T0C]&deg;C"
+ 		else
+-			switch(W.damtype)
+-				if("fire")
+-					src.health -= W.force
+-				if("brute")
+-					src.health -= W.force * 0.5
+-				else
+-			src.healthcheck()
+-			..()
++			dat += "\blue Tank is empty!"
++		user.think(dat)
++		src.add_fingerprint(user)
++	else
++		switch(W.damtype)
++			if("fire")
++				src.health -= W.force
++			if("brute")
++				src.health -= W.force * 0.5
++			else
++		src.healthcheck()
++		..()
+ 	return
+ 
+ /obj/machinery/atmoalter/canister/las_act(flag)

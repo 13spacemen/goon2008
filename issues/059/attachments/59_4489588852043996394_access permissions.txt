@@ -1,0 +1,32 @@
+SECURITY
+Access security
+Access brig
+Access security lockers
+Access forensics lockers
+
+MEDICAL
+Access medical supplies
+Access morgue
+
+RESEARCH
+Access toxin lab
+Access toxin storage
+Access medical lab
+
+ENGINEERING
+Access engine
+Eject engine
+
+MAINTENANCE
+Access maintenance tunnels
+Open external airlocks
+Access emergency storage
+
+COMMAND
+Change IDs
+Access AI
+Access teleporter room
+Access EVA storage
+Access high-security lockers and head quarters
+Access captain's locker and captain's quarters
+Reset ownership of personal lockers

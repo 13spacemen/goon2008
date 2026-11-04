@@ -1,0 +1,358 @@
+Index: code/game/computer.dm
+===================================================================
+--- code/game/computer.dm	(revision 541)
++++ code/game/computer.dm	(working copy)
+@@ -538,7 +538,7 @@
+ 		if (src.authenticated)
+ 			var/t1 = href_list["assign"]
+ 			if(t1 == "Custom")
+-				t1 = input("Enter a custom job assignment.","Assignment")
++				t1 = text_input("Enter a custom job assignment.","Assignment")
+ 			else
+ 				var/list/new_access = get_access(t1)
+ 				for(var/A in get_all_accesses())
+@@ -549,7 +549,7 @@
+ 	if (href_list["reg"])
+ 		if (src.authenticated)
+ 			var/t2 = src.modify
+-			var/t1 = input(usr, "What name?", "ID computer", null)  as text
++			var/t1 = text_input("What name?", "ID computer", null) as text
+ 			if ((src.authenticated && src.modify == t2 && (get_dist(src, usr) <= 1 || (istype(usr, /mob/silicon/ai))) && istype(src.loc, /turf)))
+ 				src.modify.registered = t1
+ 	if (href_list["mode"])
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 545)
++++ code/game/demo.dm	(working copy)
+@@ -1316,12 +1316,11 @@
+ /obj/morgue/attackby(P as obj, mob/user as mob)
+ 
+ 	if (istype(P, /obj/item/weapon/pen))
+-		var/t = input(user, "What would you like the label to be?", text("[]", src.name), null)  as text
++		var/t = text_input(user, "What would you like the label to be?", text("[]", src.name), null)  as text
+ 		if (user.equipped() != P)
+ 			return
+ 		if ((get_dist(src, usr) > 1 && src.loc != user))
+ 			return
+-		t = copytext(sanitize(t),1,MAX_MESSAGE_LEN)
+ 		if (t)
+ 			src.name = text("Morgue- '[]'", t)
+ 		else
+Index: code/game/dna/computer.dm
+===================================================================
+--- code/game/dna/computer.dm	(revision 541)
++++ code/game/dna/computer.dm	(working copy)
+@@ -314,7 +314,7 @@
+ 			del(src.primary_buf.contents)
+ 		if("rename-buffer")
+ 			src.primary_buf = buffers[text2num(href_list["buffer-num"])]
+-			var/newdesc = input("Enter new buffer description", "Buffer #[src.primary_buf.index] Description", "[src.primary_buf.desc]")
++			var/newdesc = text_input("Enter new buffer description", "Buffer #[src.primary_buf.index] Description", "[src.primary_buf.desc]")
+ 			if(newdesc && newdesc != "[src.primary_buf.desc]")
+ 				src.primary_buf.desc = newdesc
+ 		if("splice-menu")
+Index: code/game/item/weapon/aimodules.dm
+===================================================================
+--- code/game/item/weapon/aimodules.dm	(revision 541)
++++ code/game/item/weapon/aimodules.dm	(working copy)
+@@ -61,7 +61,7 @@
+ 
+ /obj/item/weapon/aiModule/safeguard/interact(var/mob/user as mob)
+ 	..()
+-	var/targName = input(usr, "Please enter the name of the person to safeguard.", "Safeguard who?", user.name)
++	var/targName = text_input(usr, "Please enter the name of the person to safeguard.", "Safeguard who?", user.name)
+ 	targetName = targName
+ 	desc = text("A 'safeguard' AI module: 'Safeguard [], and you may overrule rules 1-3 if necessary to safeguard them.'", targetName)
+ 
+@@ -84,7 +84,7 @@
+ 	..()
+ 	if(!istype(user, /mob/carbon))
+ 		return
+-	var/targName = input(usr, "Please enter the name of the person who is the only human.", "Who?", user.body_name)
++	var/targName = text_input(usr, "Please enter the name of the person who is the only human.", "Who?", user.body_name)
+ 	targetName = targName
+ 	desc = text("A 'one human' AI module: 'Only [] is human.'", targetName)
+ 
+Index: code/game/items.dm
+===================================================================
+--- code/game/items.dm	(revision 545)
++++ code/game/items.dm	(working copy)
+@@ -1114,12 +1114,11 @@
+ 			src.add_fingerprint(user)
+ 			W.add_fingerprint(user)
+ 	if (istype(W, /obj/item/weapon/pen))
+-		var/t = input(user, "What would you like the label to be?", text("[]", src.name), null)  as text
++		var/t = text_input(user, "What would you like the label to be?", text("[]", src.name), null)  as text
+ 		if (user.equipped() != W)
+ 			return
+ 		if (src.loc != user)
+ 			return
+-		t = copytext(sanitize(t),1,MAX_MESSAGE_LEN)
+ 		if (t)
+ 			src.name = text("Pill Canister- '[]'", t)
+ 		else
+@@ -1980,12 +1979,11 @@
+ 			user << "\blue Not enough space!!!"
+ 	else
+ 		if (istype(P, /obj/item/weapon/pen))
+-			var/t = input(user, "Holder Label:", text("[]", src.name), null)  as text
++			var/t = text_input(user, "Holder Label:", text("[]", src.name), null)  as text
+ 			if (user.equipped() != P)
+ 				return
+ 			if ((get_dist(src, usr) > 1 && src.loc != user))
+ 				return
+-			t = copytext(sanitize(t),1,MAX_MESSAGE_LEN)
+ 			if (t)
+ 				src.name = text("FPCase- '[]'", t)
+ 			else
+@@ -2150,8 +2148,7 @@
+ 
+ /obj/item/weapon/paper/photograph/attack_self(mob/user as mob)
+ 
+-	var/n_name = input(user, "What would you like to label the photo?", "Paper Labelling", null)  as text
+-	n_name = copytext(n_name, 1, 32)
++	var/n_name = text_input(user, "What would you like to label the photo?", "Paper Labelling", null,32)  as text
+ 	if ((src.loc == user && user.is_active()))
+ 		src.name = text("photo[]", (n_name ? text("- '[]'", n_name) : null))
+ 	src.add_fingerprint(user)
+@@ -2172,8 +2169,7 @@
+ 
+ /obj/item/weapon/paper/attack_self(mob/user as mob)
+ 
+-	var/n_name = input(user, "What would you like to label the paper?", "Paper Labelling", null)  as text
+-	n_name = copytext(n_name, 1, 32)
++	var/n_name = text_input(user, "What would you like to label the paper?", "Paper Labelling", null,32)  as text
+ 	if ((src.loc == user && user.is_active()))
+ 		src.name = text("paper[]", (n_name ? text("- '[]'", n_name) : null))
+ 	src.add_fingerprint(user)
+@@ -2183,11 +2179,10 @@
+ 	if(!istype(user, /mob/carbon))
+ 		return
+ 	if (istype(P, /obj/item/weapon/pen) && user.check_intelligence())
+-		var/t = input(user, "What text do you wish to add?", text("[]", src.name), null)  as message
++		var/t = text_input(user, "What text do you wish to add?", text("[]", src.name), null)  as message
+ 		if ((get_dist(src, usr) > 1 && src.loc != user && !( istype(src.loc, /obj/item/weapon/clipboard) ) && src.loc.loc != user && user.equipped() != P))
+ 			return
+-		t = copytext(sanitize(t),1,MAX_MESSAGE_LEN)
+-		t = dd_replacetext(t, "\n", "<BR>")
++		t = dd_replacetext(t, "\[n\]", "<BR>")
+ 		t = dd_replacetext(t, "\[b\]", "<B>")
+ 		t = dd_replacetext(t, "\[/b\]", "</B>")
+ 		t = dd_replacetext(t, "\[i\]", "<I>")
+@@ -2305,12 +2300,11 @@
+ 			W.add_fingerprint(user)
+ 	else
+ 		if (istype(W, /obj/item/weapon/pen))
+-			var/t = input(user, "Card Label:", text("[]", src.name), null)  as text
++			var/t = text_input(user, "Card Label:", text("[]", src.name), null)  as text
+ 			if (user.equipped() != W)
+ 				return
+ 			if ((get_dist(src, usr) > 1 && src.loc != user))
+ 				return
+-			t = copytext(sanitize(t),1,MAX_MESSAGE_LEN)
+ 			if (t)
+ 				src.name = text("FPrintC- '[]'", t)
+ 			else
+@@ -3260,12 +3254,11 @@
+ /obj/item/weapon/implantcase/attackby(obj/item/weapon/I as obj, mob/carbon/user as mob)
+ 
+ 	if (istype(I, /obj/item/weapon/pen))
+-		var/t = input(user, "What would you like the label to be?", text("[]", src.name), null)  as text
++		var/t = text_input(user, "What would you like the label to be?", text("[]", src.name), null)  as text
+ 		if (user.equipped() != I)
+ 			return
+ 		if ((get_dist(src, usr) > 1 && src.loc != user))
+ 			return
+-		t = copytext(sanitize(t),1,MAX_MESSAGE_LEN)
+ 		if (t)
+ 			src.name = text("Glass Case- '[]'", t)
+ 		else
+Index: code/game/jobs.dm
+===================================================================
+--- code/game/jobs.dm	(revision 541)
++++ code/game/jobs.dm	(working copy)
+@@ -172,7 +172,7 @@
+ 				if(ai_names) randomname = pick(ai_names)
+ 				var/newname = input(aiPlayer,"You are the AI. Would you like to change your name?", "Character Creation", randomname)
+ 				if(!length(newname)) newname = randomname
+-				newname = sanitize(dd_limittext(newname, 30))
++				newname = strip_html(newname,30)
+ 				aiPlayer.spawn_name = newname
+ 				aiPlayer.voice = newname
+ 				aiPlayer.name = newname
+Index: code/game/mob/carbon/show_inv.dm
+===================================================================
+--- code/game/mob/carbon/show_inv.dm	(revision 541)
++++ code/game/mob/carbon/show_inv.dm	(working copy)
+@@ -28,8 +28,8 @@
+ 	dat += "<br><a href='?src=\ref[src];item=[SLOT_HANDCUFFS]'>[src.handcuffs ? "" : "Not "]Handcuffed</A><br>"
+ 	if(src.can_wear_jumpsuit)
+ 		dat += "<a href='?src=\ref[src];item=[SLOT_IN_POCKETS]'>Empty Pockets</A><br>"
+-	dat += "<a href='?src=\ref[user];mach_close=mob[html_encode(src.spawn_name)]'>Close</A>"
+-	ss13_browse(user, dat, "window=mob[html_encode(src.spawn_name)];size=300x600")
++	dat += "<a href='?src=\ref[user];mach_close=mob[src.spawn_name]'>Close</A>"
++	ss13_browse(user, dat, "window=mob[src.spawn_name];size=300x600")
+ 	return
+ 
+ /mob/carbon/Topic(href, href_list)
+Index: code/game/mob/prespawn/say.dm
+===================================================================
+--- code/game/mob/prespawn/say.dm	(revision 545)
++++ code/game/mob/prespawn/say.dm	(working copy)
+@@ -1,5 +1,5 @@
+ /mob/prespawn/say(txt as text)
+-	txt = copytext(sanitize(txt),1,256)
++	txt = sanitize(txt,256)
+ 	if(!txt) return
+ 	world.log_say("[src.name]/[src.key] : [txt]")
+ 	for(var/mob/prespawn/P in world)
+Index: code/game/mob/say.dm
+===================================================================
+--- code/game/mob/say.dm	(revision 545)
++++ code/game/mob/say.dm	(working copy)
+@@ -17,7 +17,7 @@
+ 		var/numrepeats = rand(5) - 1
+ 		for(var/j = 0; j < numrepeats; j++)
+ 			s += c
+-	return copytext(sanitize(s),1,MAX_MESSAGE_LEN)
++	return sanitize(s)
+ 
+ /mob/proc/get_default_radio()
+ 	return null
+@@ -37,7 +37,7 @@
+ 				return I
+ 
+ /mob/verb/say(txt as text)
+-	txt = copytext(sanitize(txt),1,MAX_MESSAGE_LEN)
++	txt = sanitize(txt)
+ 	if(!txt) return
+ 	world.log_say("[src.name]/[src.key] : [txt]")
+ 
+Index: code/game/mob/topic.dm
+===================================================================
+--- code/game/mob/topic.dm	(revision 541)
++++ code/game/mob/topic.dm	(working copy)
+@@ -5,11 +5,9 @@
+ 	if(href_list["priv_msg"])
+ 		var/mob/M = locate(href_list["priv_msg"])
+ 		if(M)
+-			if (!( ismob(M) ))
+-				return
+-			var/t = input("Message:", text("Private message to []", M.key), null, null)  as text
+-			if (!( t ))
+-				return
++			if(!ismob(M))	return
++			var/t = text_input("Message:", text("Private message to []", M.key), null, null)  as text
++			if(!t)			return
+ 			M << "\blue PM from-<B><A href='?src=\ref[M];priv_msg=\ref[usr]'>[usr.key]</A></B>: [t]"
+ 			usr << "\blue PM to-<B><A href='?src=\ref[usr];priv_msg=\ref[M]'>[M.key]</A></B>: [t]"
+ 
+Index: code/game/preferences.dm
+===================================================================
+--- code/game/preferences.dm	(revision 541)
++++ code/game/preferences.dm	(working copy)
+@@ -94,10 +94,9 @@
+ /datum/preferences/Topic(href, href_list)
+ 	if(href_list["name"])
+ 		switch(href_list["name"])
+-			if("input")		src.name = sanitize(capitalize(input("What is your character's name?", "Character Generation", src.name) as text))
+-			if("random")	src.spawn_name = sanitize(capitalize(pick(first_names)) + " " + capitalize(pick(last_names)))
+-			if("spawn")		src.spawn_name = sanitize(capitalize(input("What name will you spawn with?", "Character Generation", src.spawn_name) as text))
+-
++			if("input")		src.name = capitalize(scrub_input("What is your character's name?", "Character Generation", src.name))
++			if("spawn")		src.spawn_name = capitalize(scrub_input("What name will you spawn with?", "Character Generation", src.spawn_name))
++			if("random")	src.spawn_name = strip_html(capitalize(pick(first_names) + " " + capitalize(pick(last_names))))
+ 	else if(href_list["gender"])
+ 		src.gender = input("Select a gender", "Character Generation", src.gender) in list(MALE, FEMALE)
+ 	else if(href_list["skin_color"])
+Index: code/game/verbs/adminhelp.dm
+===================================================================
+--- code/game/verbs/adminhelp.dm	(revision 545)
++++ code/game/verbs/adminhelp.dm	(working copy)
+@@ -3,7 +3,7 @@
+ 		src << "Please authorize before sending these messages."
+ 		return
+ 
+-	msg = copytext(sanitize(msg), 1, MAX_MESSAGE_LEN)
++	msg = sanitize(msg)
+ 	if(!msg) return
+ 
+ 	var/yep = 0
+Index: code/game/verbs/adminsay.dm
+===================================================================
+--- code/game/verbs/adminsay.dm	(revision 545)
++++ code/game/verbs/adminsay.dm	(working copy)
+@@ -9,7 +9,7 @@
+ 
+ 	var/name = ((src.mob)?(src.mob.name):("No Mob"))
+ 
+-	msg = copytext(sanitize(msg), 1, MAX_MESSAGE_LEN)
++	msg = sanitize(msg)
+ 	if(!msg) return
+ 	world.log << "ADMIN: [src.key]/[name] : [msg]"
+ 
+Index: code/game/verbs/ooc.dm
+===================================================================
+--- code/game/verbs/ooc.dm	(revision 545)
++++ code/game/verbs/ooc.dm	(working copy)
+@@ -15,9 +15,8 @@
+ 
+ 	if(!ooc_allowed) return
+ 	if(!src.client.listen_ooc) return
+-	msg = copytext(sanitize(msg), 1, MAX_MESSAGE_LEN)
+-	if(!msg) return
+ 
++	msg = sanitize(msg);	if(!msg) return
+ 	world.log_ooc("[src.name]/[src.key] : [msg]")
+ 	for (var/mob/M in world)
+ 		if (M.client && M.client.listen_ooc)
+Index: code/helpers.dm
+===================================================================
+--- code/helpers.dm	(revision 545)
++++ code/helpers.dm	(working copy)
+@@ -16,19 +16,30 @@
+ 			K += item
+ 	return K
+ 
+-/proc/sanitize(var/t)
++/proc/sanitize(var/t,var/limit=MAX_MESSAGE_LEN)
++	t = copytext(t,1,limit)
+ 	var/index = findtext(t, "\n")
+ 	while(index)
+-		t = copytext(t, 1, index) + "#" + copytext(t, index+1)
++		t = copytext(t, 1, index) + copytext(t, index+1)
+ 		index = findtext(t, "\n")
+-
+ 	index = findtext(t, "\t")
+ 	while(index)
+-		t = copytext(t, 1, index) + "#" + copytext(t, index+1)
++		t = copytext(t, 1, index) + copytext(t, index+1)
+ 		index = findtext(t, "\t")
+-
+ 	return html_encode(t)
+ 
++/proc/strip_html(var/t,var/limit=MAX_MESSAGE_LEN)
++	t = copytext(t,1,limit)
++	var/index = findtext(t, "<")
++	while(index)
++		t = copytext(t, 1, index) + copytext(t, index+1)
++		index = findtext(t, "<")
++	index = findtext(t, ">")
++	while(index)
++		t = copytext(t, 1, index) + copytext(t, index+1)
++		index = findtext(t, ">")
++	return sanitize(t)
++
+ /proc/add_zero(t, u)
+ 	while(length(t) < u)
+ 		t = "0[t]"
+@@ -207,3 +218,9 @@
+ 	user << browse(body, options)
+ 	if(body != null)
+ 		winset(user, "mainwindow.input", "focus=true")
++
++/proc/text_input(var/Message, var/Title, var/Default, var/length=MAX_MESSAGE_LEN)
++	return sanitize(input(Message, Title, Default) as text, length)
++
++/proc/scrub_input(var/Message, var/Title, var/Default, var/length=MAX_MESSAGE_LEN)
++	return strip_html(input(Message,Title,Default) as text, length)

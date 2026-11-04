@@ -1,0 +1,116 @@
+Index: code/atoms/false_wall.dm
+===================================================================
+--- code/atoms/false_wall.dm	(revision 355)
++++ code/atoms/false_wall.dm	(working copy)
+@@ -5,18 +5,27 @@
+ 	var/visible = 1
+ 	var/const/delay = 15
+ 	var/const/prob_opens = 25
+-	//TODO: implement a way to track which users have seen which false walls open, and let them always open them
+ 
++	var/known_by = list()
++
+ /turf/station/wall/false_wall/interact(mob/carbon/user as mob)
+ 	if(!istype(user, /mob/carbon))
+ 		return
+ 	src.add_fingerprint(user)
+ 	if(!user.is_dextrous || !user.is_intelligent) //only smart dextrous people can use this
+ 		return ..()
++	var/known = 0
++	if (user in known_by)
++		known = 1
+ 	if (src.density) //door is closed
+-		if (prob(prob_opens)) //it's hard to open
++		if (known)
++			if (open())
++				user << "\blue The wall slides open." //lack of exclamation mark reflects nonchalance
++		else if (prob(prob_opens)) //it's hard to open
+ 			if (open()) //it successfully opens, i.e. wasn't operating
+ 				user << "\blue The wall slides open!"
++				known_by += user
++				user.known_fwalls += src
+ 		else
+ 			return ..()
+ 	else
+@@ -27,10 +36,13 @@
+ /turf/station/wall/false_wall/attackby(obj/item/weapon/screwdriver/S as obj, mob/user as mob)
+ 	src.add_fingerprint(user)
+ 	if (istype(S, /obj/item/weapon/screwdriver))
++		var/known = 0
++		if (user in known_by)
++			known = 1
+ 		//try to disassemble the false wall
+-		if (!src.density || prob(prob_opens)) //without this, you can detect a false wall just by going down the line with screwdrivers
++		if (!src.density || known || prob(prob_opens)) //without this, you can detect a false wall just by going down the line with screwdrivers
+ 			//if it's already open, you can disassemble it no problem
+-			if (src.density) //if it was closed, let them know that they did something
++			if (src.density && !known) //if it was closed, let them know that they did something
+ 				user << "\blue It was a false wall!"
+ 			//disassemble it
+ 			user << "\blue Now dismantling false wall."
+@@ -86,3 +98,7 @@
+ 	else
+ 		usr << "It's a false wall. It's open."
+ 	return
++
++/turf/station/wall/false_wall/Del()
++	for (var/mob/carbon/m in known_by)
++		m.known_fwalls -= src
+Index: code/game/items.dm
+===================================================================
+--- code/game/items.dm	(revision 355)
++++ code/game/items.dm	(working copy)
+@@ -3988,19 +3988,21 @@
+ 
+ 		del(src)
+ 
+-/obj/d_girders/attackby(obj/item/weapon/W as obj, mob/user as mob)
++/obj/d_girders/attackby(obj/item/weapon/W as obj, mob/carbon/user as mob)
+ 
+ 	if (istype(W, /obj/item/weapon/sheet/metal))
+ 		if (W:amount < 1)
+ 			//W = null
+ 			del(W)
+ 			return
+-		new /turf/station/wall/false_wall( src.loc )
++		var/turf/station/wall/false_wall/fwall = new /turf/station/wall/false_wall( src.loc )
++		fwall.known_by += user
++		user.known_fwalls += fwall
++		user << "False wall constructed."
+ 		W:amount--
+ 		if (W:amount < 1)
+ 			//W = null
+ 			del(W)
+-		user << "\blue Keep in mind when you open it that it MAY be difficult to slide at first so keep trying."
+ 		//SN src = null
+ 		del(src)
+ 		return
+Index: code/game/mob/carbon/death.dm
+===================================================================
+--- code/game/mob/carbon/death.dm	(revision 355)
++++ code/game/mob/carbon/death.dm	(working copy)
+@@ -5,4 +5,9 @@
+ 
+ 	src.timeofdeath = world.time
+ 
+-	return ..()
+\ No newline at end of file
++	for (var/turf/station/wall/false_wall/fwall in known_fwalls)
++		fwall.known_by -= src
++	del known_fwalls
++	known_fwalls = list()
++
++	return ..()
+Index: code/game/mob/carbon/var.dm
+===================================================================
+--- code/game/mob/carbon/var.dm	(revision 355)
++++ code/game/mob/carbon/var.dm	(working copy)
+@@ -120,4 +120,6 @@
+ 	curr_language = LANGUAGE_MONKEY
+ 
+ 	icon = 'monkey.dmi'
+-	icon_state = "monkey1"
+\ No newline at end of file
++	icon_state = "monkey1"
++
++	var/known_fwalls = list()

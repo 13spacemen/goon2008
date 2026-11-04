@@ -1,0 +1,127 @@
+Index: code/demo.dm
+===================================================================
+--- code/demo.dm        (revision 107)
++++ code/demo.dm        (working copy)
+@@ -834,6 +834,32 @@
+                M << text("\red <B>This was a []% hit. Roleplay it! (personality/memory change if the hit was severe enough)</B>", time * 100 / 120)
+        return
+ 
++/obj/item/weapon/tank/attackby(obj/item/weapon/W as obj, mob/user as mob)
++       if (istype(W, /obj/item/weapon/analyzer))
++               for (var/mob/O in viewers(user, null))
++                       O << "\red [user] has used the analyzer on \icon[src]"
++               var/total = src.gas.tot_gas()
++               var/t1 = 0
++
++               user << "\blue Results of analysis of \icon[src]"
++               if (total)
++                       user << "\blue Overall: [total] / [src.gas.maximum]"
++                       t1 = round( src.gas.n2 / total * 100 , 0.0010)
++                       user << "\blue Nitrogen: [t1]%"
++                       t1 = round( src.gas.oxygen / total * 100 , 0.0010)
++                       user << "\blue Oxygen: [t1]%"
++                       t1 = round( src.gas.plasma / total * 100 , 0.0010)
++                       user << "\blue Plasma: [t1]%"
++                       t1 = round( src.gas.co2 / total * 100 , 0.0010)
++                       user << "\blue CO2: [t1]%"
++                       t1 = round( src.gas.sl_gas / total * 100 , 0.0010)
++                       user << "\blue N2O: [t1]%"
++                       user << text("\blue Temperature: []&deg;C", src.gas.temperature-T0C)
++               else
++                       user << "\blue Tank is empty!"
++               src.add_fingerprint(user)
++       return
++
+ /obj/item/weapon/tank/New()
+ 
+        ..()
+@@ -862,7 +888,14 @@
+        set src in view(1)
+ 
+        if(src)
+-               usr << text("\blue The \icon[] contains [] unit\s of gas.", src, src.gas.tot_gas())
++               var/foo = src.gas.temperature-T0C
++               if (foo < 20) foo = "cold"
++               else if (foo == 20)  foo = "room temperature"
++               else if (foo > 20 && foo < 300) foo = "lukewarm"
++               else if (foo >= 300 && foo < 450) foo = "warm"
++               else if (foo >= 450 && foo < 500) foo = "hot"
++               else foo = "dangerously hot"
++               usr << text("\blue The \icon[] contains [] unit\s of [] gas.", src, src.gas.tot_gas(), foo)
+        return
+ 
+ /obj/item/weapon/tank/oxygentank/New()
+@@ -1055,6 +1088,7 @@
+ 
+ 
+ /obj/item/weapon/tank/plasmatank/attackby(obj/item/weapon/W as obj, mob/user as mob)
++       ..()
+ 
+        if (istype(W, /obj/item/weapon/assembly/rad_ignite))
+                var/obj/item/weapon/assembly/rad_ignite/S = W
+Index: code/weapons.dm
+===================================================================
+--- code/weapons.dm     (revision 107)
++++ code/weapons.dm     (working copy)
+@@ -1217,6 +1217,10 @@
+                return
+        return
+ 
++/obj/item/weapon/assembly/m_i_ptank/examine()
++       ..()
++       src.part3.examine()
++
+ /obj/item/weapon/assembly/m_i_ptank/Del()
+ 
+        //src.part1 = null
+@@ -1230,6 +1234,9 @@
+ 
+ /obj/item/weapon/assembly/m_i_ptank/attackby(obj/item/weapon/W as obj, mob/user as mob)
+ 
++       if (istype(W, /obj/item/weapon/analyzer))
++               src.part3.attackby(W, user)
++
+        if ((istype(W, /obj/item/weapon/wrench) && !( src.status )))
+                var/obj/item/weapon/assembly/prox_ignite/R = new /obj/item/weapon/assembly/prox_ignite(  )
+                R.part1 = src.part1
+@@ -1302,6 +1309,10 @@
+        return
+ 
+ 
++/obj/item/weapon/assembly/t_i_ptank/examine()
++       ..()
++       src.part3.examine()
++
+ /obj/item/weapon/assembly/t_i_ptank/Del()
+ 
+        //src.part1 = null
+@@ -1315,6 +1326,9 @@
+ 
+ /obj/item/weapon/assembly/t_i_ptank/attackby(obj/item/weapon/W as obj, mob/user as mob)
+ 
++       if (istype(W, /obj/item/weapon/analyzer))
++               src.part3.attackby(W, user)
++
+        if ((istype(W, /obj/item/weapon/wrench) && !( src.status )))
+                var/obj/item/weapon/assembly/time_ignite/R = new /obj/item/weapon/assembly/time_ignite(  )
+                R.part1 = src.part1
+@@ -1400,6 +1414,9 @@
+ */
+ //*****
+ 
++/obj/item/weapon/assembly/r_i_ptank/examine()
++       ..()
++       src.part3.examine()
+ 
+ /obj/item/weapon/assembly/r_i_ptank/Del()
+ 
+@@ -1414,6 +1431,9 @@
+ 
+ /obj/item/weapon/assembly/r_i_ptank/attackby(obj/item/weapon/W as obj, mob/user as mob)
+ 
++       if (istype(W, /obj/item/weapon/analyzer))
++               src.part3.attackby(W, user)
++
+        if ((istype(W, /obj/item/weapon/wrench) && !( src.status )))
+                var/obj/item/weapon/assembly/rad_ignite/R = new /obj/item/weapon/assembly/rad_ignite(  )
+                R.part1 = src.part1

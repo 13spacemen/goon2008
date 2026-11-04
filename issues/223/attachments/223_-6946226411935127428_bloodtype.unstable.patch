@@ -1,0 +1,68 @@
+Index: unstable.dme
+===================================================================
+--- unstable.dme	(revision 477)
++++ unstable.dme	(working copy)
+@@ -114,6 +114,7 @@
+ #include "code\game\dna\locus.dm"
+ #include "code\game\dna\gene\appearance.dm"
+ #include "code\game\dna\gene\blobbishness.dm"
++#include "code\game\dna\gene\bloodtype.dm"
+ #include "code\game\dna\gene\fire_immune.dm"
+ #include "code\game\dna\gene\gender.dm"
+ #include "code\game\dna\gene\gene.dm"
+Index: code/game/mob/carbon/var.dm
+===================================================================
+--- code/game/mob/carbon/var.dm	(revision 477)
++++ code/game/mob/carbon/var.dm	(working copy)
+@@ -82,6 +82,7 @@
+ 	var/skin_color
+ 
+ 	var/appearance = APPEARANCE_MONKEY
++	var/bloodtype = null
+ 
+ 	var/list/body_standing = list()
+ 	var/list/body_lying = list()
+Index: code/game/dna/gene/bloodtype.dm
+===================================================================
+--- code/game/dna/gene/bloodtype.dm	(revision 0)
++++ code/game/dna/gene/bloodtype.dm	(revision 0)
+@@ -0,0 +1,39 @@
++/var/const
++	BLOOD_OPOS = "O+"
++	BLOOD_APOS = "A+"
++	BLOOD_BPOS = "B+"
++	BLOOD_ABPOS = "AB+"
++	BLOOD_ONEG = "O-"
++	BLOOD_ANEG = "A-"
++	BLOOD_BNEG = "B-"
++	BLOOD_ABNEG = "AB-"
++
++/datum/gene/bloodtype
++	is_noticeable = 0
++	default = BLOOD_OPOS
++
++	New()
++		attributes = list(BLOOD_OPOS, BLOOD_APOS, BLOOD_BPOS, BLOOD_ABPOS, BLOOD_ONEG, BLOOD_ANEG, BLOOD_BNEG, BLOOD_ABNEG)
++	
++	apply(mob/carbon/M, attribute)
++		M.bloodtype = attribute
++
++	pick_attribute(mob/carbon/M)
++		if(M.bloodtype) return M.bloodtype
++		var/temp = rand(1,1000)
++
++		if(temp <= 373)
++			return BLOOD_OPOS
++		else if(temp <= 731)
++			return BLOOD_APOS
++		else if(temp <= 816)
++			return BLOOD_BPOS
++		else if(temp <= 850)
++			return BLOOD_ABPOS
++		else if(temp <= 916)
++			return BLOOD_ONEG
++		else if(temp <= 979)
++			return BLOOD_ANEG
++		else if(temp <= 994)
++			return BLOOD_BNEG
++		return BLOOD_ABNEG

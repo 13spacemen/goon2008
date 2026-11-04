@@ -1,0 +1,1291 @@
+Index: code/aaaDefines.dm
+===================================================================
+--- code/aaaDefines.dm	(revision 64)
++++ code/aaaDefines.dm	(working copy)
+@@ -1,54 +1,5 @@
+ #include "atoms.dm"
+ 
+-/obj/proc/throwing(t_dir, rs)
+-
+-	if (src.throwspeed <= 1)
+-		src.throwing = 0
+-	src.throwspeed--
+-	if (rs == 0)
+-		rs = 1
+-	if (src.throwing)
+-		if (rs == 1)
+-			step(src, t_dir)
+-			sleep(1)
+-			spawn( 0 )
+-				throwing(t_dir, rs)
+-				return
+-		else
+-			if (rs > 1)
+-				var/t = null
+-				while(t < rs)
+-					step(src, t_dir)
+-					t++
+-				sleep(10)
+-				spawn( 0 )
+-					src.throwing(t_dir, rs)
+-					return
+-			else
+-				step(src, t_dir)
+-				sleep(10 / rs)
+-				spawn( 0 )
+-					throwing(t_dir, rs)
+-					return
+-	else
+-		//*****RM
+-		//src.density = 0
+-		if(istype(src, /obj/item))
+-			src.density = 0
+-
+-		//*****
+-	return
+-
+-
+-//*****RM
+-
+-/obj/Bump(atom/O)
+-
+-	if (src.throwing)
+-		//world<<"[src] bumped into [O] and stopped"
+-		src.throwing = 0
+-	..()
+-
+ //*****
+ /atom/proc/burn(fi_amount)
+ 
+@@ -63,4 +14,5 @@
+ 	src.m_flag = 1
+ 	if ((A != src.loc && A && A.z == src.z))
+ 		src.last_move = get_dir(A, src.loc)
++		src.moved_recently = 1
+ 	return
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 64)
++++ code/atoms.dm	(working copy)
+@@ -16,6 +16,10 @@
+ 	var/move_speed = 10
+ 	var/l_move_time = 1
+ 	var/m_flag = 1
++	var/throwing = 0
++	var/throw_speed = 2
++	var/throw_range = 7
++	var/moved_recently = 0
+ 
+ /atom/movable/overlay
+ 	var/atom/master = null
+@@ -179,6 +183,7 @@
+ 	var/obj/item/weapon/tank/internal = null
+ 	var/obj/item/weapon/storage/s_active = null
+ 	var/obj/item/weapon/clothing/mask/wear_mask = null
++	var/obj/screen/throw_icon = null
+ 	var/obj/screen/flash = null
+ 	var/obj/screen/blind = null
+ 	var/obj/screen/hands = null
+@@ -203,6 +208,10 @@
+ 
+ 	var/list/mapobjs = list()
+ 
++	var/in_throw_mode = 0
++
++	var/inertia_dir = 0
++
+ /mob/ghost
+ 	name = "ghost"
+ 	icon_state = "ghost"
+@@ -300,8 +309,6 @@
+ 		var/activecount				// count-down before mob goes into idle mode
+ 
+ /obj
+-	var/throwspeed = 0.0
+-	var/throwing = null
+ 	var/datum/module/mod
+ 
+ /obj/mark
+@@ -487,7 +494,7 @@
+ 	var/health = 10.0
+ 	var/destroyed = 0.0
+ 	anchored = 1.0
+-	flags = 64.0
++	flags = FPRINT
+ 	weight = 500000	// added
+ /obj/securearea
+ 	desc = "A warning sign which reads 'SECURE AREA'"
+@@ -531,7 +538,6 @@
+ 	var/burning = null
+ 	var/obj/item/weapon/master = null
+ 	flags = 258.0
+-	throwspeed = 7.0
+ 	weight = 500000.0
+ /obj/item/weapon/a_gift
+ 	name = "Gift"
+@@ -664,7 +670,8 @@
+ /obj/item/weapon/bottle
+ 	name = "bottle"
+ 	var/obj/substance/chemical/chem = null
+-	throwspeed = 20.0
++	throw_speed = 4
++	throw_range = 20
+ 	w_class = 1.0
+ /obj/item/weapon/bottle/antitoxins
+ 	name = "antitoxins"
+@@ -690,7 +697,8 @@
+ 	icon_state = "brutepack"
+ 	var/amount = 5.0
+ 	w_class = 1.0
+-	throwspeed = 20.0
++	throw_speed = 4
++	throw_range = 20
+ /obj/item/weapon/c_tube
+ 	name = "Cardboard tube"
+ 	icon_state = "c_tube"
+@@ -751,7 +759,8 @@
+ 	flags = 322.0
+ 	s_istate = "electronic"
+ 	throwforce = 5.0
+-	throwspeed = 5.0
++	throw_speed = 1
++	throw_range = 5
+ 	w_class = 2.0
+ /obj/item/weapon/clothing
+ 	name = "clothing"
+@@ -1094,7 +1103,7 @@
+ 	icon_state = "coil"
+ 	desc = "A coil of power cable."
+ 	w_class = 2
+-	flags = TABLEPASS|USEDELAY|DRIVABLE|FPRINT
++	flags = TABLEPASS|USEDELAY|FPRINT
+ 	s_istate = "coil"
+ 
+ /obj/item/weapon/cable_coil/cut
+@@ -1122,7 +1131,8 @@
+ 	icon_state = "dropper_0"
+ 	var/obj/substance/chemical/chem = null
+ 	var/mode = "inject"
+-	throwspeed = 5.0
++	throw_speed = 1
++	throw_range = 5
+ 	w_class = 1.0
+ /obj/item/weapon/dummy
+ 	name = "dummy"
+@@ -1166,7 +1176,8 @@
+ 	w_class = 1.0
+ 	flags = 322.0
+ 	s_istate = "electronic"
+-	throwspeed = 20.0
++	throw_speed = 4
++	throw_range = 20
+ /obj/item/weapon/flashbang
+ 	desc = "It is set to detonate in 3 seconds."
+ 	name = "flashbang"
+@@ -1175,7 +1186,8 @@
+ 	var/det_time = 30.0
+ 	w_class = 2.0
+ 	s_istate = "flashbang"
+-	throwspeed = 20.0
++	throw_speed = 4
++	throw_range = 20
+ 	flags = 402.0
+ /obj/item/weapon/flasks
+ 	name = "flask"
+@@ -1248,7 +1260,8 @@
+ 	name = "laser gun"
+ 	icon_state = "gun"
+ 	w_class = 3.0
+-	throwspeed = 10.0
++	throw_speed = 2
++	throw_range = 10
+ 	force = 7.0
+ /obj/item/weapon/gun/energy/taser_gun
+ 	name = "taser gun"
+@@ -1256,7 +1269,8 @@
+ 	w_class = 3.0
+ 	s_istate = "gun"
+ 	force = 10.0
+-	throwspeed = 10.0
++	throw_speed = 2
++	throw_range = 10
+ 	maximum_charges = 8
+ 	charges = 8
+ /obj/item/weapon/gun/revolver
+@@ -1265,7 +1279,8 @@
+ 	icon_state = "revolver"
+ 	var/bullets = 0.0
+ 	w_class = 3.0
+-	throwspeed = 10.0
++	throw_speed = 2
++	throw_range = 10
+ 	force = 60.0
+ /obj/item/weapon/hand_tele
+ 	name = "hand tele"
+@@ -1307,7 +1322,8 @@
+ 	icon_state = "implantcase-0"
+ 	var/obj/item/weapon/implant/imp = null
+ 	s_istate = "implantcase"
+-	throwspeed = 5.0
++	throw_speed = 1
++	throw_range = 5
+ 	w_class = 1.0
+ /obj/item/weapon/implantcase/tracking
+ 	name = "Glass Case- 'Tracking'"
+@@ -1317,7 +1333,8 @@
+ 	icon_state = "implanter0"
+ 	var/obj/item/weapon/implant/imp = null
+ 	s_istate = "syringe_0"
+-	throwspeed = 5.0
++	throw_speed = 1
++	throw_range = 5
+ 	w_class = 2.0
+ /obj/item/weapon/implantpad
+ 	name = "implantpad"
+@@ -1326,7 +1343,8 @@
+ 	var/broadcasting = null
+ 	var/listening = 1.0
+ 	s_istate = "electronic"
+-	throwspeed = 5.0
++	throw_speed = 1
++	throw_range = 5
+ 	w_class = 2.0
+ /obj/item/weapon/infra
+ 	name = "Infrared Beam (Security)"
+@@ -1351,7 +1369,7 @@
+ 	desc = "A terahertz-ray emitter and scanner used to detect underfloor objects such as cables and pipes."
+ 	icon_state = "t-scanner0"
+ 	var/on = 0
+-	flags = FPRINT|ONBELT|DRIVABLE|TABLEPASS
++	flags = FPRINT|ONBELT|TABLEPASS
+ 	w_class = 2
+ 	s_istate = "electronic"
+ 
+@@ -1365,7 +1383,8 @@
+ 	flags = 322.0
+ 	w_class = 2.0
+ 	s_istate = "electronic"
+-	throwspeed = 20.0
++	throw_speed = 4
++	throw_range = 20
+ 
+ /obj/item/weapon/m_pill
+ 	name = "pill"
+@@ -1374,7 +1393,8 @@
+ 	var/s_time = 1.0
+ 	w_class = 1.0
+ 	s_istate = "pill"
+-	throwspeed = 20.0
++	throw_speed = 4
++	throw_range = 20
+ /obj/item/weapon/m_pill/Tourette
+ 	name = "green pill"
+ 	icon_state = "pill2"
+@@ -1397,7 +1417,8 @@
+ 	name = "ointment"
+ 	icon_state = "ointment"
+ 	var/amount = 5.0
+-	throwspeed = 20.0
++	throw_speed = 4
++	throw_range = 20
+ 	w_class = 1.0
+ /obj/item/weapon/organ
+ 	name = "organ"
+@@ -1530,7 +1551,8 @@
+ 	icon_state = "paper"
+ 	var/info = null
+ 	w_class = 1.0
+-	throwspeed = 15.0
++	throw_speed = 3
++	throw_range = 15
+ /obj/item/weapon/paper/Internal
+ 	name = "paper- 'Internal Atmosphere Operating Instructions'"
+ 	info = "Equipment:<BR>\n\t1+ Tank(s) with appropriate atmosphere<BR>\n\t1 Gas Mask w regulator (standard issue)<BR>\n<BR>\nProcedure:<BR>\n\t1. Wear mask<BR>\n\t2. Attach oxygen tank pipe to regulater (automatic))<BR>\n\t3. Set internal!<BR>\n<BR>\nNotes:<BR>\n\tDon't forget to stop internal when tank is low by<BR>\n\tremoving internal!<BR>\n<BR>\n\tDo not use a tank that has a high concentration of toxins.<BR>\n\tThe filters shut down on internal mode!<BR>\n<BR>\n\tWhen exiting a high danger environment it is advised<BR>\n\tthat you exit through a decontamination zone!<BR>\n<BR>\n\tRefill a tank at a oxygen canister by equiping the tank (Double Click)<BR>\n\tthen 'attacking' the canister (Double Click the canister)."
+@@ -1630,7 +1652,8 @@
+ 	icon_state = "pen"
+ 	flags = 386.0
+ 	w_class = 1.0
+-	throwspeed = 15.0
++	throw_speed = 3
++	throw_range = 15
+ /obj/item/weapon/pen/sleepypen
+ 	desc = "It's a normal black ink pen with a sharp point."
+ 	var/obj/substance/chemical/chem = null
+@@ -1678,7 +1701,8 @@
+ 	var/broadcasting = null
+ 	var/listening = 1.0
+ 	flags = 450.0
+-	throwspeed = 9.0
++	throw_speed = 2
++	throw_range = 9
+ 	w_class = 2.0
+ 	s_istate = "electronic"
+ /obj/item/weapon/radio/beacon
+@@ -1718,7 +1742,8 @@
+ 	w_class = 4.0
+ 	force = 9.0
+ 	throwforce = 20.0
+-	throwspeed = 10.0
++	throw_speed = 2
++	throw_range = 10
+ /obj/item/weapon/screwdriver
+ 	name = "screwdriver"
+ 	icon_state = "screwdriver"
+@@ -1726,7 +1751,8 @@
+ 	force = 5.0
+ 	w_class = 2.0
+ 	throwforce = 5.0
+-	throwspeed = 15.0
++	throw_speed = 3
++	throw_range = 5
+ /obj/item/weapon/shard
+ 	name = "shard"
+ 	icon = 'shards.dmi'
+@@ -1743,7 +1769,8 @@
+ 	var/height = 0.01
+ 	flags = 322.0
+ 	throwforce = 7.0
+-	throwspeed = 10.0
++	throw_speed = 1
++	throw_range = 4
+ 	w_class = 4.0
+ /obj/item/weapon/sheet/glass
+ 	name = "glass"
+@@ -1771,7 +1798,8 @@
+ 	flags = 322.0
+ 	s_istate = "electronic"
+ 	throwforce = 5.0
+-	throwspeed = 5.0
++	throw_speed = 1
++	throw_range = 5
+ 	w_class = 2.0
+ /obj/item/weapon/storage
+ 	name = "storage"
+@@ -1802,7 +1830,8 @@
+ 	s_istate = "syringe_kit"
+ /obj/item/weapon/storage/firstaid
+ 	name = "First-Aid"
+-	throwspeed = 8.0
++	throw_speed = 2
++	throw_range = 8
+ /obj/item/weapon/storage/firstaid/fire
+ 	name = "Fire First Aid"
+ 	icon_state = "firstaid-ointment"
+@@ -1844,14 +1873,14 @@
+ 	icon_state = "toolbox"
+ 	flags = 322.0
+ 	force = 8.0
+-	throwspeed = 4.0
++	throw_speed = 1
++	throw_range = 4
+ 	w_class = 4.0
+ /obj/item/weapon/storage/toolbox/electrical
+ 	name = "electical toolbox"
+ 	icon_state = "toolbox-y"
+ 	flags = 322.0
+ 	force = 8.0
+-	throwspeed = 4.0
+ 	w_class = 4.0
+ 
+ 
+@@ -1865,7 +1894,8 @@
+ 	var/active = 0.0
+ 	force = 3.0
+ 	throwforce = 5.0
+-	throwspeed = 5.0
++	throw_speed = 1
++	throw_range = 5
+ 	w_class = 2.0
+ 	flags = 290.0
+ /obj/item/weapon/syndicate_uplink
+@@ -1877,14 +1907,16 @@
+ 	flags = 322.0
+ 	w_class = 2.0
+ 	s_istate = "electronic"
+-	throwspeed = 20.0
++	throw_speed = 4
++	throw_range = 20
+ /obj/item/weapon/syringe
+ 	name = "syringe"
+ 	icon_state = "syringe_0"
+ 	var/obj/substance/chemical/chem = null
+ 	var/mode = "inject"
+ 	var/s_time = 1.0
+-	throwspeed = 5.0
++	throw_speed = 1
++	throw_range = 5
+ 	w_class = 1.0
+ /obj/item/weapon/table_parts
+ 	name = "table parts"
+@@ -1899,7 +1931,8 @@
+ 	weight = 1000000.0
+ 	force = 5.0
+ 	throwforce = 10.0
+-	throwspeed = 4.0
++	throw_speed = 1
++	throw_range = 4
+ /obj/item/weapon/tank/anesthetic
+ 	name = "anesthetic"
+ 	icon_state = "an_tank"
+@@ -1925,7 +1958,8 @@
+ 	icon_state = "tile"
+ 	var/amount = 1.0
+ 	w_class = 3.0
+-	throwspeed = 5.0
++	throw_speed = 1
++	throw_range = 5
+ 	force = 6.0
+ 	throwforce = 7.0
+ /obj/item/weapon/timer
+@@ -1944,7 +1978,8 @@
+ 	flags = 322.0
+ 	force = 3.0
+ 	throwforce = 5.0
+-	throwspeed = 5.0
++	throw_speed = 1
++	throw_range = 5
+ 	w_class = 2.0
+ /obj/item/weapon/wire
+ 	desc = "This is just a simple piece of regular insulated wire."
+@@ -1958,7 +1993,8 @@
+ 	icon_state = "cutters"
+ 	flags = 322.0
+ 	force = 6.0
+-	throwspeed = 9.0
++	throw_speed = 2
++	throw_range = 9
+ 	w_class = 2.0
+ /obj/item/weapon/wrapping_paper
+ 	name = "wrapping paper"
+@@ -1980,10 +2016,11 @@
+ 	icon = 'power.dmi'
+ 	icon_state = "cell"
+ 	s_istate = "cell"
+-	flags = FPRINT|DRIVABLE|TABLEPASS
++	flags = FPRINT|TABLEPASS
+ 	force = 10.0
+ 	throwforce = 2.0
+-	throwspeed = 1
++	throw_speed = 1
++	throw_range = 1
+ 	w_class = 3.0
+ 	weight = 100000
+ 	var/charge = 0	// note %age conveted to actual charge in New
+@@ -2075,7 +2112,7 @@
+ 	holding = null
+ 	var/health = 20.0
+ 	var/destroyed = null
+-	flags = 320.0
++	flags = FPRINT
+ 	weight = 1.0E7
+ 	var/filled = 1		//fractional fullness at spawn
+ /obj/machinery/atmoalter/canister/anesthcanister
+@@ -2146,7 +2183,7 @@
+ /obj/machinery/atmoalter/siphs/fullairsiphon/port
+ 	name = "Portable Siphon"
+ 	icon = 'stationobjs.dmi'
+-	flags = 320.0
++	flags = FPRINT
+ 	anchored = 0.0
+ /obj/machinery/atmoalter/siphs/scrubbers
+ 	name = "scrubbers"
+@@ -2164,7 +2201,7 @@
+ 	name = "Portable Siphon"
+ 	icon = 'stationobjs.dmi'
+ 	icon_state = "scrubber:0"
+-	flags = 320.0
++	flags = FPRINT
+ 	anchored = 0.0
+ /obj/machinery/autolathe
+ 	name = "Autolathe"
+@@ -2564,6 +2601,7 @@
+ 	var/code = 1.0
+ 	var/id = 1.0
+ 	anchored = 1.0
++	var/drive_range = 50 //this is mostly irrelevant since current mass drivers throw into space, but you could make a lower-range mass driver for interstation transport or something I guess.
+ /obj/machinery/meter
+ 	name = "meter"
+ 	icon = 'pipes.dmi'
+@@ -2586,7 +2624,7 @@
+ 	var/yes_code = 0.0
+ 	var/safety = 1.0
+ 	var/obj/item/weapon/disk/nuclear/auth = null
+-	flags = 320.0
++	flags = FPRINT
+ /obj/machinery/valve
+ 	name = "valve"
+ 	icon = 'pipes.dmi'
+@@ -2710,7 +2748,7 @@
+ 	icon = 'escapepod.dmi'
+ 	icon_state = "podfire"
+ 	density = 1
+-	flags = 320.0
++	flags = FPRINT
+ 	anchored = 1.0
+ 	var/speed = 10.0
+ 	var/maximum_speed = 10.0
+@@ -3138,7 +3176,7 @@
+ 	icon = 'Icons.dmi'
+ 	icon_state = "rack"
+ 	density = 1
+-	flags = 320.0
++	flags = FPRINT
+ 	anchored = 1.0
+ /obj/screen
+ 	name = "screen"
+@@ -3197,7 +3235,7 @@
+ 	name = "stool"
+ 	icon = 'Icons.dmi'
+ 	icon_state = "stool"
+-	flags = 320.0
++	flags = FPRINT
+ 	weight = 100000
+ /obj/stool/bed
+ 	name = "bed"
+@@ -3261,14 +3299,14 @@
+ 	icon = 'stationobjs.dmi'
+ 	icon_state = "watertank"
+ 	density = 1
+-	flags = 320.0
++	flags = FPRINT
+ 	weight = 5000000.0
+ /obj/weldfueltank
+ 	name = "weldfueltank"
+ 	icon = 'items.dmi'
+ 	icon_state = "weldtank"
+ 	density = 1
+-	flags = 320.0
++	flags = FPRINT
+ 	weight = 5000000.0
+ /obj/window
+ 	name = "window"
+Index: code/atoms/closet.dm
+===================================================================
+--- code/atoms/closet.dm	(revision 64)
++++ code/atoms/closet.dm	(working copy)
+@@ -8,7 +8,7 @@
+ 	var/icon_opened = "emcloset1"
+ 	var/opened = 0.0
+ 	var/welded = 0.0
+-	flags = 320.0
++	flags = FPRINT
+ 	weight = 1.0E8
+ 
+ /obj/closet/emcloset
+Index: code/game/atmo_control.dm
+===================================================================
+--- code/game/atmo_control.dm	(revision 64)
++++ code/game/atmo_control.dm	(working copy)
+@@ -101,28 +101,6 @@
+ 		return 0
+ */
+ 
+-
+-/obj/machinery/mass_driver/proc/drive(amount)
+-
+-	if(stat & NOPOWER)
+-		return
+-
+-	use_power(500)
+-	for(var/obj/O in src.loc)
+-		if (O.flags & 64)
+-			O.throwing = 1
+-			O.throwspeed = 100
+-			spawn( 0 )
+-				O.throwing(src.dir, src.power)
+-				return
+-		//Foreach goto(17)
+-	flick("mass_driver1", src)
+-	return
+-
+-
+-
+-
+-
+ /obj/machinery/atmoalter/siphs/New()
+ 
+ 	..()
+Index: code/game/computer.dm
+===================================================================
+--- code/game/computer.dm	(revision 64)
++++ code/game/computer.dm	(working copy)
+@@ -835,60 +835,49 @@
+ 	if (locate(/obj/move, src))
+ 		return 1
+ 
+-	if ((ismob(A) && src.x > 2 && src.x < (world.maxx - 2)))
++	if ((ismob(A) && src.x > 2 && src.x < (world.maxx - 1)))
+ 		var/mob/M = A
+ 
+ 		if ((!( M.restrained()) && M.canmove))
+-			var/t1 = 5
++			var/prob_slip = 5
+ 
+ 			if (locate(/obj/grille, oview(1, M)))
+ 				if (!( M.l_hand ))
+-					t1 -= 2
+-				else
+-					if (M.l_hand.w_class <= 2)
+-						t1 -= 1
++					prob_slip -= 2
++				else if (M.l_hand.w_class <= 2)
++					prob_slip -= 1
+ 
+ 				if (!( M.r_hand ))
+-					t1 -= 2
+-				else
+-					if (M.r_hand.w_class <= 2)
+-						t1 -= 1
+-			else if (locate(/obj/move/wall, oview(1, M)))
++					prob_slip -= 2
++				else if (M.r_hand.w_class <= 2)
++					prob_slip -= 1
++			else if (locate(/obj/move/wall, oview(1, M)) || locate(/turf/station, oview(1, M)))
+ 				if (!( M.l_hand ))
+-					t1 -= 1
+-				else
+-					if (M.l_hand.w_class <= 2)
+-						t1 -= 0.5
++					prob_slip -= 1
++				else if (M.l_hand.w_class <= 2)
++					prob_slip -= 0.5
++
+ 				if (!( M.r_hand ))
+-					t1 -= 1
+-				else
+-					if (M.r_hand.w_class <= 2)
+-						t1 -= 0.5
+-			else
+-				if (locate(/turf/station, oview(1, M)))
+-					if (!( M.l_hand ))
+-						t1 -= 1
+-					else
+-						if (M.l_hand.w_class <= 2)
+-							t1 -= 0.5
+-					if (!( M.r_hand ))
+-						t1 -= 1
+-					else
+-						if (M.r_hand.w_class <= 2)
+-							t1 -= 0.5
+-			t1 = round(t1)
+-			if (t1 < 5)
+-				if (prob(t1))
++					prob_slip -= 1
++				else if (M.r_hand.w_class <= 2)
++					prob_slip -= 0.5
++			prob_slip = round(prob_slip)
++			if (prob_slip < 5) //next to something, but they might slip off
++				if (prob(prob_slip))
+ 					M << "\blue <B>You slipped!</B>"
++					M.inertia_dir = M.last_move
++					step(M, M.inertia_dir)
++					return
+ 				else
+-					spawn( 5 )
+-						if (src == A.loc)
+-							spawn( 0 )
+-								src.Entered(A)
+-								return
+-						return
+-					return 0
+-
++					M.inertia_dir = 0 //no inertia
++			else //not by a wall or anything, they just keep going
++				spawn(5)
++					if ((A && !( A.anchored ) && A.loc == src))
++						if(M.inertia_dir) //they keep moving the same direction
++							step(M, M.inertia_dir)
++						else
++							M.inertia_dir = M.last_move
++							step(M, M.inertia_dir)
+ 	if (src.x <= 2 && src.z < world.maxz)
+ 		A.z++
+ 		A.x = world.maxx - 2
+@@ -901,10 +890,27 @@
+ 		spawn (0)
+ 			if ((A && A.loc))
+ 				A.loc.Entered(A)
+-	else
+-		spawn (5)
+-			if ((A && !( A.anchored ) && A.loc == src))
+-				if (step(A, A.last_move))
+-				else
+-					spawn( 0 )
+-						src.Entered(A)
++
++/obj/machinery/mass_driver/proc/drive(amount)
++	if(stat & NOPOWER)
++		return
++
++	use_power(500)
++	for(var/atom/movable/O in src.loc)
++		if(!O.anchored)
++			spawn( 0 )
++				var/atom/targetarea = locate(src.x, src.y, src.z)
++				//since NORTHEAST == NORTH & EAST, etc, doing it this way allows for diagonal mass drivers in the future
++				//and isn't really any more complicated
++				if(src.dir & NORTH)
++					targetarea = locate(targetarea.x, world.maxy, targetarea.z)
++				if(src.dir & SOUTH)
++					targetarea = locate(targetarea.x, 1, targetarea.z)
++				if(src.dir & EAST)
++					targetarea = locate(world.maxx, targetarea.y, targetarea.z)
++				if(src.dir & WEST)
++					targetarea = locate(1, targetarea.y, targetarea.z)
++				O.throw_at(targetarea, drive_range * src.power, src.power)
++	flick("mass_driver1", src)
++	return
++
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 64)
++++ code/game/demo.dm	(working copy)
+@@ -2714,7 +2714,9 @@
+ 	return
+ 
+ /turf/Entered(atom/movable/M as mob|obj)
+-
++	if(ismob(M) && !istype(src, /turf/space))
++		var/mob/tmob = M
++		tmob.inertia_dir = 0
+ 	..()
+ 	for(var/atom/A as mob|obj|turf|area in src)
+ 		spawn( 0 )
+Index: code/game/item/weapon/aimodules.dm
+===================================================================
+--- code/game/item/weapon/aimodules.dm	(revision 64)
++++ code/game/item/weapon/aimodules.dm	(working copy)
+@@ -11,11 +11,12 @@
+ 	force = 5.0
+ 	w_class = 2.0
+ 	throwforce = 5.0
+-	throwspeed = 15.0
+-	
++	throw_speed = 3
++	throw_range = 15
++
+ /obj/machinery/computer/aiupload/attackby(obj/item/weapon/aiModule/module as obj, mob/user as mob)
+ 	module.install(src)
+-	
++
+ /obj/item/weapon/aiModule/proc/install(var/obj/machinery/computer/aiupload/comp)
+ 	if(comp.stat & NOPOWER)
+ 		usr << "The upload computer has no power!"
+Index: code/game/item/weapon/multitool.dm
+===================================================================
+--- code/game/item/weapon/multitool.dm	(revision 64)
++++ code/game/item/weapon/multitool.dm	(working copy)
+@@ -9,5 +9,6 @@
+ 	force = 5.0
+ 	w_class = 2.0
+ 	throwforce = 5.0
+-	throwspeed = 15.0
++	throw_range = 15
++	throw_speed = 3
+ 	desc = "You can use this on airlocks or APCs to try to hack them without cutting wires."
+Index: code/game/items.dm
+===================================================================
+--- code/game/items.dm	(revision 64)
++++ code/game/items.dm	(working copy)
+@@ -584,7 +584,6 @@
+ /obj/item/weapon/flashbang/attack_hand()
+ 
+ 	walk(src, null, null)
+-	src.throwspeed = 20
+ 	..()
+ 	return
+ 
+@@ -1573,13 +1572,6 @@
+ 			return
+ 	return
+ 
+-/obj/item/weapon/throwing(t_dir, rs)
+-
+-	if (!( rs ))
+-		rs = src.r_speed
+-	..(t_dir, rs)
+-	return
+-
+ /obj/item/weapon/examine()
+ 	set src in view()
+ 
+@@ -3684,7 +3676,7 @@
+ 		var/mob/M = src.loc
+ 		var/turf/T = M.loc
+ 		if ((istype(T, /turf) || istype(T, /obj/move)))
+-			if (M.last_move)
++			if (M.moved_recently && M.last_move)
+ 				step(M, M.last_move)
+ 		M.show_message("\red <B>You feel a sharp shock!</B>")
+ 
+@@ -5420,6 +5412,8 @@
+ 		usr:lastDblClick = world.time
+ 
+ 	..()
++	if(usr.in_throw_mode)
++		return usr.throw_item(src)
+ 	var/obj/item/weapon/W = usr.equipped()
+ 	if ((W == src && usr.stat == 0))
+ 		spawn( 0 )
+Index: code/game/mob.dm
+===================================================================
+--- code/game/mob.dm	(revision 64)
++++ code/game/mob.dm	(working copy)
+@@ -238,13 +238,13 @@
+ /obj/item/weapon/grab/proc/throw()
+ 
+ 	if(src.affecting)
+-		src.affecting.density = 1
+-		step(src.affecting, src.assailant.dir)
+-		if (prob(75))
+-			step(src.affecting, src.assailant.dir)
+-		//SN src = null
+-		del(src)
+-	return
++		var/grabee = src.affecting
++		world << "grabee is [grabee] and how"
++		spawn(0)
++			del(src)
++		world << "grabee is [grabee] and howhow"
++		return grabee
++	return null
+ 
+ /obj/item/weapon/grab/proc/synch()
+ 
+@@ -570,8 +570,8 @@
+ 		if("rest")
+ 			usr.resting = !( usr.resting )
+ 		if("throw")
+-			if ((!( usr.stat ) && usr.canmove && isturf(usr.loc) && !( usr.restrained() )))
+-				usr.throw_item_v()
++			if (!usr.stat && isturf(usr.loc) && !usr.restrained())
++				usr.toggle_throw_mode()
+ 		if("drop")
+ 			usr.drop_item_v()
+ 		if("swap")
+@@ -733,12 +733,6 @@
+ 	using.layer = 19
+ 	src.adding += using
+ 	using = new src.h_type( src )
+-	using.name = "throw"
+-	using.icon_state = "act_throw"
+-	using.screen_loc = "9,1"
+-	using.layer = 19
+-	src.adding += using
+-	using = new src.h_type( src )
+ 	using.name = "swap"
+ 	using.icon_state = "act_hand"
+ 	using.screen_loc = "11,1"
+@@ -3005,6 +2999,7 @@
+ 	src.next_move = 1
+ 	if (!( src.rname ))
+ 		src.rname = src.key
++	src.throw_icon = new /obj/screen(null)
+ 	src.oxygen = new /obj/screen( null )
+ 	src.i_select = new /obj/screen( null )
+ 	src.m_select = new /obj/screen( null )
+@@ -3022,6 +3017,7 @@
+ 	src.zone_sel = new /obj/screen/zone_sel( null )
+ 	..()
+ 	UpdateClothing()
++	src.throw_icon.icon_state = "act_throw_off"
+ 	src.oxygen.icon_state = "oxy0"
+ 	src.i_select.icon_state = "selector"
+ 	src.m_select.icon_state = "selector"
+@@ -3037,6 +3033,7 @@
+ 	src.sleep.icon_state = "sleep0"
+ 	src.rest.icon_state = "rest0"
+ 	src.hands.dir = NORTH
++	src.throw_icon.name = "throw"
+ 	src.oxygen.name = "oxygen"
+ 	src.i_select.name = "intent"
+ 	src.m_select.name = "moving"
+@@ -3051,6 +3048,7 @@
+ 	src.flash.name = "flash"
+ 	src.sleep.name = "sleep"
+ 	src.rest.name = "rest"
++	src.throw_icon.screen_loc = "9,1"
+ 	src.oxygen.screen_loc = "15,12"
+ 	src.i_select.screen_loc = "14,15"
+ 	src.m_select.screen_loc = "14,14"
+@@ -3068,8 +3066,8 @@
+ 	src.blind.layer = 0
+ 	src.flash.layer = 17
+ 	src.client.screen.len = null
+-	src.client.screen -= list( src.zone_sel, src.oxygen, src.i_select, src.m_select, src.toxin, src.internals, src.fire, src.hands, src.healths, src.pullin, src.blind, src.flash, src.rest, src.sleep, src.mach )
+-	src.client.screen += list( src.zone_sel, src.oxygen, src.i_select, src.m_select, src.toxin, src.internals, src.fire, src.hands, src.healths, src.pullin, src.blind, src.flash, src.rest, src.sleep, src.mach )
++	src.client.screen -= list( src.throw_icon, src.zone_sel, src.oxygen, src.i_select, src.m_select, src.toxin, src.internals, src.fire, src.hands, src.healths, src.pullin, src.blind, src.flash, src.rest, src.sleep, src.mach )
++	src.client.screen += list( src.throw_icon, src.zone_sel, src.oxygen, src.i_select, src.m_select, src.toxin, src.internals, src.fire, src.hands, src.healths, src.pullin, src.blind, src.flash, src.rest, src.sleep, src.mach )
+ 	src.client.screen -= src.hud_used.adding
+ 	src.client.screen += src.hud_used.adding
+ 	//src << browse('help.htm', "window=help")
+@@ -3598,8 +3596,8 @@
+ 	*/
+ 	src.client.screen -= src.hud_used.adding
+ 	src.client.screen -= src.hud_used.mon_blo
+-	src.client.screen -= list( src.oxygen, src.i_select, src.m_select, src.toxin, src.internals, src.fire, src.hands, src.healths, src.pullin, src.blind, src.flash, src.rest, src.sleep, src.mach )
+-	src.client.screen -= list( src.zone_sel, src.oxygen, src.i_select, src.m_select, src.toxin, src.internals, src.fire, src.hands, src.healths, src.pullin, src.blind, src.flash, src.rest, src.sleep, src.mach )
++	src.client.screen -= list( src.throw_icon, src.oxygen, src.i_select, src.m_select, src.toxin, src.internals, src.fire, src.hands, src.healths, src.pullin, src.blind, src.flash, src.rest, src.sleep, src.mach )
++	src.client.screen -= list( src.throw_icon, src.zone_sel, src.oxygen, src.i_select, src.m_select, src.toxin, src.internals, src.fire, src.hands, src.healths, src.pullin, src.blind, src.flash, src.rest, src.sleep, src.mach )
+ 	src.blind.icon_state = "black"
+ 	src.blind.name = " "
+ 	src.blind.screen_loc = "1,1 to 15,15"
+@@ -3611,8 +3609,8 @@
+ 		src.verbs += /mob/proc/show_ctf
+ 		src.verbs += /proc/variables
+ 	src << text("\blue <B>[]</B>", world_message)
+-	src.client.screen -= list( src.oxygen, src.i_select, src.m_select, src.toxin, src.internals, src.fire, src.hands, src.healths, src.pullin, src.blind, src.flash, src.rest, src.sleep, src.mach )
+-	src.client.screen -= list( src.zone_sel, src.oxygen, src.i_select, src.m_select, src.toxin, src.internals, src.fire, src.hands, src.healths, src.pullin, src.blind, src.flash, src.rest, src.sleep, src.mach )
++	src.client.screen -= list( src.throw_icon, src.oxygen, src.i_select, src.m_select, src.toxin, src.internals, src.fire, src.hands, src.healths, src.pullin, src.blind, src.flash, src.rest, src.sleep, src.mach )
++	src.client.screen -= list( src.throw_icon, src.zone_sel, src.oxygen, src.i_select, src.m_select, src.toxin, src.internals, src.fire, src.hands, src.healths, src.pullin, src.blind, src.flash, src.rest, src.sleep, src.mach )
+ 	if (!( isturf(src.loc) ))
+ 		src.client.eye = src.loc
+ 		src.client.perspective = EYE_PERSPECTIVE
+@@ -3642,7 +3640,7 @@
+ 
+ 	if (src.stat != 2)
+ 		if (!( src.m_flag ))
+-			src.last_move = null
++			src.moved_recently = 0
+ 		src.m_flag = null
+ 		if (src.mach)
+ 			if (src.machine)
+@@ -5263,39 +5261,8 @@
+ 		else
+ 	return
+ 
+-/mob/proc/throw_item()
+ 
+-	var/obj/item/weapon/W = src.equipped()
+-	if (W)
+-		u_equip(W)
+-		if (src.client)
+-			src.client.screen -= W
+-		if (usr.stat)
+-			return
+-		W.loc = src.loc
+-		if (istype(W, /obj/item/weapon/grab))
+-			W:throw()
+-		else
+-			W.dropped(src)
+-		if (W)
+-			W.layer = initial(W.layer)
+-			for(var/mob/O in viewers(src, null))
+-				O.show_message(text("\red [] has thrown [].", src, W), 1)
+-				//Foreach goto(133)
+-			W.density = 1
+-			W.throwing = 1
+-			W.throwspeed = initial(W.throwspeed)
+-			spawn( 0 )
+-				W.throwing(src.dir)
+-				return
+ 
+-			//propulsion
+-			if(istype(src.loc, /turf/space))
+-				src.Move(get_step(src, turn(dir, 180) ))
+-
+-			//
+-	return
+-
+ /mob/proc/swap_hand()
+ 
+ 	src.hand = !( src.hand )
+@@ -5311,12 +5278,7 @@
+ 		drop_item()
+ 	return
+ 
+-/mob/proc/throw_item_v()
+ 
+-	if (src.stat == 0)
+-		throw_item()
+-	return
+-
+ /mob/proc/drop_item()
+ 
+ 	var/obj/item/weapon/W = src.equipped()
+@@ -5599,6 +5561,7 @@
+ 	src.client.screen -= main_hud2.contents
+ 	if (src.hud_used == main_hud1)
+ 		src.hud_used = main_hud2
++		src.throw_icon.icon = 'screen.dmi'
+ 		src.oxygen.icon = 'screen.dmi'
+ 		src.toxin.icon = 'screen.dmi'
+ 		src.internals.icon = 'screen.dmi'
+@@ -5613,6 +5576,7 @@
+ 		src.rest.icon = 'screen.dmi'
+ 	else
+ 		src.hud_used = main_hud1
++		src.throw_icon.icon = 'screen1.dmi'
+ 		src.oxygen.icon = 'screen1.dmi'
+ 		src.toxin.icon = 'screen1.dmi'
+ 		src.internals.icon = 'screen1.dmi'
+@@ -6248,6 +6212,7 @@
+ 	src.next_move = 1
+ 	if (!( src.rname ))
+ 		src.rname = src.key
++	src.throw_icon = new /obj/screen(null)
+ 	src.oxygen = new /obj/screen( null )
+ 	src.i_select = new /obj/screen( null )
+ 	src.m_select = new /obj/screen( null )
+@@ -6264,6 +6229,7 @@
+ 	src.rest = new /obj/screen( null )
+ 	..()
+ 	UpdateClothing()
++	src.throw_icon.icon_state = "act_throw_off"
+ 	src.oxygen.icon_state = "oxy0"
+ 	src.i_select.icon_state = "selector"
+ 	src.m_select.icon_state = "selector"
+@@ -6279,6 +6245,7 @@
+ 	src.sleep.icon_state = "sleep0"
+ 	src.rest.icon_state = "rest0"
+ 	src.hands.dir = NORTH
++	src.throw_icon.name = "throw"
+ 	src.oxygen.name = "oxygen"
+ 	src.i_select.name = "intent"
+ 	src.m_select.name = "move"
+@@ -6293,6 +6260,7 @@
+ 	src.flash.name = "flash"
+ 	src.sleep.name = "sleep"
+ 	src.rest.name = "rest"
++	src.throw_icon.screen_loc = "9,1"
+ 	src.oxygen.screen_loc = "15,12"
+ 	src.i_select.screen_loc = "14,15"
+ 	src.m_select.screen_loc = "14,14"
+@@ -6312,8 +6280,8 @@
+ 	src.sleep.layer = 20
+ 	src.rest.layer = 20
+ 	src.client.screen.len = null
+-	src.client.screen -= list( src.oxygen, src.i_select, src.m_select, src.toxin, src.internals, src.fire, src.hands, src.healths, src.pullin, src.blind, src.flash, src.rest, src.sleep, src.mach )
+-	src.client.screen += list( src.oxygen, src.i_select, src.m_select, src.toxin, src.internals, src.fire, src.hands, src.healths, src.pullin, src.blind, src.flash, src.rest, src.sleep, src.mach )
++	src.client.screen -= list( src.throw_icon, src.oxygen, src.i_select, src.m_select, src.toxin, src.internals, src.fire, src.hands, src.healths, src.pullin, src.blind, src.flash, src.rest, src.sleep, src.mach )
++	src.client.screen += list( src.throw_icon, src.oxygen, src.i_select, src.m_select, src.toxin, src.internals, src.fire, src.hands, src.healths, src.pullin, src.blind, src.flash, src.rest, src.sleep, src.mach )
+ 	src.client.screen -= src.hud_used.adding
+ 	src.client.screen += src.hud_used.adding
+ 	src.client.screen -= src.hud_used.mon_blo
+@@ -6462,7 +6430,7 @@
+ 		src.t_sl_gas = 0
+ 		src.t_n2 = 0
+ 		if (!( src.m_flag ))
+-			src.last_move = null
++			src.moved_recently = 0
+ 		src.m_flag = null
+ 		if (src.mach)
+ 			if (src.machine)
+@@ -7234,11 +7202,6 @@
+ 	src.mob.drop_item_v()
+ 	return
+ 
+-/client/Southwest()
+-
+-	src.mob.throw_item_v()
+-	return
+-
+ /client/Center()
+ 
+ 	if (isobj(src.mob.loc))
+@@ -7312,6 +7275,7 @@
+ 							var/obj/effects/sparks/ion_trails/I = new /obj/effects/sparks/ion_trails( src.mob.loc )
+ 							flick("ion_fade", I)
+ 							I.icon_state = "blank"
++							src.mob.inertia_dir = 0
+ 							spawn( 20 )
+ 								//I = null
+ 								del(I)
+Index: code/game/modules.dm
+===================================================================
+--- code/game/modules.dm	(revision 64)
++++ code/game/modules.dm	(working copy)
+@@ -71,7 +71,7 @@
+ 	icon_state = "std_module"
+ 	w_class = 2.0
+ 	s_istate = "electronic"
+-	flags = FPRINT|DRIVABLE|TABLEPASS
++	flags = FPRINT|TABLEPASS
+ 	var/mtype = 1						// 1=electronic 2=hardware
+ 
+ /obj/item/weapon/module/card_reader
+Index: code/game/throwing.dm
+===================================================================
+--- code/game/throwing.dm	(revision 0)
++++ code/game/throwing.dm	(revision 0)
+@@ -0,0 +1,148 @@
++/mob/proc/toggle_throw_mode()
++	if (src.in_throw_mode)
++		throw_mode_off()
++	else
++		throw_mode_on()
++
++/mob/proc/throw_mode_off()
++	src.in_throw_mode = 0
++	src.throw_icon.icon_state = "act_throw_off"
++
++/mob/proc/throw_mode_on()
++	src.in_throw_mode = 1
++	src.throw_icon.icon_state = "act_throw_on"
++
++/mob/proc/throw_item(atom/target)
++	src.throw_mode_off()
++	if(usr.stat) //they aren't conscious
++		return
++	if(target.type == /obj/screen) //not a place to throw it, just black or a UI element
++		// I don't think it's possible to determine where in the screen it is, unfortunately
++		// it'd be nice to be able to throw at places you can't see, particularly if you're blind
++		return
++	if(target.z != src.z)
++		// throwing at something on a different z-level
++		// this shouldn't be able to happen, but better safe than sorry
++		return
++	var/atom/movable/item = src.equipped()
++	if(!item)
++		// nothing equipped, can't throw it really
++		return
++
++	u_equip(item)
++	if(src.client)
++		src.client.screen -= item
++	item.loc = src.loc
++	if (istype(item, /obj/item/weapon/grab))
++		item = item:throw() //throw the person instead of the grab
++	if(istype(item, /obj/item/weapon))
++		item:dropped(src) // let it know it's been dropped
++
++	//actually throw it!
++	if (item)
++		item.layer = initial(item.layer)
++		viewers(src, null) << "\red [src] has thrown [item]."
++		if(istype(src.loc, /turf/space)) //they're in space, move em one space in the opposite direction
++			src.Move(get_cardinal_step_away(src, target))
++		item.throw_at(target, item.throw_range, item.throw_speed)
++
++
++/proc/get_cardinal_step_away(atom/start, atom/finish) //returns the position of a step from start away from finish, in one of the cardinal directions
++	//returns only NORTH, SOUTH, EAST, or WEST
++	var/dx = finish.x - start.x
++	var/dy = finish.y - start.y
++	if(abs(dy) > abs (dx)) //slope is above 1:1 (move horizontally in a tie)
++		if(dy > 0)
++			return get_step(start, SOUTH)
++		else
++			return get_step(start, NORTH)
++	else
++		if(dx > 0)
++			return get_step(start, WEST)
++		else
++			return get_step(start, EAST)
++
++/atom/movable/proc/throw_at(atom/target, range, speed)
++	//use a modified version of Bresenham's algorithm to get from the atom's current position to that of the target
++	src.throwing = 1
++	src.density = 1
++	var/dist_x = abs(target.x - src.x)
++	var/dist_y = abs(target.y - src.y)
++
++	var/dx
++	if (target.x > src.x)
++		dx = EAST
++	else
++		dx = WEST
++
++	var/dy
++	if (target.y > src.y)
++		dy = NORTH
++	else
++		dy = SOUTH
++	var/dist_travelled = 0
++	var/dist_since_sleep = 0
++	if(dist_x > dist_y)
++		var/error = dist_x/2 - dist_y
++		while (((((src.x < target.x && dx == EAST) || (src.x > target.x && dx == WEST)) && dist_travelled < range) || istype(src.loc, /turf/space)) && src.throwing && istype(src.loc, /turf))
++			// only stop when we've gone the whole distance (or max throw range) and are on a non-space tile, or hit something, or hit the end of the map, or someone picks it up
++			if(error < 0)
++				var/atom/step = get_step(src, dy)
++				if(!step) // going off the edge of the map makes get_step return null, don't let things go off the edge
++					break
++				src.Move(step)
++				error += dist_x
++				dist_travelled++
++				dist_since_sleep++
++				if(dist_since_sleep >= speed)
++					dist_since_sleep = 0
++					sleep(1)
++			else
++				var/atom/step = get_step(src, dx)
++				if(!step) // going off the edge of the map makes get_step return null, don't let things go off the edge
++					break
++				src.Move(step)
++				error -= dist_y
++				dist_travelled++
++				dist_since_sleep++
++				if(dist_since_sleep >= speed)
++					dist_since_sleep = 0
++					sleep(1)
++	else
++		var/error = dist_y/2 - dist_x
++		while (((((src.y < target.y && dy == NORTH) || (src.y > target.y && dy == SOUTH)) && dist_travelled < range) || istype(src.loc, /turf/space)) && src.throwing && istype(src.loc, /turf))
++			// only stop when we've gone the whole distance (or max throw range) and are on a non-space tile, or hit something, or hit the end of the map, or someone picks it up
++			if(error < 0)
++				var/atom/step = get_step(src, dx)
++				if(!step) // going off the edge of the map makes get_step return null, don't let things go off the edge
++					break
++				src.Move(step)
++				error += dist_y
++				dist_travelled++
++				dist_since_sleep++
++				if(dist_since_sleep >= speed)
++					dist_since_sleep = 0
++					sleep(1)
++			else
++				var/atom/step = get_step(src, dy)
++				if(!step) // going off the edge of the map makes get_step return null, don't let things go off the edge
++					break
++				src.Move(step)
++				error -= dist_x
++				dist_travelled++
++				dist_since_sleep++
++				if(dist_since_sleep >= speed)
++					dist_since_sleep = 0
++					sleep(1)
++
++	//done throwing, either because it hit something or it finished moving
++	src.throwing = 0
++	if(istype(src, /obj/item))
++		src.density = 0
++
++
++/atom/movable/Bump(atom/O)
++
++	if (src.throwing) //is being thrown, stop it
++		src.throwing = 0
++	..()
+Index: code/setup.dm
+===================================================================
+--- code/setup.dm	(revision 64)
++++ code/setup.dm	(working copy)
+@@ -28,12 +28,13 @@
+ 
+ #define USEDELAY 16			// 1 second extra delay on use
+ #define NOSHIELD 32			// weapon not affected by shield
+-#define DRIVABLE 64			// fireable by mass driver
++// 64 is an unused flag, because everything's drivable by a mass driver now
++// Don't reuse it until the flags are all cleaned up (using the #defined things rather than magic numbers)
++// because some things probably still have flag 64 set
+ #define ONBELT 128			// can be put in belt slot
+ #define FPRINT 256			// takes a fingerprint
+ #define WINDOW 512			// window or window/door
+ 
+-
+ // channel numbers for power
+ 
+ #define EQUIP 1
+Index: InSpace.dme
+===================================================================
+--- InSpace.dme	(revision 64)
++++ InSpace.dme	(working copy)
+@@ -89,6 +89,7 @@
+ #include "code\game\shuttle.dm"
+ #include "code\game\ss13_algorithm2.dm"
+ #include "code\game\sun.dm"
++#include "code\game\throwing.dm"
+ #include "code\game\vehicle.dm"
+ #include "code\game\vote.dm"
+ #include "code\game\weap_sat.dm"

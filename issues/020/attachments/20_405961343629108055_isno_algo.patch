@@ -1,0 +1,25 @@
+Index: algorithm.dm
+===================================================================
+--- algorithm.dm	(revision 111)
++++ algorithm.dm	(working copy)
+@@ -218,6 +218,20 @@
+ 			src.wear_id = C
+ 		else
+ 			src.r_hand = C
++		var/randomname = pick(first_names)+" "+pick(last_names)
++		var/newname = input(
++			src,
++				"You are: "+rank+"! Would you like to change your name?", "Name change",
++				randomname)
++
++		if (length(newname) == 0)
++			newname = randomname
++		if (newname)
++			if (length(newname) >= 26)
++				newname = copytext(newname, 1, 26)
++				newname = dd_replacetext(newname, ">", "'")
++		src.rname = newname
++		src.name = newname
+ 		C.assignment = rank
+ 		C.layer = 20
+ 		C.registered = src.rname

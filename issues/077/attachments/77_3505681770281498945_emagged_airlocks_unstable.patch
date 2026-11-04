@@ -1,0 +1,56 @@
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 268)
++++ code/game/demo.dm	(working copy)
+@@ -40,6 +40,7 @@
+ 		sleep(6)
+ 		src.operating = null
+ 		open()
++		src.stat |= EMAGGED
+ 		return 1
+ 	if (src.allowed(user))
+ 		if (src.density)
+Index: code/game/machinery/airlock.dm
+===================================================================
+--- code/game/machinery/airlock.dm	(revision 268)
++++ code/game/machinery/airlock.dm	(working copy)
+@@ -215,10 +215,10 @@
+ 	return ((src.wires & wireFlag) == 0)
+ 
+ /obj/machinery/door/airlock/proc/canAIControl()
+-	return ((src.aiControlDisabled!=1) && (!src.isAllPowerCut()));
++	return (!(src.stat & EMAGGED) && (src.aiControlDisabled!=1) && (!src.isAllPowerCut()));
+ 
+ /obj/machinery/door/airlock/proc/canAIHack()
+-	return ((src.aiControlDisabled==1) && (!src.isAllPowerCut()));
++	return (!(src.stat & EMAGGED) && (src.aiControlDisabled==1) && (!src.isAllPowerCut()));
+ 
+ /obj/machinery/door/airlock/proc/arePowerSystemsOn()
+ 	return (src.secondsMainPowerLost==0 || src.secondsBackupPowerLost==0)
+@@ -729,7 +729,7 @@
+ 
+ /obj/machinery/door/airlock/open()
+ 
+-	if (src.blocked || src.locked || (!src.arePowerSystemsOn()) || (stat & NOPOWER))
++	if (src.blocked || src.locked || (!src.arePowerSystemsOn()) || (stat & NOPOWER|EMAGGED))
+ 		return
+ 	use_power(50)
+ 	if (src.closeOther != null && istype(src.closeOther, /obj/machinery/door/airlock/) && !src.closeOther.density)
+@@ -739,7 +739,7 @@
+ 
+ /obj/machinery/door/airlock/close()
+ 
+-	if (src.blocked || (!src.arePowerSystemsOn()) || (stat & NOPOWER))
++	if (src.blocked || (!src.arePowerSystemsOn()) || (stat & NOPOWER|EMAGGED))
+ 		return
+ 	use_power(50)
+ 	..()
+Index: code/setup.dm
+===================================================================
+--- code/setup.dm	(revision 268)
++++ code/setup.dm	(working copy)
+@@ -47,3 +47,4 @@
+ #define NOPOWER 1 << 1
+ #define POWEROFF 1 << 2	// tbd
+ #define MAINT 1 << 3	// under maintaince
++#define EMAGGED 16 // is something (such as airlocks!) emagged?

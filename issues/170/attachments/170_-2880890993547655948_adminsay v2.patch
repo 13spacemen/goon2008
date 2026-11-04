@@ -1,0 +1,61 @@
+Index: code/game/client.dm
+===================================================================
+--- code/game/client.dm	(revision 456)
++++ code/game/client.dm	(working copy)
+@@ -44,6 +44,7 @@
+ 			src.holder.level = 5
+ 			src.holder.owner = src
+ 			src.verbs += /client/proc/show_panel
++			src.verbs += /client/proc/adminsay
+ 
+ 		else if (admins.Find(src.ckey))
+ 			src.holder = new /obj/admins(src)
+@@ -53,16 +54,22 @@
+ 				if ("Primary Administrator")
+ 					src.holder.level = 5
+ 					src.verbs += /proc/variables
++					src.verbs += /client/proc/adminsay
+ 				if ("Major Administrator")
+ 					src.holder.level = 4
++					src.verbs += /client/proc/adminsay
+ 				if ("Administrator")
+ 					src.holder.level = 3
++					src.verbs += /client/proc/adminsay
+ 				if ("Supervisor")
+ 					src.holder.level = 2
++					src.verbs += /client/proc/adminsay
+ 				if ("Game Master")
+ 					src.holder.level = 1
++					src.verbs += /client/proc/adminsay
+ 				if ("Moderator")
+ 					src.holder.level = 0
++					src.verbs += /client/proc/adminsay
+ 				if ("Banned")
+ 					//SN src = null
+ 					del(src)
+Index: code/game/verbs/adminsay.dm
+===================================================================
+--- code/game/verbs/adminsay.dm	(revision 0)
++++ code/game/verbs/adminsay.dm	(revision 0)
+@@ -0,0 +1,21 @@
++/client/proc/adminsay(msg as text)
++	//	All admins should be authenticated, but... what if?
++	if(!src.authenticated || !src.holder)
++		src << "Only administrators may use this command."
++		return
++
++	if(!src.mob)
++		return
++
++	var/name = ((src.mob)?(src.mob.name):("No Mob"))
++
++	//	Seems silly to log the message without sanitizing, but other *.dm do...
++	world.log << "ADMIN: [src.key]/[name] : [msg]"
++	msg = html_encode(copytext(sanitize(msg), 1, 1024))
++
++	if (!msg)
++		return
++
++	for(var/mob/M in world)
++		if (M.client && M.client.holder)
++			M << "\blue <b>ADMIN: <a href='?src=\ref[usr];priv_msg=\ref[usr]'>[src.key]</a>/([name]):</b> [msg]"

@@ -1,0 +1,200 @@
+Index: code/game/grab.dm
+===================================================================
+--- code/game/grab.dm	(revision 361)
++++ code/game/grab.dm	(working copy)
+@@ -1,17 +1,12 @@
+ /obj/item/weapon/grab/proc/throw()
+-	if(src.affecting)
+-		var/grabee = src.affecting
+-		spawn(0)
+-			del(src)
+-		return grabee
+-	return null
++	if(!src.affecting) return null
+ 
++	var/grabee = src.affecting
++	del(src);	return grabee
++
+ /obj/item/weapon/grab/proc/synch()
+-	if (src.assailant.r_hand == src)
+-		src.hud1.screen_loc = "1,4"
+-	else
+-		src.hud1.screen_loc = "3,4"
+-	return
++	if (src.assailant.r_hand == src)	src.hud1.screen_loc = "1,4"
++	else								src.hud1.screen_loc = "3,4"
+ 
+ /obj/item/weapon/grab/proc/process()
+ 	if ((!( isturf(src.assailant.loc) ) || (!( isturf(src.affecting.loc) ) || (src.assailant.loc != src.affecting.loc && get_dist(src.assailant, src.affecting) > 1))))
+@@ -77,49 +72,46 @@
+ 	return
+ 
+ /obj/item/weapon/grab/proc/s_dbclick(obj/screen/S as obj)
+-	if ((src.assailant.next_move > world.time && !( src.last_suffocate < world.time + 2 )))
++	if((src.assailant.next_move > world.time && !( src.last_suffocate < world.time + 2 )))
+ 		return
+-	if ((!( src.assailant.canmove ) || src.assailant.lying))
+-		//SN src = null
++
++	if(!src.assailant.canmove || src.assailant.lying)
+ 		del(src)
+ 		return
+-	switch(S.id)
+-		if(1.0)
+-			if (src.state < 2)
+-				if (!( src.allow_upgrade ))
+-					return
+-				if (prob(75))
+-					src.assailant.show_viewers(text("\red [] has grabbed [] aggressively (now hands)!", src.assailant, src.affecting))
+-					src.state = 2
+-					src.icon_state = "grabbed1"
+-				else
+-					src.assailant.show_viewers(text("\red [] has failed to grab [] aggressively!", src.assailant, src.affecting))
+-					del(src)
+-					return
+-			else
+-				if (src.state < 3)
+-					src.assailant.show_viewers(text("\red [] has reinforced his grip on [] (now neck)!", src.assailant, src.affecting))
+-					src.state = 3
+-					src.icon_state = "grabbed+1"
+-					if (!( src.affecting.buckled ))
+-						src.affecting.loc = src.assailant.loc
+-					src.hud1.icon_state = "disarm/kill"
+-					src.hud1.name = "disarm/kill"
+-				else
+-					if (src.state >= 3)
+-						src.killing = !( src.killing )
+-						if (src.killing)
+-							src.assailant.show_viewers(text("\red [] has tightened his grip on []'s neck!", src.assailant, src.affecting))
+-							src.assailant.next_move = world.time + 10
+-							src.affecting.knockdown_until(1)
+-							src.affecting.losebreath += 1
+-							src.hud1.icon_state = "disarm/kill1"
+-						else
+-							src.hud1.icon_state = "disarm/kill"
+-							src.assailant.show_viewers(text("\red [] has loosened the grip on []'s neck!", src.assailant, src.affecting))
++
++	if(S.id != 1.0) return
++
++	if(src.state < 2)
++		if(!src.allow_upgrade) return
++		if (prob(75))
++			src.assailant.show_viewers(text("\red [] has grabbed [] aggressively (now hands)!", src.assailant, src.affecting))
++			src.state = 2
++			src.icon_state = "grabbed1"
+ 		else
+-	return
++			src.assailant.show_viewers(text("\red [] has failed to grab [] aggressively!", src.assailant, src.affecting))
++			del(src)
+ 
++	else if(src.state < 3)
++		src.assailant.show_viewers(text("\red [] has reinforced his grip on [] (now neck)!", src.assailant, src.affecting))
++		src.state = 3
++		src.icon_state = "grabbed+1"
++		if(!src.affecting.buckled)
++			src.affecting.loc = src.assailant.loc
++		src.hud1.icon_state = "disarm/kill"
++		src.hud1.name = "disarm/kill"
++
++	else if(src.state >= 3)
++		src.killing = !( src.killing )
++		if (src.killing)
++			src.assailant.show_viewers(text("\red [] has tightened his grip on []'s neck!", src.assailant, src.affecting))
++			src.assailant.next_move = world.time + 10
++			src.affecting.knockdown_until(1)
++			src.affecting.losebreath += 1
++			src.hud1.icon_state = "disarm/kill1"
++		else
++			src.hud1.icon_state = "disarm/kill"
++			src.assailant.show_viewers(text("\red [] has loosened the grip on []'s neck!", src.assailant, src.affecting))
++
+ /obj/item/weapon/grab/New()
+ 	..()
+ 	src.hud1 = new /obj/screen/grab( src )
+@@ -130,31 +122,23 @@
+ 	return
+ 
+ /obj/item/weapon/grab/attack(mob/M as mob, user as mob)
+-	if (M == src.affecting)
+-		if (src.state < 3)
+-			s_dbclick(src.hud1)
+-		else
+-			s_click(src.hud1)
++	if(M != src.affecting)	return
++	if(src.state < 3)		s_dbclick(src.hud1)
++	else					s_click(src.hud1)
+ 	return 0
+-	return
+ 
+ /obj/item/weapon/grab/dropped()
+ 	del(src)
+-	return
+-	return
+ 
+ /obj/item/weapon/grab/Del()
+ 	del(src.hud1)
+ 	..()
+-	return
+ 
+ /obj/screen/grab/Click()
+ 	src.master:s_click(src)
+-	return
+ 
+ /obj/screen/grab/DblClick()
+ 	src.master:s_dbclick(src)
+-	return
+ 
+ /obj/screen/grab/interact()
+ 	return
+@@ -210,32 +194,28 @@
+ 			user.drop_item_v()
+ 		if("swap")
+ 			user.swap_hand()
++
+ 		if("resist")
+-			if (user.next_move < world.time)
+-				return
++			if(user.next_move < world.time) return
+ 			user.next_move = world.time + 20
+-			if (user.can_use_hands())
+-				for(var/obj/O in user.requests)
+-					//O = null
+-					del(O)
+-					//Foreach goto(557)
+-				for(var/obj/item/weapon/grab/G in user.grabbed_by)
+-					if (G.state == 1)
+-						//G = null
++			if(!user.can_use_hands()) return
++
++			for(var/obj/O in user.requests)	del(O)
++			for(var/obj/item/weapon/grab/G in user.grabbed_by)
++				if(G.state == 1)
++					del(G)
++
++				else if(G.state == 2)
++					if(prob(10))
++						M.show_viewers(text("\red [] has broken free of []'s grip!", M, G.assailant))
+ 						del(G)
+-					else
+-						if (G.state == 2)
+-							if (prob(25))
+-								user.show_viewers(text("\red [] has broken free of []'s grip!", user, G.assailant))
+-								del(G)
+-						else
+-							if (G.state == 2)
+-								if (prob(5))
+-									user.show_viewers(text("\red [] has broken free of []'s headlock!", user, G.assailant))
+-										//Foreach goto(762)
+-									//G = null
+-									del(G)
+-				user.show_viewers(text("\red <B>[] resists!</B>", user))
++
++				else if(G.state == 3)
++					if(prob(5))
++						M.show_viewers(text("\red [] has broken free of []'s headlock!", M, G.assailant))
++						del(G)
++			user.show_viewers(text("\red <B>[] resists!</B>", user))
++
+ 		else
+ 			src.DblClick()
+ 	return

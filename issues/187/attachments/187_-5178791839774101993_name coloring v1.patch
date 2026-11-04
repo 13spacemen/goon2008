@@ -1,0 +1,145 @@
+Index: code/atoms/message.dm
+===================================================================
+--- code/atoms/message.dm	(revision 537)
++++ code/atoms/message.dm	(working copy)
+@@ -1,12 +1,13 @@
+ /datum/message
++	var/text = null
++	var/color = null
+ 	var/voice = null
+-	var/text = null
+ 	var/language = null
+ 	var/origlanguage = null
+ 	var/origvoice = null
+ 	New(voice, text, language)
++		src.text = text
+ 		src.voice = voice
+-		src.text = text
+ 		src.language = language
+ 		// orig variables for encrypted transmissions
+ 		src.origlanguage = language
+Index: code/game/access.dm
+===================================================================
+--- code/game/access.dm	(revision 537)
++++ code/game/access.dm	(working copy)
+@@ -188,3 +188,29 @@
+ 
+ /proc/get_all_jobs()
+ 	return list("Assistant", "Station Engineer", "Forensic Technician", "Research Technician", "Medical Doctor", "Captain", "Security Officer", "Genetic Researcher", "Toxin Researcher", "Head of Research", "Head of Personnel", "Atmospheric Technician", "Chaplain")
++
++/proc/get_target_desc(mob/target) //return a useful string describing the target
++	var/targetrank = null
++	for(var/datum/data/record/R in data_core.general)
++		if (R.fields["name"] == target.spawn_name)
++			targetrank = R.fields["rank"]
++	return "[target.name] the [targetrank]"
++
++/proc/get_rank(mob/M)
++	for(var/datum/data/record/R in data_core.general)
++		if (R.fields["name"] == M.name)
++			return R.fields["rank"]
++	return null
++
++/proc/get_mobs_with_rank(rank)
++	var/list/names = list()
++	var/list/mobs = list()
++	for(var/datum/data/record/R in data_core.general)
++		if (R.fields["rank"] == rank)
++			names += R.fields["name"]
++			break
++	for(var/mob/M in world)
++		for(var/name in names)
++			if(M.name == name)
++				mobs += M
++	return mobs
+\ No newline at end of file
+Index: code/game/mob/hear.dm
+===================================================================
+--- code/game/mob/hear.dm	(revision 537)
++++ code/game/mob/hear.dm	(working copy)
+@@ -17,6 +17,8 @@
+ 	if(source in view(src) && istype(source, /mob) && source.name != speaker_name) //he's in disguise
+ 		speaker_name += " (disguised as [source.name])"
+ 	else if(istype(source, /obj/item/weapon/radio))
++		if(M.color)
++			speaker_name = "<font color='[M.color]'>[speaker_name]"
+ 		speaker_name += " broadcasts \icon[source]"
+ 	var/text = M.text
+ 	if(!src.is_dead) //dead people understand everything
+Index: code/game/mob/say.dm
+===================================================================
+--- code/game/mob/say.dm	(revision 537)
++++ code/game/mob/say.dm	(working copy)
+@@ -64,25 +64,26 @@
+ 	if (src.is_stuttering())
+ 		txt = stutter(txt)
+ 	txt = html_encode(txt)
+-	if (hear_range == 1)
+-		txt = "<i>[txt]</i>"
+ 
++	var/datum/message/msg = new /datum/message(src.voice, txt, src.curr_language)
++	switch(get_rank(src))
++		if("Captain")			msg.color = "navy"
++		if("Security Officer")	msg.color = "maroon"
++		if("Head of Research")	msg.color = "teal"
++		if("Head of Personnel")	msg.color = "teal"
+ 
+-
+-	var/datum/message = new /datum/message(src.voice, txt, src.curr_language)
+-
+ 	if(target && istype(target, /obj/item/weapon/radio))
+-		target.talk_into(message, usr)
++		target.talk_into(msg, usr)
+ 	var/heard = list()
+ 	var/turf/T = get_turf(src) //if you're in a closet, people can still hear you talk
+ 	for(var/obj/O as obj|mob in view(hear_range, T))
+ 		spawn(0)
+ 			if (O)
+-				O.hear_message(message, usr)
++				O.hear_message(msg, usr)
+ 				heard += O
+ 	for(var/mob/carbon/M in world)
+ 		if(!(M in heard) && (M.is_telepathic || M.is_dead))
+-			M.hear_message(message, usr)
++			M.hear_message(msg, usr)
+ 
+ /mob/proc/is_stuttering()
+ 	return 0
+\ No newline at end of file
+Index: code/game/modes/traitor.dm
+===================================================================
+--- code/game/modes/traitor.dm	(revision 537)
++++ code/game/modes/traitor.dm	(working copy)
+@@ -408,32 +408,6 @@
+ /datum/game_mode/traitor/proc/pick_human_except(mob/carbon/exception)
+ 	return pick(get_human_list() - exception)
+ 
+-/datum/game_mode/traitor/proc/get_target_desc(mob/target) //return a useful string describing the target
+-	var/targetrank = null
+-	for(var/datum/data/record/R in data_core.general)
+-		if (R.fields["name"] == target.spawn_name)
+-			targetrank = R.fields["rank"]
+-	return "[target.name] the [targetrank]"
+-
+-/datum/game_mode/traitor/proc/get_rank(mob/M)
+-	for(var/datum/data/record/R in data_core.general)
+-		if (R.fields["name"] == M.name)
+-			return R.fields["rank"]
+-	return null
+-
+-/datum/game_mode/traitor/proc/get_mobs_with_rank(rank)
+-	var/list/names = list()
+-	var/list/mobs = list()
+-	for(var/datum/data/record/R in data_core.general)
+-		if (R.fields["rank"] == rank)
+-			names += R.fields["name"]
+-			break
+-	for(var/mob/M in world)
+-		for(var/name in names)
+-			if(M.name == name)
+-				mobs += M
+-	return mobs
+-
+ /datum/game_mode/traitor/proc/get_pickable_items(mob/killer)
+ 	var/killerrank = get_rank(killer)
+ 	var/list/items = list(laser, hand_tele, plasma_bomb, captain_card, jetpack, captain_suit)

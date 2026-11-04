@@ -1,0 +1,85 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 576)
++++ code/atoms.dm	(working copy)
+@@ -1103,6 +1103,21 @@
+ 	throw_range = 10
+ 	maximum_charges = 4
+ 	charges = 4
++
++/obj/item/weapon/flamethrower
++	name = "flamethrower"
++	desc = "It throws flames."
++	icon_state = "welder"
++	s_istate = "welder"
++	var/obj/item/weapon/tank/plasmatank/attached = null
++	var/throw_amount = 10000
++	flags = 322.0
++	force = 3.0
++	throwforce = 5.0
++	throw_speed = 1
++	throw_range = 5
++	w_class = 3.0
++
+ /obj/item/weapon/gun/revolver
+ 	desc = "There are 0 bullets left. Uses 357"
+ 	name = "revolver"
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 576)
++++ code/game/demo.dm	(working copy)
+@@ -3009,7 +3009,10 @@
+ 		if(--T.amount < 1)	del(T)
+ 		return
+ 
+-	if(istype(C, /obj/item/weapon/cable_coil) )
++	if(istype(C, /obj/item/weapon/cable_coil))
+ 		var/obj/item/weapon/cable_coil/coil = C
+ 		coil.turf_place(src, user)
++
++	if(istype(C, /obj/item/weapon/flamethrower))
++		return C:flame_turf(src,C)
+ }
+Index: code/game/items.dm
+===================================================================
+--- code/game/items.dm	(revision 576)
++++ code/game/items.dm	(working copy)
+@@ -577,6 +577,38 @@
+ 			//Foreach goto(160)
+ 	return
+ 
++/obj/item/weapon/flamethrower/attackby(obj/item/weapon/tank/plasmatank/W as obj, mob/user as mob)
++	if(!istype(W,/obj/item/weapon/tank/plasmatank)) return ..()
++//	src.icon_state = "flamethrower_loaded"
++	attached = W
++
++/obj/item/weapon/flamethrower/Topic(href,href_list[])
++	if(href_list["close"])
++		usr << ss13_browse(null, "window=tank")
++		return
++	var/obj/item/weapon/flamethrower/F = locate(href_list["src"])
++	F.throw_amount = dd_range(1,25000,F.throw_amount + text2num(href_list["amount"]))
++	for(var/mob/M in viewers(1, F.loc))
++		if(M.client && M.machine == F)
++			F.attack_self(M)
++
++/obj/item/weapon/flamethrower/attack_self(mob/user as mob)
++	if(!src.attached) return
++	user.machine = src
++	var/dat = text({"<TT><B>Flamethrower</B><BR>
++					Amount in tank / Capacity of tank: [src.attached.gas.total()] / [src.attached.maximum]<BR>
++					Amount to throw: [rate_control(src,"amount",src.throw_amount,15,300,3000)]
++					<A HREF='?src=\ref[src];close=1'>Close</A></TT>"})
++	user << browse(dat, "window=tank;size=600x300")
++
++/obj/item/weapon/flamethrower/proc/flame_turf(turf/T as turf, obj/item/weapon/flamethrower/F as obj)
++	if(!F.attached) return
++	if(F.attached.gas.plasma < F.throw_amount)
++		F.throw_amount = F.attached.gas.plasma
++		usr << "Your flamethrower sputters!"
++	T.gas.transfer_from(F.attached.gas,F.throw_amount)
++	T.firelevel += F.throw_amount*100
++
+ /obj/item/weapon/syndicate_uplink/proc/explode()
+ 
+ 	var/turf/T = get_turf(src.loc)

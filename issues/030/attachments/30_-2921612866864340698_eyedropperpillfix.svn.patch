@@ -1,0 +1,150 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 206)
++++ code/atoms.dm	(working copy)
+@@ -791,6 +791,7 @@
+ /obj/item/weapon/clothing/glasses
+ 	name = "glasses"
+ 	w_class = 2.0
++	flags = GLASSESCOVERSEYES
+ 	s_fire = 7.5E7
+ /obj/item/weapon/clothing/glasses/blindfold
+ 	name = "blindfold"
+@@ -867,14 +868,14 @@
+ 	name = "bio hood"
+ 	icon_state = "bio_hood"
+ 	fb_filter = 9.0
+-	flags = 262.0
++	flags = FPRINT|TABLEPASS|HEADSPACE|HEADCOVERSEYES|HEADCOVERSMOUTH
+ 	see_face = 0.0
+ 	s_fire = 1.875E7
+ 	fire_protect = 1.0
+ /obj/item/weapon/clothing/head/helmet
+ 	name = "helmet"
+ 	icon_state = "helmet"
+-	flags = 266.0
++	flags = FPRINT|TABLEPASS|SUITSPACE|HEADCOVERSEYES 
+ 	s_istate = "helmet"
+ 	s_fire = 6.75E7
+ 	fire_protect = 1.0
+@@ -882,7 +883,7 @@
+ /obj/item/weapon/clothing/head/s_helmet
+ 	name = "s helmet"
+ 	icon_state = "s_helmet"
+-	flags = 262.0
++	flags = FPRINT|TABLEPASS|HEADSPACE|HEADCOVERSEYES|HEADCOVERSMOUTH
+ 	see_face = 0.0
+ 	s_istate = "s_helmet"
+ 	s_fire = 5.625E7
+@@ -890,7 +891,7 @@
+ /obj/item/weapon/clothing/head/helmet/swat_hel
+ 	name = "swat hel"
+ 	icon_state = "swat_hel"
+-	flags = 270.0
++	flags = FPRINT|TABLEPASS|SUITSPACE|HEADSPACE|HEADCOVERSEYES
+ 	s_istate = "swat_hel"
+ /obj/item/weapon/clothing/head/wig
+ 	name = "wig"
+@@ -900,7 +901,7 @@
+ 	name = "gasmask"
+ 	desc = "A close-fitting mask that can filter some environmental toxins or be connected to an air supply."
+ 	icon_state = "mask"
+-	flags = 266.0
++	flags = FPRINT|TABLEPASS|SUITSPACE|MASKCOVERSMOUTH|MASKCOVERSEYES
+ 	w_class = 3.0
+ 	fb_filter = 5.0
+ 	a_filter = 6.0
+@@ -912,7 +913,7 @@
+ 	desc = "This mask does not work very well in low pressure environments."
+ 	name = "Medical Mask"
+ 	icon_state = "m_mask"
+-	flags = 270.0
++	flags = FPRINT|TABLEPASS|SUITSPACE|HEADSPACE|MASKCOVERSMOUTH
+ 	w_class = 3.0
+ 	fb_filter = 4.0
+ 	a_filter = 6.0
+@@ -921,6 +922,7 @@
+ /obj/item/weapon/clothing/mask/muzzle
+ 	name = "muzzle"
+ 	icon_state = "muzzle"
++	flags = FPRINT|TABLEPASS|MASKCOVERSMOUTH
+ 	w_class = 2.0
+ 	a_filter = 3.0
+ 	s_istate = "muzzle"
+@@ -928,7 +930,7 @@
+ /obj/item/weapon/clothing/mask/robot
+ 	name = "Robot Mask"
+ 	icon_state = "r_head"
+-	flags = 266.0
++	flags = FPRINT|TABLEPASS|SUITSPACE|MASKCOVERSMOUTH|MASKCOVERSEYES
+ 	w_class = 3.0
+ 	fb_filter = 5.0
+ 	a_filter = 6.0
+@@ -943,7 +945,7 @@
+ 	name = "Sterile Mask"
+ 	icon_state = "s_mask"
+ 	w_class = 1.0
+-	flags = 262.0
++	flags = FPRINT|TABLEPASS|HEADSPACE|MASKCOVERSMOUTH
+ 	fb_filter = 5.0
+ 	a_filter = 6.0
+ 	s_istate = "s_mask"
+Index: code/setup.dm
+===================================================================
+--- code/setup.dm	(revision 206)
++++ code/setup.dm	(working copy)
+@@ -35,6 +35,12 @@
+ #define FPRINT 256			// takes a fingerprint
+ #define WINDOW 512			// window or window/door
+ 
++#define GLASSESCOVERSEYES 1024
++#define MASKCOVERSEYES 1024		// get rid of some of the other retardation in these flags
++#define HEADCOVERSEYES 1024		// feel free to realloc these numbers for other purposes
++#define MASKCOVERSMOUTH 2048		// on other items, these are just for mask/head
++#define HEADCOVERSMOUTH 2048
++
+ // channel numbers for power
+ 
+ #define EQUIP 1
+@@ -48,4 +54,4 @@
+ #define POWEROFF 4		// tbd
+ #define MAINT 8			// under maintaince
+ 
+-#define ENGINE_EJECT_Z 2
+\ No newline at end of file
++#define ENGINE_EJECT_Z 2
+Index: code/game/items.dm
+===================================================================
+--- code/game/items.dm	(revision 206)
++++ code/game/items.dm	(working copy)
+@@ -1471,6 +1471,10 @@
+ 	return
+ 
+ /obj/item/weapon/m_pill/attack(mob/M as mob, mob/user as mob)
++	var/mob/human/H = M
++	if (istype(M, /mob/human) && ((H.head && H.head.flags & HEADCOVERSMOUTH) || (H.wear_mask && H.wear_mask.flags & MASKCOVERSMOUTH)))
++		user << "\blue You're going to have to remove that mask/helmet first."
++		return
+ 
+ 	if ((user != M && istype(M, /mob/human)))
+ 		for(var/mob/O in viewers(M, null))
+@@ -4267,12 +4271,18 @@
+ 		user << "\red You don't have the dexterity to do this!"
+ 		return
+ 	if (user)
++		// can I even use this on the person...
++		var/mob/human/H = M
++		if (istype(M, /mob/human) && ((H.head && H.head.flags & HEADCOVERSEYES) || (H.wear_mask && H.wear_mask.flags & MASKCOVERSEYES) || (H.glasses && H.glasses.flags & GLASSESCOVERSEYES)))
++			// you can't eyedrop someone wearing a mask!
++			user << "\blue You're going to need to remove that mask/helmet/glasses first."
++			return
+ 		for(var/mob/O in viewers(M, null))
+ 			O.show_message(text("\red [] has been eyedropped with [] by [].", M, src, user), 1)
+ 			//Foreach goto(89)
+ 		var/amount = src.chem.dropper_mob(M, 1)
+ 		src.update_is()
+-		user.show_message(text("\red You drop [] units into []'s eyes. The dropper contains [] millimeters.", amount, M, src.chem.volume()))
++		user.show_message(text("\red You drop [] units into []'s eyes. The dropper contains [] millilitres.", amount, M, src.chem.volume()))
+ 		src.add_fingerprint(user)
+ 	return
+ 

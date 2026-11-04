@@ -1,0 +1,125 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 345)
++++ code/atoms.dm	(working copy)
+@@ -1928,6 +1928,9 @@
+ 	icon = 'stationobjs.dmi'
+ 	icon_state = "comm_computer"
+ 	var/prints_intercept = 1
++	var/temp = null
++	var/interceptlog = null
++	req_access = list(access_heads)
+ /obj/machinery/computer/data
+ 	name = "data"
+ 	icon = 'weap_sat.dmi'
+Index: code/game/computer.dm
+===================================================================
+--- code/game/computer.dm	(revision 345)
++++ code/game/computer.dm	(working copy)
+@@ -88,11 +88,77 @@
+ 			return 0
+ 	return 1
+ 
+-/obj/machinery/computer/communications/verb/call_shuttle()
+-	set src in oview(1)
++/obj/machinery/computer/communications/process()
++
++	if(stat & (NOPOWER|BROKEN) )
++		return
++	use_power(250)
++	src.updateDialog()
++	return
++
++/obj/machinery/computer/communications/interact(var/mob/user as mob)
++
++	user.machine = src
++	var/dat
++	dat = "<B>Communications Console</B><HR><TT>"
++	if (src.temp)
++		dat += "[src.temp]<BR>\n<A href='?src=\ref[user];mach_close=computer'>Close</A>"
++	else
++		if (!ticker.timeleft)
++			dat += "<B>Emergency shuttle</B>\n<BR>\nETA: 10:00<BR><A href='?src=\ref[src];call=1'>\[Call shuttle\]</A><BR>"
++		else if (ticker.timing == 1)
++			dat += "<B>Emergency shuttle</B>\n<BR>\nETA: [ticker.timeleft / 600 % 60]:[ticker.timeleft / 100 % 6][ticker.timeleft / 10 % 10]<BR>\n<A href='?src=\ref[src];return=1'>\[Cancel call\]</A><BR>"
++		else
++			dat += "<B>Emergency shuttle</B>\n<BR>\nETA: [ticker.timeleft / 600 % 60]:[ticker.timeleft / 100 % 6][ticker.timeleft / 10 % 10]<BR>\n<A href='?src=\ref[src];call=1'>\[Call shuttle\]</A><BR>"
++		if (interceptlog)
++			dat += "<BR>\n<B>Intercepted syndicate transmission</B>\n<BR><A href='?src=\ref[src];showlog=1'>\[Display log\]</A><BR>"
++		dat += "<BR>\n<A href='?src=\ref[user];mach_close=computer'>Close</A>"
++
++	user << browse(dat, "window=computer;size=400x500")
++	return
++
++/obj/machinery/computer/communications/Topic(href, href_list)
++	. = ..()
++	if(!.) return
++	if(stat & (NOPOWER|BROKEN))
++		usr << browse(null, "window=computer")
++		return
++	var/mob/carbon/M = usr
++	if ((!usr.can_use_hands()))
++		return
++
++	if ((get_dist(src, usr) > 1 || !istype(src.loc, /turf)) && !istype(usr, /mob/silicon/ai))
++		usr << browse(null, "window=computer")
++		return
++	usr.machine = src
++	if (href_list["call"])
++		src.temp = "Confirm distress signal<BR><BR><B><A href='?src=\ref[src];call2=1'>\[Swipe ID to send distress signal\]</A></B><BR><A href='?src=\ref[src];temp=1'>Cancel</A><BR>"
++	else if (href_list["call2"])
++		if(!istype(usr, /mob/carbon))
++			return
++		var/obj/item/weapon/card/id/I = M.equipped()
++		if (istype(I))
++			if(src.check_access(I))
++				call_shuttle_proc(usr)
++				src.temp = null
++			else
++				src.temp = "<B>Access denied</B><BR><BR><BR><A href='?src=\ref[src];temp=1'>Cancel</A><BR>"
++	else if (href_list["return"])
++		cancel_call_proc(usr)
++	else if (href_list["showlog"])
++		src.temp = "<BR>[src.interceptlog]<BR><A href='?src=\ref[src];deletelog=1'>Delete log</A>\n<BR><A href='?src=\ref[src];temp=1'>Cancel</A><BR>"
++	else if (href_list["deletelog"])
++		interceptlog = null
++		src.temp = "Log deleted\n<BR><A href='?src=\ref[src];temp=1'>Return</A><BR>"
++	else if (href_list["temp"])
++		src.temp = null
++
++
+ 	src.add_fingerprint(usr)
+-	if(stat & NOPOWER) return
+-	call_shuttle_proc(usr)
++	for(var/mob/MM in viewers(1, src))
++		if ((MM.client && MM.machine == src))
++			src.interact(MM)
++	return
+ 
+ /mob/silicon/ai/proc/ai_camera_track()
+ 	set category = "AI Commands"
+@@ -198,12 +264,6 @@
+ 	ticker.timing = 1
+ 	return
+ 
+-/obj/machinery/computer/communications/verb/cancel_call()
+-	set src in oview(1)
+-	src.add_fingerprint(usr)
+-	if(stat & NOPOWER) return
+-	cancel_call_proc(usr)
+-
+ /proc/cancel_call_proc(var/mob/user)
+ 	if ((!( ticker ) || ticker.shuttle_location == 1 || ticker.timing == 0 || ticker.timeleft < 300))
+ 		return
+Index: code/game/modes/traitor.dm
+===================================================================
+--- code/game/modes/traitor.dm	(revision 345)
++++ code/game/modes/traitor.dm	(working copy)
+@@ -228,6 +228,7 @@
+ 			var/obj/item/weapon/paper/intercept = new /obj/item/weapon/paper( comm.loc )
+ 			intercept.name = "paper- 'Cent. Com. Comm. Intercept Summary'"
+ 			intercept.info = intercepttext
++			comm.interceptlog = intercepttext
+ 
+ 	world << "<FONT size = 3><B>Cent. Com. Update</B> Enemy communication intercept. Security Level Elevated</FONT>"
+ 	world << "\red Summary downloaded and printed out at communications consoles."

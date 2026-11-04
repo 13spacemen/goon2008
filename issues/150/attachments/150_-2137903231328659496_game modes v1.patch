@@ -1,0 +1,1115 @@
+Index: code/game/cellautomata.dm
+===================================================================
+--- code/game/cellautomata.dm	(revision 567)
++++ code/game/cellautomata.dm	(working copy)
+@@ -218,86 +218,38 @@
+ 	usr.show_viewers(text("<B>[]</B> points to []", usr, src))
+ 	return
+ 
+-/turf/proc/updatecell()
+-	return
+-/turf/proc/conduction()
+-	return
+-/turf/proc/cachecell()
+-	return
++/turf/proc/updatecell()			return
++/turf/proc/conduction()			return
++/turf/proc/cachecell()			return
++/datum/control/proc/process()	return
+ 
+-/datum/control/proc/process()
+-	return
+-
+-/datum/control/gameticker/proc/meteor_process()
+-
++/datum/control/gameticker/proc/game_process(var/meteor_prob=0.5)
+ 	do
+-		if (!( shuttle_frozen ))
+-			if (src.timing == 1)
++		if(!shuttle_frozen)
++			if(src.timing == 1)
+ 				src.timeleft -= 10
+-			else
+-				if (src.timing == -1.0)
+-					src.timeleft += 10
+-					if (src.timeleft >= shuttle_time_to_arrive)
+-						src.timeleft = null
+-						src.timing = 0
+-		spawn_meteors()
+-		if ((src.timeleft <= 0 && src.timing && !( prison_entered )))
+-			src.timeup()
+-
++			else if(src.timing == -1)
++				src.timeleft += 10
++				if(src.timeleft >= shuttle_time_to_arrive)
++					src.timeleft = null
++					src.timing = 0
++		if(prob(meteor_prob)) spawn_meteors()
++		if(src.timing && src.timeleft <= 0)
++			if(!prison_entered || src.shuttle_location == 1)
++				src.timeup()
+ 		sleep(10)
+ 	while(src.processing)
+-	return
+ 
+-
+-/datum/control/gameticker/proc/megamonkey_process()
+-
+-	do
+-		if (prob(2))
+-			spawn_meteors()
+-
+-		world << "megamonkey_process check_win"
+-		check_win()
+-
+-		sleep(50)
+-	while(src.processing)
+-	return
+-
+-/datum/control/gameticker/proc/extend_process()
+-
+-	do
+-		if (!( shuttle_frozen ))
+-			if (src.timing == 1)
+-				src.timeleft -= 10
+-			else
+-				if (src.timing == -1.0)
+-					src.timeleft += 10
+-					if (src.timeleft >= shuttle_time_to_arrive)
+-						src.timeleft = null
+-						src.timing = 0
+-		if (prob(0.5))
+-			spawn_meteors()
+-		if ((src.timeleft <= 0 && (src.timing && (!( prison_entered ) || src.shuttle_location == 1))))
+-			src.timeup()
+-
+-		sleep(10)
+-	while(src.processing)
+-	return
+-
+ /datum/control/gameticker/proc/nuclear(z_level)
+-
+-	if (src.mode != "nuclear")
+-		return
+-	if (z_level != 1)
+-		return
+-	spawn( 0 )
++	if(src.mode != "nuclear")	return
++	if(z_level != 1)			return
++	spawn(0)
+ 		src.objective = "Success"
+ 		world << "<B>The Syndicate Operatives have destroyed Space Station 13!</B>"
+ 		for(var/mob/carbon/H in world)
+-			if ((H.client && findtext(H.spawn_name, "Syndicate ", 1, null)))
+-				if (!H.is_dead)
+-					world << text("<B>[] was []</B>", H.key, H.spawn_name)
+-				else
+-					world << text("[] was [] (Dead)", H.key, H.spawn_name)
++			if(H.client && findtext(H.spawn_name, "Syndicate ", 1, null))
++				if(!H.is_dead)	world << text("<B>[] was []</B>", H.key, H.spawn_name)
++				else			world << text("[] was [] (Dead)", H.key, H.spawn_name)
+ 		src.timing = 0
+ 		sleep(300)
+ 		world.log_game("Syndicate success")
+@@ -306,97 +258,86 @@
+ 	return
+ 
+ /datum/control/gameticker/proc/timeup()
+-
+-
+ 	var/area/A = locate(/area/shuttle)
+-	if (src.shuttle_location == shuttle_z)
++	if(src.shuttle_location != shuttle_z)
++		world << "<B>The emergency shuttle is leaving!</B>"
++		src.event = 2
++		check_win()
++		return
+ 
+-		var/list/srcturfs = list()
+-		var/list/dstturfs = list()
+-		var/throwx = 0
++	var/list/srcturfs = list()
++	var/list/dstturfs = list()
++	var/throwx = 0
+ 
+-		for(var/turf/T in A)
+-			if (T.z == shuttle_z)
+-				for(var/atom/movable/AM as mob|obj in T)
+-					AM.z = 1
+-				var/turf/U = locate(T.x, T.y, shuttle_z)
+-				U.phase1.copy_cop(T.phase1)
+-				U.phase2.copy_cop(T.phase2)
+-				U.gas.copy_cop(T.gas)
+-				srcturfs += T
+-			else
+-				dstturfs += T
+-			throwx = max(throwx,T.x)
++	for(var/turf/T in A)
++		throwx = max(throwx,T.x)
++		if(T.z != shuttle_z)
++			dstturfs += T
++			continue
++		for(var/atom/movable/AM as mob|obj in T) AM.z = 1
++		var/turf/U = locate(T.x, T.y, shuttle_z)
++		U.match_gasses(T)
++		srcturfs += T
+ 
+-		// hey you, get out of the way!
+-		for(var/turf/T in dstturfs)
+-			// find the turf to move things to
+-			var/turf/D = locate(throwx, T.y, 1)
+-			var/turf/E = get_step(D, EAST)
+-			for(var/atom/movable/AM as mob|obj in T)
+-				// east! the mobs go east!
+-				AM.Move(D)
+-				spawn(0)
+-					AM.throw_at(E, 1, 1)
+-					return
+-		for(var/turf/T in srcturfs)
+-			for(var/atom/movable/AM as mob|obj in T)
+-				// first of all, erase any non-space turfs in the zone in
+-				var/turf/U = locate(T.x, T.y, 1)
+-				if(!istype(U, /turf/space))
+-					var/turf/space/S = new /turf/space( locate(U.x, U.y, U.z) )
+-					A.contents -= S
+-					A.contents += S
+-				AM.z = 1
+-			var/turf/U = locate(T.x, T.y, shuttle_z)
+-			U.phase1.copy_cop(T.phase1)
+-			U.phase2.copy_cop(T.phase2)
+-			U.gas.copy_cop(T.gas)
+-			del(T)
+-		src.timeleft = shuttle_time_in_station
+-		src.shuttle_location = 1
+-		world << "<B>The emergency shuttle has docked with the station! You have [ticker.timeleft/600] minutes to board the shuttle.</B>"
+-	else
+-		world << "<B>The emergency shuttle is leaving!</B>"
+-		check_win()
+-	return
++	// hey you, get out of the way!
++	for(var/turf/T in dstturfs)
++		// find the turf to move things to
++		var/turf/D = locate(throwx, T.y, 1)
++		var/turf/E = get_step(D, EAST)
++		for(var/atom/movable/AM as mob|obj in T)
++			// east! the mobs go east!
++			AM.Move(D)
++			spawn(0)
++				AM.throw_at(E, 1, 1)
++				return
++	for(var/turf/T in srcturfs)
++		for(var/atom/movable/AM as mob|obj in T)
++			// first of all, erase any non-space turfs in the zone in
++			var/turf/U = locate(T.x, T.y, 1)
++			if(!istype(U, /turf/space))
++				var/turf/space/S = new /turf/space( locate(U.x, U.y, U.z) )
++				A.contents -= S
++				A.contents += S
++			AM.z = 1
++		var/turf/U = locate(T.x, T.y, shuttle_z)
++		U.match_gasses(T)
++		del(T)
++	src.event = 1
++	src.shuttle_location = 1
++	src.timeleft = shuttle_time_in_station
++	world << "<B>The emergency shuttle has docked with the station! You have [ticker.timeleft/600] minutes to board the shuttle.</B>"
+ 
+ /datum/control/gameticker/proc/check_win()
+-	if(!mode.check_win())	return 0
+-
+-	for (var/mob/silicon/ai/aiPlayer in world)
+-		if (!aiPlayer.is_dead)
+-			world << "<b>The AI's laws at the end of the game were:</b>"
+-		else
+-			world << "<b>The AI's laws when it was deactivated were:</b>"
++	if(event == 5) return 1
++	if(!mode.check_win()) return 0
++	for(var/mob/silicon/ai/aiPlayer in world)
++		if(!aiPlayer.is_dead)	world << "<b>The AI's laws at the end of the game were:</b>"
++		else					world << "<b>The AI's laws when it was deactivated were:</b>"
+ 		aiPlayer.showLaws(1)
+ 
+ 	var/area/A = locate(/area/shuttle)
+-	if (src.shuttle_location != shuttle_z)
++	if(src.shuttle_location != shuttle_z)
+ 		for(var/turf/T in A)
+-			if (T.z == 1)
+-				for(var/atom/movable/AM as mob|obj in T)
+-					AM.z = shuttle_z
+-					//Foreach goto(2483)
+-				var/turf/U = locate(T.x, T.y, shuttle_z)
+-				U.match_gasses(T)
+-				U.buildlinks()
+-				//T = null
+-				del(T)
+-			//Foreach goto(2449)
++			if(T.z != 1) continue
++			for(var/atom/movable/AM as mob|obj in T) AM.z = shuttle_z
++			var/turf/U = locate(T.x, T.y, shuttle_z)
++			U.match_gasses(T)
++			U.buildlinks()
++			del(T)
++
++	world << "Game reboot in 30 seconds"
+ 	sleep(300)
+ 	world.log_game("Rebooting due to end of game")
++	world << "Game reboot initiated"
+ 	world.Reboot()
+ 	return 1
+ 
+ /datum/control/gameticker/process()
+-
+ 	shuttle_location = shuttle_z
+-
+ 	world.update_stat()
+ 	world << "<B>Welcome to Space Station 13!</B>\n\n"
+ 
+-	switch (master_mode)
++	switch(master_mode)
+ 		if("secret")
+ 			src.mode = config.pick_random_mode()
+ 			world << "<B>The current game mode is - Secret!</B>"
+@@ -404,23 +345,23 @@
+ 		if("random")
+ 			src.mode = config.pick_random_mode()
+ 			world << "<B>The current game mode is - Random</B>"
+-			world << "<B>The game has picked mode: \red [src.mode.name]</B>"
++			world << "<B>The game has picked mode: <font color='red'>[src.mode.name]</font></B>"
+ 		else
+ 			src.mode = config.pick_mode(master_mode)
+ 			src.mode.announce()
+ 
+ 	src.mode.pre_setup()
+-
+-	world << "<B>Now dispensing all identification cards.</B>"
+-
++	world << "<B>Dispensing all identification cards.</B>"
+ 	world.log_game("[src.mode.name] round starting")
+ 
+ 	DivideOccupations()
+ 	for(var/obj/manifest/M in world)	M.manifest()
+ 	data_core.manifest()
+ 	src.mode.post_setup()
+-	for(var/obj/start/S in world)		del(S)
++	for(var/obj/start/S in world) del(S)
+ 
++	while(!check_win())	sleep(100)
++
+ // *****
+ // MAIN LOOP OF PROGRAM
+ // *****
+@@ -433,15 +374,14 @@
+ 		sun.calc_position()
+ 
+ 		for(var/turf/station/T in world)
+-			if (T.updatecell)
+-				T.updatecell()
+-				if(!time) T.conduction()
++			if(!T.updatecell) continue
++			T.updatecell()
++			if(!time) T.conduction()
+ 
+ 		sleep(3)
+ 		for(var/mob/M in world)
+-			spawn( 0 )
++			spawn(0)
+ 				M.Life()
+-				return
+ 
+ 		sleep(3)
+ 		for(var/obj/move/S in world)				S.process()
+Index: code/game/game_mode.dm
+===================================================================
+--- code/game/game_mode.dm	(revision 567)
++++ code/game/game_mode.dm	(working copy)
+@@ -8,43 +8,50 @@
+ /datum/game_mode/proc/announce()
+ 	world << "<B>[src] did not define announce()</B>"
+ 
+-/datum/game_mode/proc/pre_setup()
+-	return
+-
++/datum/game_mode/proc/pre_setup()	return
+ /datum/game_mode/proc/post_setup()
+-	spawn (0)
+-		ticker.extend_process()
++	spawn(0)
++		ticker.game_process()
+ 
++//	ticker.event = 0 (game running)
++//	ticker.event = 1 (shuttle arrived)
++//	ticker.event = 2 (shuttle departed)
++//	ticker.event = 3 (time has run out)
++//	ticker.event = 4 (station destroyed)
++//	ticker.event = 5 (game completed)
++//	ticker.event = 6 (everyone died)
++
+ /datum/game_mode/proc/check_win()
+-	var/list/L = list(  )
++	if(ticker.event == 5) return 1
+ 
++	var/list/L = list()
+ 	var/area/A = locate(/area/shuttle)
+ 
+-	for(var/mob/M in world)
+-		if (M.client)
+-			if (!M.is_dead)
+-				var/T = M.loc
+-				if ((T in A))
+-					L[text("[]", M.spawn_name)] = "shuttle"
+-				else
+-					if (istype(T, /obj/machinery/vehicle/pod))
+-						L[text("[]", M.spawn_name)] = "pod"
+-					else
+-						L[text("[]", M.spawn_name)] = "alive"
+-		//Foreach goto(2200)
+-	if (L.len)
+-		world << "\blue <B>The game has ended!</B>"
+-		for(var/I in L)
+-			var/tem = L[text("[]", I)]
+-			switch(tem)
+-				if("shuttle")
+-					world << text("\t <B><FONT size = 2>[] has left on the shuttle!</FONT></B>", I)
+-				if("pod")
+-					world << text("\t <FONT size = 2>[] has fled on an escape pod!</FONT>", I)
+-				if("alive")
+-					world << text("\t <FONT size = 1>[] decided to stay on the station.</FONT>", I)
+-				else
+-			//Foreach goto(2337)
+-	else
+-		world << "\blue <B>No one lived!</B>"
+-	return 1
+\ No newline at end of file
++	var/death_count = 0
++	for(var/mob/carbon/M in world)
++		if(!M.client) continue
++		if(M.is_dead)
++			++death_count
++			continue
++		if(M.loc in A)
++			L["[M.spawn_name]"] = "shuttle"
++		else if(istype(M.loc, /obj/machinery/vehicle/pod))
++			L["[M.spawn_name]"] = "pod"
++		else
++			L["[M.spawn_name]"] = "alive"
++
++	if(!L.len && death_count)
++		world << "<font color='red'><B>Game Over!</font> <font color='blue'>Everyone has died!</B></font>"
++		ticker.event = 6
++		return 1
++
++	if(ticker.event != 2) return 0
++	world << "<font color='blue'><B>The crew has escaped from the station!</B></font>"
++
++	for(var/I in L)
++		var/tem = L[text("[]", I)]
++		switch(tem)
++			if("shuttle")	world << "<FONT size = 2><B>[I] left on the shuttle!</B></FONT></B>"
++			if("pod")		world << "<FONT size = 2>[I] fled on an escape pod!</FONT>"
++			if("alive")		world << "<FONT size = 1>[I] decided to stay on the station.</FONT>"
++	return 1
+Index: code/game/mob/death.dm
+===================================================================
+--- code/game/mob/death.dm	(revision 567)
++++ code/game/mob/death.dm	(working copy)
+@@ -6,22 +6,4 @@
+ 	if(src.client)
+ 		src.client.mob = new/mob/observer(src)
+ 
+-	var/cancel
+-	spawn(50)
+-		for(var/mob/M in world)
+-			if(M.client && !M.is_dead)
+-				cancel = 1
+-		if(cancel)
+-			return
+-		world << "<B>Everyone is dead! Resetting in 30 seconds!</B>"
+-		if(ticker && ticker.timing)
+-			ticker.check_win()
+-			return
+-		spawn(300)
+-			for(var/mob/M in world)
+-				if(M.client && !M.is_dead)
+-					cancel = 1
+-			if(!cancel)
+-				world.log_game("Rebooting because of no live players")
+-				world.Reboot()
+ 	return ..()
+Index: code/game/modes/blob.dm
+===================================================================
+--- code/game/modes/blob.dm	(revision 567)
++++ code/game/modes/blob.dm	(working copy)
+@@ -1,29 +1,29 @@
+ /datum/game_mode/blob
+ 	name = "blob"
+ 	config_tag = "blob"
+-
+ 	var/stage = 0
+ 	var/next_stage = 0
+ 
+ /datum/game_mode/blob/announce()
+ 	world << "<B>The current game mode is - <font color='green'>BLOB</font>!</B>"
+ 	world << "<B>A dangerous alien organism is rapidly spreading throughout the station!</B>"
+-	world << "You must kill it all while minimizing the damage to the station."
++	world << "You must kill it all while minimizing damage to the station."
+ 
++/datum/game_mode/blob/pre_setup()
++	return
++
+ /datum/game_mode/blob/post_setup()
++	start_state = new /datum/station_state()
++	start_state.count()
++
++	blobs = list()
++	new /obj/blob(pick(blobstart))
+ 	spawn(10)
+-		start_state = new /datum/station_state()
+-		start_state.count()
++		ticker.game_process(2)
++	process()
+ 
+-	spawn (20)
+-		blobs = list()
+-		new /obj/blob(pick(blobstart))
+-		process()
+-
+ /datum/game_mode/blob/proc/process()
+ 	do
+-		if(prob(2))	spawn_meteors()
+-		check_win()
+ 		life()
+ 		stage()
+ 		sleep(10)
+@@ -31,12 +31,13 @@
+ 
+ /datum/game_mode/blob/proc/life()
+ 	if(!blobs.len) return
++	for(var/obj/blob/B in blobs)
+ 	for(var/i = 1 to 5*sqrt(blobs.len))
+ 		if(!blobs.len) break
+ 		var/obj/blob/B = pick(blobs)
+ 		for (var/atom/A in B.loc) A.blob_act()
+ 		B.Life()
+-		if(B && B.loc && istype(B.loc,/turf))
++		if(B && isturf(B.loc))
+ 			B.loc:buildlinks()
+ 
+ /datum/game_mode/blob/proc/stage()
+@@ -83,7 +84,7 @@
+ 			world << "<font color='red'>All personnel must contain the outbreak.</font>"
+ 
+ 			stage = 2
+-			next_stage = world.realtime + 600
++			next_stage = world.realtime + 10*rand(50,70)
+ 
+ 		if(2)
+ 			if(blobs.len > 500)
+@@ -92,14 +93,14 @@
+ 				world << "<font color='red'>Cent. Com, has issued a directive 7-12 for Spacestation 13.</font>"
+ 				world << "<font color='red'>Estimated time until directive implementation: 60 seconds.</font>"
+ 				stage = 3
+-			next_stage = world.realtime + 600
++			next_stage = world.realtime + 10*rand(50,70)
+ 
+ 		if(3)
+ 			stage = 4
+ 			var/turf/T = locate("landmark*blob-directive")
+ 
+-			if(T) while(!isturf(T)) T = T.loc
+-			else  T = locate(45,45,1)
++			if(!T) T = locate(45,45,1)
++			else while(!isturf(T)) T = T.loc
+ 
+ 			var/min = 100
+ 			var/med = 250
+@@ -108,91 +109,88 @@
+ 			var/ne = locate(world.maxx, world.maxy, T.z)
+ 			defer_powernet_rebuild = 1
+ 			for(var/turf/U in block(sw, ne))
+-				var/zone = 4
+-				if((U.y <= T.y + max && U.y >= T.y - max && U.x <= T.x + max && U.x >= T.x - max))	zone = 3
+-				if((U.y <= T.y + med && U.y >= T.y - med && U.x <= T.x + med && U.x >= T.x - med))	zone = 2
+-				if((U.y <= T.y + min && U.y >= T.y - min && U.x <= T.x + min && U.x >= T.x - min))	zone = 1
+-				for(var/atom/A in U) A.ex_act(zone)
+-				U.ex_act(zone)
++				var/impact = 4
++				if((U.y <= T.y + max && U.y >= T.y - max && U.x <= T.x + max && U.x >= T.x - max))	impact = 3
++				if((U.y <= T.y + med && U.y >= T.y - med && U.x <= T.x + med && U.x >= T.x - med))	impact = 2
++				if((U.y <= T.y + min && U.y >= T.y - min && U.x <= T.x + min && U.x >= T.x - min))	impact = 1
++				for(var/atom/A in U) A.ex_act(impact)
++				U.ex_act(impact)
+ 				U.buildlinks()
+ 
+ 			defer_powernet_rebuild = 0
++			ticker.event = 4
+ 			makepowernets()
++			check_win()
+ 
+ /datum/game_mode/blob/check_win()
++	if(ticker.event != 2 && ..()) return 1
++
++	var/numPod = 0
++	var/numDead = 0
++	var/numAlive = 0
++	var/numSpace = 0
++	var/numShuttle = 0
++	var/numOffStation = 0
++	var/area/shuttle = locate(/area/shuttle)
++	for(var/mob/carbon/M in world)
++		if(!M.client) continue
++		if(M.is_dead)
++			numDead += 1
++			continue
++		var/T = M.loc
++		if(istype(T, /turf/space))	numSpace += 1
++		else if(istype(T, /obj/machinery/vehicle/pod))	numPod += 1
++		else if(isturf(T))
++			if(M.loc in shuttle)	numShuttle += 1
++			else if(M.z != 1)		numOffStation += 1
++			else					numAlive += 1
++		else						numAlive += 1
++
++	world << "nums: [numPod] [numDead] [numAlive] [numShuttle] [numOffStation]"
+ 	if(ticker.event == 4)
+ 		world << "<FONT size = 3><B>The staff has lost!</B></FONT>"
+ 		world << "<B>The station was destroyed by Cent. Com.</B>"
+-		var/numDead = 0
+-		var/numAlive = 0
+-		var/numSpace = 0
+-		var/numPod = 0
+-		var/numOffStation = 0
+-		for (var/mob/silicon/ai/aiPlayer in world)
+-			for(var/mob/M in world)
+-				if ((M != aiPlayer && M.client))
+-					if (M.is_dead)
+-						numDead += 1
+-					else
+-						var/T = M.loc
+-						if (istype(T, /turf/space))
+-							numSpace += 1
+-						else
+-							if (istype(T, /obj/machinery/vehicle/pod))
+-								numPod += 1
+-							else if (istype(T, /turf))
+-								if (M.z!=1)
+-									numOffStation += 1
+-								else
+-									numAlive += 1
+-							else
+-								numAlive += 1
+-			if (numSpace==0 && numPod==0 && numOffStation==0)
++		for(var/mob/silicon/ai/aiPlayer in world)
++			if(!numSpace && !numPod && !numOffStation && !numShuttle)
+ 				world << "<FONT size = 3><B>The AI has won!</B></FONT>"
+-				world << "<B>The AI successfully maintained the quarantine - no players escaped in pods, were in space, or were off-station (as far as we can tell).</B>"
++				world << "<B>The AI successfully maintained the quarantine - no players escaped, were in space, or were off-station (as far as we can tell).</B>"
+ 				world.log_game("AI won at Blob mode despite overall loss.")
+ 			else
+ 				world << "<FONT size = 3><B>The AI has lost!</B></FONT>"
+-				world << text("<B>The AI failed to maintain the quarantine - [] players escaped in pods, [] were in space, and [] were off-station (as far as we can tell).</B>", numPod, numSpace, numOffStation)
++				world << text("<B>The AI failed to maintain the quarantine - [] escaped via shuttle, [] escaped via pods, [] were in space, and [] were off-station (as far as we can tell).</B>", numShuttle, numPod, numSpace, numOffStation)
+ 				world.log_game("AI lost at Blob mode.")
+ 
+ 		world.log_game("Blob mode was lost.")
+-		ticker.event = 5; ticker.check_win()
++		ticker.event = 5;
+ 		return 1
+ 
+-	if(ticker.event == 5)
+-		return
++	if(ticker.event == 2 && !numShuttle && !numPod && numAlive)
++		world << "The rescue shuttle has departed without any survivors!"
++		world << "Cent Com detected the anomaly and turned around the shuttle, but it'll be another 20 minutes!"
++		ticker.timeleft = 12000
++		ticker.timing = 1
++		ticker.event = 0
+ 
+-	var/active = 0
++	var/datum/station_state/end_state = new()
++	end_state.count()
++	var/percent = round(100.0 * start_state.score(end_state),0.01)
+ 
++	if(percent <= 4)
++		world << "<font size=3><B>The staff has lost!</B></font>"
++		world << "<B>The station was destroyed by the blob</B>"
++		world.log_game("Blob mode was lost.")
++		ticker.event = 5
++		return 1
++
++	if(ticker.event == 2 && ..()) return 1
+ 	for(var/obj/blob/B in blobs)
+-		if(B.z == 1)
+-			active = 1
+-			break
++		if(B.z == 1)	return 0
+ 
++	world << "<FONT size = 3><B>The staff has won!</B></FONT>"
++	world << "<B>The alien organism has been eradicated from the station</B>"
+ 
+-	if(!active)
+-		if(ticker.event < 3)
+-			world << "<FONT size = 3><B>The staff has won!</B></FONT>"
+-			world << "<B>The alien organism has been eradicated from the station</B>"
++	world << "<B>The station is [percent]% intact.</B>"
++	world.log_game("Blob mode was won with station [percent]% intact.")
+ 
+-			var/datum/station_state/end_state = new /datum/station_state()
+-			end_state.count()
+-
+-			var/percent = round( 100.0 *  start_state.score(end_state), 0.1)
+-
+-			world << "<B>The station is [percent]% intact.</B>"
+-
+-			world.log_game("Blob mode was won with station [percent]% intact.")
+-		else
+-			world << "<FONT size = 3><B>The staff has lost!</B></FONT>"
+-			world << "<B>The alien organism has been eradicated from the station, but directive 7-12 has already been issued.</B>"
+-
+-			world.log_game("Blob mode was lost after eradicating blob too late.")
+-		ticker.event = 5
+-		world.log_game("Rebooting in 30s")
+-		sleep(300)
+-		world.log_game("Rebooting due to end of game")
+-		world.Reboot()
+-
++	ticker.event = 5
+ 	return 1
+Index: code/game/modes/megamonkey.dm
+===================================================================
+--- code/game/modes/megamonkey.dm	(revision 567)
++++ code/game/modes/megamonkey.dm	(working copy)
+@@ -8,25 +8,42 @@
+ 	world << "You must disable or kill all monkeys on the station to win."
+ 
+ /datum/game_mode/megamonkey/post_setup()
+-	spawn (1)
+-		for(var/mob/carbon/monkey/M in world)
+-			del(M)
++	spawn(1)
++		for(var/mob/carbon/monkey/M in world)	del(M)
++		for(var/turf/T in monkeystart)
++			var/mob/carbon/monkey/megamonkey/M = new(T)
++			M.icon_state = "megamonkey1"
++			M.name = "mutant monkey"
++			M.gender = MALE
+ 
+-		for (var/turf/T in monkeystart)
+-			new /mob/carbon/monkey/megamonkey(T)
++	spawn(50)
++		ticker.game_process(1)
+ 
+-	spawn (50)
+-		ticker.megamonkey_process()
+-
+ /datum/game_mode/megamonkey/check_win()
+-	var/success = 1
+-	for(var/mob/carbon/monkey/megamonkey/M in world)
+-		if(M.stat == 0 && M.z == 1)				// check for concious, alive monkeys in SS13 maplevel
+-			success = 0
+-			break
++	if(ticker.event == 5) return 1
+ 
+-	if(success)
+-		world << "<FONT size = 3><B>The humans have won!</B></FONT>"
+-		world << "<B>The station has been retaken from the mutant monkeys</B>"
+-		world.log_game("Humans have destroyed all monkeys")
+-	return 1
+\ No newline at end of file
++	var/survivors = 0
++	for(var/mob/carbon/M in world)
++		if(M.client && !M.is_dead) { ++survivors; break }
++	if(!survivors)
++		world << "<B>The monkeys have conquered the station!</B>"
++		world.log_game("Monkeys have destroyed all humans")
++		ticker.event = 5
++		return 1
++
++	var/monkeys = 0
++	for(var/mob/carbon/monkey/M in world)
++		if(!M.client && !M.is_dead && M.z == 1) { ++monkeys; break }
++	if(!monkeys)
++		world << "<B>The station has been retaken from the mutant monkeys!</B>"
++		world.log_game("Humans have destroyed all mutant monkeys")
++		ticker.event = 5
++		return 1
++
++	if(ticker.event == 2)
++		world << "<B>Space Station 13 is overrun with monkeys!</B>"
++		world.log_game("Monkeys have conquered the station")
++		ticker.event = 5
++		return 1
++
++	return 0
+Index: code/game/modes/meteor.dm
+===================================================================
+--- code/game/modes/meteor.dm	(revision 567)
++++ code/game/modes/meteor.dm	(working copy)
+@@ -3,40 +3,9 @@
+ 	config_tag = "meteor"
+ 
+ /datum/game_mode/meteor/announce()
+-	world << "<B>The current game mode is - Meteor!</B>"
++	world << "<B>The current game mode is - <font color='red'>Meteor</font>!</B>"
+ 	world << "<B>The space station has been stuck in a major meteor shower. You must escape from the station or at least live.</B>"
+ 
+ /datum/game_mode/meteor/post_setup()
+-	spawn (0)
+-		ticker.meteor_process()
+-
+-/datum/game_mode/meteor/check_win()
+-	var/list/L = list()
+-	var/area/A = locate(/area/shuttle)
+-
+-	for(var/mob/M in world)
+-		if (M.client)
+-			if (!M.is_dead)
+-				var/T = M.loc
+-				if ((T in A))
+-					L[text("[]", M.spawn_name)] = "shuttle"
+-				else
+-					if (istype(T, /obj/machinery/vehicle/pod))
+-						L[text("[]", M.spawn_name)] = "pod"
+-					else
+-						L[text("[]", M.spawn_name)] = "alive"
+-	if (L.len)
+-		world << "\blue <B>The following survived the meteor attack!</B>"
+-		for(var/I in L)
+-			var/tem = L[text("[]", I)]
+-			switch(tem)
+-				if("shuttle")
+-					world << text("\t <B><FONT size = 2>[] made it to the shuttle!</FONT></B>", I)
+-				if("pod")
+-					world << text("\t <FONT size = 2>[] at least made it to an escape pod!</FONT>", I)
+-				if("alive")
+-					world << text("\t <FONT size = 1>[] at least is alive.</FONT>", I)
+-				else
+-	else
+-		world << "\blue <B>No one survived the meteor attack!</B>"
+-	return 1
+\ No newline at end of file
++	spawn(0)
++		ticker.game_process(100)
+Index: code/game/modes/monkey.dm
+===================================================================
+--- code/game/modes/monkey.dm	(revision 567)
++++ code/game/modes/monkey.dm	(working copy)
+@@ -8,15 +8,15 @@
+ 	world << "<B>Escape on the shuttle but the humans have precedence!</B>"
+ 
+ /datum/game_mode/monkey/post_setup()
+-	spawn (50)
++	spawn(50)
+ 		var/list/mobs = list()
+-		for (var/mob/carbon/M in world)
+-			if (M.client)
++		for(var/mob/carbon/M in world)
++			if(M.client)
+ 				mobs += M
+ 		var/list/monkeyed = list()
+ 		var/amount = round((mobs.len - 1) / 3) + 1
+ 		amount = min(4, amount)
+-		while (amount > 0)
++		while(amount > 0)
+ 			var/mob/carbon/M = pick(mobs)
+ 			mobs -= M
+ 			monkeyed += M
+@@ -27,34 +27,34 @@
+ 			M.dna = new /datum/dna(M)
+ 			M.dna.register(M)
+ 			M.dna.apply(M)
+-	spawn (0)
+-		ticker.extend_process()
+ 
++	spawn(50)
++		ticker.game_process(1)
++
+ /datum/game_mode/monkey/check_win()
+-	var/area/A = locate(/area/shuttle)
+-	var/monkeywin = 1
++	if(ticker.event == 5) return 1
++
++	var/survivors = 0
+ 	for(var/mob/carbon/M in world)
+-		if (!M.is_dead)
+-			var/T = M.loc
+-			if (istype(T, /turf))
+-				if ((T in A))
+-					monkeywin = 0
+-	if (monkeywin)
+-		monkeywin = 0
+-		for(var/mob/carbon/M in world)
+-			if (!M.is_dead && M.appearance == APPEARANCE_MONKEY)
+-				var/T = M.loc
+-				if (istype(T, /turf))
+-					if ((T in A))
+-						monkeywin = 1
+-	if (monkeywin)
+-		world << "<FONT size = 3><B>The monkeys have won!</B></FONT>"
+-		for(var/mob/carbon/M in world)
+-			if (M.client && M.appearance == APPEARANCE_MONKEY)
+-				world << text("<B>[] was a monkey.</B>", M.key)
+-	else
+-		world << "<FONT size = 3><B>The Research Staff has stopped the monkey invasion!</B></FONT>"
+-		for(var/mob/carbon/M in world)
+-			if (M.client && M.appearance == APPEARANCE_HUMAN)
+-				world << text("<B>[] was [].</B>", M.key, M)
+-	return 1
+\ No newline at end of file
++		if(M.client && !M.is_dead) { ++survivors; break }
++	if(!survivors)
++		world << "<B>The monkeys have conquered the station!</B>"
++		world.log_game("Monkeys have destroyed all humans")
++		ticker.event = 5
++		return 1
++
++	var/monkeys = 0
++	for(var/mob/carbon/monkey/M in world)
++		if(!M.is_dead && M.z == 1) { ++monkeys; break }
++	if(!monkeys)
++		world << "<B>The station has been retaken from the monkeys!</B>"
++		world.log_game("Humans have destroyed all monkeys")
++		ticker.event = 5
++		return 1
++
++	if(ticker.event == 2)
++		world << "<B>Space Station 13 is overrun with monkeys!</B>"
++		world.log_game("Monkeys have conquered the station")
++		ticker.event = 5
++		return 1
++	return 0
+Index: code/game/modes/nuclear.dm
+===================================================================
+--- code/game/modes/nuclear.dm	(revision 567)
++++ code/game/modes/nuclear.dm	(working copy)
+@@ -5,19 +5,19 @@
+ /datum/game_mode/nuclear/announce()
+ 	world << "<B>The current game mode is - Nuclear Emergency!</B>"
+ 	world << "<B>A Syndicate Strike Force is approaching SS13!</B>"
+-	world << "A nuclear explosive was being transported by Nanotrasen to a military base. The transport ship mysteriously lost contact with Space Traffic Control (STC). About that time a strange disk was discovered around SS13. It was identified by Nanotrasen as a nuclear auth. disk and now Syndicate Operatives have arrived to retake the disk and detonate SS13! Also, most likely Syndicate star ships are in the vicinity so take care not to lose the disk!\n<B>Syndicate</B>: Reclaim the disk and detonate the nuclear bomb anywhere on SS13.\n<B>Personell</B>: Hold the disk and <B>escape with the disk</B> on the shuttle!"
++	world << "A nuclear explosive was being transported by Nanotrasen to a military base. The transport ship mysteriously lost contact with Space Traffic Control(STC). About that time a strange disk was discovered around SS13. It was identified by Nanotrasen as a nuclear auth. disk and now Syndicate Operatives have arrived to retake the disk and detonate SS13! Also, most likely Syndicate star ships are in the vicinity so take care not to lose the disk!\n<B>Syndicate</B>: Reclaim the disk and detonate the nuclear bomb anywhere on SS13.\n<B>Personell</B>: Hold the disk and <B>escape with the disk</B> on the shuttle!"
+ 
+ /datum/game_mode/nuclear/pre_setup()
+-	var/list/mobs = list(  )
+-	var/list/synd_list = list ()
++	var/list/mobs = list()
++	var/list/synd_list = list()
+ 	for(var/mob/prespawn/M in world)
+-		if (M.client)
++		if(M.client)
+ 			mobs += M
+ 			if(M.be_syndicate)
+ 				synd_list += M
+ 	var/obj/O = locate("landmark*CTF-rogue")
+ 	var/amount = 1
+-	if (mobs.len >= 4)
++	if(mobs.len >= 4)
+ 		amount = round((mobs.len - 1) / 3) + 1
+ 
+ 	amount = min(5, amount)
+@@ -31,9 +31,9 @@
+ 			synd_list -= M
+ 		mobs -= M
+ 
+-		if (istype(M, /mob/prespawn))
++		if(istype(M, /mob/prespawn))
+ 			var/mob/carbon/human/H = null
+-			if (ticker.killer)
++			if(ticker.killer)
+ 				M.spawn_name = text("Syndicate Operative #[]", amount + 1)
+ 			else
+ 				M.spawn_name = "Syndicate Leader"
+@@ -41,70 +41,68 @@
+ 			H = new(O.loc, M.spawn_name, M.client.prefs.hair_color, M.client.prefs.hair_style, M.client.prefs.skin_color, M.client.prefs.gender)
+ 			H.client = M.client
+ 			del(M)
+-			
++
+ 			H.loc = O.loc
+ 			H.name = H.spawn_name
+ 			H.already_placed = 1
+ 
+ 			del(H.jumpsuit)
+-			H.jumpsuit = new /obj/item/weapon/clothing/under/black( H )
++			H.jumpsuit = new /obj/item/weapon/clothing/under/black(H)
+ 			H.jumpsuit.layer = 20
+ 			del(H.shoes)
+-			H.shoes = new /obj/item/weapon/clothing/shoes/black( H )
++			H.shoes = new /obj/item/weapon/clothing/shoes/black(H)
+ 			H.shoes.layer = 20
+-			H.gloves = new /obj/item/weapon/clothing/gloves/swat( H )
++			H.gloves = new /obj/item/weapon/clothing/gloves/swat(H)
+ 			H.gloves.layer = 20
+-			H.suit = new /obj/item/weapon/clothing/suit/armor( H )
++			H.suit = new /obj/item/weapon/clothing/suit/armor(H)
+ 			H.suit.layer = 20
+-			H.helmet = new /obj/item/weapon/clothing/head/helmet/swat_hel( H )
++			H.helmet = new /obj/item/weapon/clothing/head/helmet/swat_hel(H)
+ 			H.helmet.layer = 20
+-			H.glasses = new /obj/item/weapon/clothing/glasses/sunglasses( H )
++			H.glasses = new /obj/item/weapon/clothing/glasses/sunglasses(H)
+ 			H.glasses.layer = 20
+-			H.back = new /obj/item/weapon/storage/backpack( H )
++			H.back = new /obj/item/weapon/storage/backpack(H)
+ 			H.back.layer = 20
+-			var/obj/item/weapon/ammo/a357/W = new /obj/item/weapon/ammo/a357( H.back )
++			var/obj/item/weapon/ammo/a357/W = new /obj/item/weapon/ammo/a357(H.back)
+ 			W.layer = 20
+-			W = new /obj/item/weapon/m_pill/cyanide( H.back )
++			W = new /obj/item/weapon/m_pill/cyanide(H.back)
+ 			W.layer = 20
+-			var/obj/item/weapon/gun/revolver/G = new /obj/item/weapon/gun/revolver( H )
++			var/obj/item/weapon/gun/revolver/G = new /obj/item/weapon/gun/revolver(H)
+ 			G.bullets = 7
+ 			G.layer = 20
+ 			H.belt = G
+-			var/obj/item/weapon/radio/R = new /obj/item/weapon/radio/headset/syndicate( H )
++			var/obj/item/weapon/radio/R = new /obj/item/weapon/radio/headset/syndicate(H)
+ 			R.freq = 1465
+ 			R.layer = 20
+ 			H.headset = R
+ 
+ /datum/game_mode/nuclear/post_setup()
+-	spawn (50)
++	spawn(50)
+ 		var/obj/L = locate("landmark*Nuclear-Disk")
+-		if (L)
+-			new /obj/item/weapon/disk/nuclear(L.loc)
++		if(L) new /obj/item/weapon/disk/nuclear(L.loc)
+ 
+ 		L = locate("landmark*Nuclear-Closet")
+-		if (L)
+-			new /obj/closet/syndicate/nuclear(L.loc)
++		if(L) new /obj/closet/syndicate/nuclear(L.loc)
+ 
+ 		L = locate("landmark*Nuclear-Bomb")
+-		if (L)
++		if(L)
+ 			var/obj/machinery/nuclearbomb/NB = new /obj/machinery/nuclearbomb(L.loc)
+ 			NB.r_code = text("[]", rand(10000, 99999.0))
+-			if (ticker.killer)
++			if(ticker.killer)
+ 				ticker.killer.memory += text("<B>Syndicate Nuclear Bomb Code</B>: []<BR>", NB.r_code)
+ 				ticker.killer << text("The nuclear authorization code is: <B>[]</B>\]", NB.r_code)
+-				ticker.killer << text("Nuclear Explosives 101:\n\tHello and thank you for choosing the Syndicate for your nuclear information needs.\nToday's crash course will deal with the operation of a Fusion Class Nanotrasen made Nuclear Device.\nFirst and foremost, DO NOT TOUCH ANYTHING UNTIL THE BOMB IS IN PLACE.\nPressing any button on the compacted bomb will cause it to extend and bolt itself into place.\nIf this is done to unbolt it one must compeltely log in which at this time may not be possible.\nTo make the device functional:\n1. Place bomb in designated detonation zone\n2. Extend and anchor bomb (attack with hand).\n3. Insert Nuclear Auth. Disk into slot.\n4. Type numeric code into keypad ([]).\n\tNote: If you make a mistake press R to reset the device.\n5. Press the E button to log onto the device\nYou now have activated the device. To deactivate the buttons at anytime for example when\nyou've already prepped the bomb for detonation remove the auth disk OR press the R ont he keypad.\nNow the bomb CAN ONLY be detonated using the timer. A manual det. is not an option.\n\tNote: Nanotrasen is a pain in the neck.\nToggle off the SAFETY.\n\tNote: You wouldn't believe how many Syndicate Operatives with doctorates have forgotten this step\nSo use the - - and + + to set a det time between 5 seconds and 10 minutes.\nThen press the timer toggle button to start the countdown.\nNow remove the auth. disk so that the buttons deactivate.\n\tNote: THE BOMB IS STILL SET AND WILL DETONATE\nNow before you remvoe the disk if you need to mvoe the bomb you can:\nToggle off the anchor, move it, and re-anchor.\n\nGood luck. Remember the order:\nDisk, Code, Safety, Timer, Disk, RUN\nGood luck.\nIntelligence Analysts believe that they are hiding the disk in the control room emergency room", NB.r_code)
++				ticker.killer << text("Nuclear Explosives 101:\n\tHello and thank you for choosing the Syndicate for your nuclear information needs.\nToday's crash course will deal with the operation of a Fusion Class Nanotrasen made Nuclear Device.\nFirst and foremost, DO NOT TOUCH ANYTHING UNTIL THE BOMB IS IN PLACE.\nPressing any button on the compacted bomb will cause it to extend and bolt itself into place.\nIf this is done to unbolt it one must compeltely log in which at this time may not be possible.\nTo make the device functional:\n1. Place bomb in designated detonation zone\n2. Extend and anchor bomb(attack with hand).\n3. Insert Nuclear Auth. Disk into slot.\n4. Type numeric code into keypad([]).\n\tNote: If you make a mistake press R to reset the device.\n5. Press the E button to log onto the device\nYou now have activated the device. To deactivate the buttons at anytime for example when\nyou've already prepped the bomb for detonation remove the auth disk OR press the R ont he keypad.\nNow the bomb CAN ONLY be detonated using the timer. A manual det. is not an option.\n\tNote: Nanotrasen is a pain in the neck.\nToggle off the SAFETY.\n\tNote: You wouldn't believe how many Syndicate Operatives with doctorates have forgotten this step\nSo use the - - and + + to set a det time between 5 seconds and 10 minutes.\nThen press the timer toggle button to start the countdown.\nNow remove the auth. disk so that the buttons deactivate.\n\tNote: THE BOMB IS STILL SET AND WILL DETONATE\nNow before you remvoe the disk if you need to mvoe the bomb you can:\nToggle off the anchor, move it, and re-anchor.\n\nGood luck. Remember the order:\nDisk, Code, Safety, Timer, Disk, RUN\nGood luck.\nIntelligence Analysts believe that they are hiding the disk in the control room emergency room", NB.r_code)
+ 				var/obj/item/weapon/paper/P = new /obj/item/weapon/paper(ticker.killer.loc)
+ 				P.info = text("The nuclear authorization code is: <b>[]</b>", NB.r_code)
+ 				P.name = "nuclear bomb code"
+ 
+-		for (var/obj/landmark/A in world)
+-			if (A.name == "Syndicate-Gear-Closet")
++		for(var/obj/landmark/A in world)
++			if(A.name == "Syndicate-Gear-Closet")
+ 				new /obj/closet/syndicate/personal(A.loc)
+ 				del(A)
+ 				continue
+ 
+-			if (A.name == "Syndicate-Bomb")
+-				var/obj/item/weapon/assembly/t_i_ptank/R = new /obj/item/weapon/assembly/t_i_ptank(A.loc )
++			if(A.name == "Syndicate-Bomb")
++				var/obj/item/weapon/assembly/t_i_ptank/R = new /obj/item/weapon/assembly/t_i_ptank(A.loc)
+ 				var/obj/item/weapon/timer/p1 = new /obj/item/weapon/timer(R)
+ 				var/obj/item/weapon/igniter/p2 = new /obj/item/weapon/igniter(R)
+ 				var/obj/item/weapon/tank/plasmatank/p3 = new /obj/item/weapon/tank/plasmatank(R)
+@@ -120,30 +118,29 @@
+ 				del(A)
+ 				continue
+ 
+-	spawn (0)
+-		ticker.extend_process()
++	spawn(0)
++		ticker.game_process()
+ 
+ /datum/game_mode/nuclear/check_win()
++	if(ticker.event != 2) return ..()
++
+ 	var/area/A = locate(/area/shuttle)
+ 
+-	if (ticker.objective != "Success")
+-		var/disk_on_shuttle = 0
+-		for(var/obj/item/weapon/disk/nuclear/N in world)
+-			if (N.loc)
+-				var/turf/T = get_turf(N)
+-				if ((T in A))
+-					disk_on_shuttle = 1
+-			//Foreach goto(1327)
+-		if (disk_on_shuttle)
+-			world << "<FONT size = 3><B>The Research Staff has stopped the Syndicate Operatives!</B></FONT>"
+-			for(var/mob/carbon/H in world)
+-				if ((H.client && !( findtext(H.spawn_name, "Syndicate ", 1) )))
+-					if (!H.is_dead)
+-						world << text("<B>[] was []</B>", H.key, H.spawn_name)
+-					else
+-						world << text("[] was [] (Dead)", H.key, H.spawn_name)
+-				//Foreach goto(1414)
+-		else
+-			world << "<FONT size = 3><B>Neutral Victory</B></FONT>"
+-			world << "<B>The Syndicate recovered the abandoned auth. disk but detonation of SS13 was averted.</B> Next time, don't lose the disk!"
++	if(ticker.objective == "Success") return 1
++	var/disk_on_shuttle = 0
++	for(var/obj/item/weapon/disk/nuclear/N in world)
++		if(N.loc)
++			var/turf/T = get_turf(N)
++			if(T in A) disk_on_shuttle = 1
++
++	if(disk_on_shuttle)
++		world << "<FONT size = 3><B>The Research Staff has stopped the Syndicate Operatives!</B></FONT>"
++		for(var/mob/carbon/H in world)
++			if(H.client && !findtext(H.spawn_name, "Syndicate ", 1))
++				if(!H.is_dead)	world << text("<B>[] was []</B>", H.key, H.spawn_name)
++				else			world << text("[] was [](Dead)", H.key, H.spawn_name)
++	else
++		world << "<FONT size = 3><B>Neutral Victory</B></FONT>"
++		world << "<B>The Syndicate recovered the abandoned authorization disk, but detonation of SS13 was averted.</B>"
++	ticker.event = 5
+ 	return 1
+Index: code/game/modes/traitor.dm
+===================================================================
+--- code/game/modes/traitor.dm	(revision 567)
++++ code/game/modes/traitor.dm	(working copy)
+@@ -57,7 +57,7 @@
+ 	spawn (rand(waittime_l, waittime_h))
+ 		send_intercept()
+ 	spawn (0)
+-		ticker.extend_process()
++		ticker.game_process()
+ 
+ /datum/game_mode/traitor/proc/pick_killer()
+ 	var/mob/carbon/killer
+@@ -226,7 +226,19 @@
+ 	world << "<FONT size = 3><B>Cent. Com. Update</B> Enemy communication intercept. Security Level Elevated</FONT>"
+ 	world << "\red Summary downloaded and printed out at communications consoles."
+ 
++var/delay_traitor = 0
+ /datum/game_mode/traitor/check_win()
++	if(ticker.event != 2 && ..()) return 1	//	we'll handle shuttle departure
++	if(ticker.killer && ticker.killer.is_dead)
++		if(delay_traitor) return 0
++		delay_traitor = 1
++		spawn(600*rand(1,10)) // 1-10 minutes
++			if(ticker.event>1) return // game ended another way
++			world << "The station is victorious! The traitor has been eliminated!"
++			ticker.event = 5
++			return 1
++
++	if(ticker.event < 2) return 0
+ 	var/area/shuttle = locate(/area/shuttle)
+ 	var/traitorwin = 1
+ 
+@@ -235,7 +247,7 @@
+ 			var/gone = 0
+ 			var/stayed = 0
+ 			for(var/mob/M in world)
+-				if((M != ticker.killer && M.client))
++				if(M.client && M != ticker.killer)
+ 					if(M.is_dead || M.loc in shuttle || istype(M.loc, /obj/machinery/vehicle/pod) || istype(M.loc, /turf/space))
+ 						gone++
+ 					else
+@@ -353,6 +365,7 @@
+ 		if(obj_steal)			world << "<B>Objective: Steal [get_item_desc(ticker.theft_obj)] and escape.</B>"
+ 		if(obj_sabotage)		world << "<B>Objective: [get_sab_desc(ticker.sab_target)] and escape.</B>"
+ 		else					world << "unknown traitor objective"
++	ticker.event = 5
+ 	return 1
+ 
+ /datum/game_mode/traitor/proc/pick_objective(mob/killer)

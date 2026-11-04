@@ -1,0 +1,157 @@
+Index: atoms.dm
+===================================================================
+--- atoms.dm	(revision 281)
++++ atoms.dm	(working copy)
+@@ -268,6 +268,9 @@
+ 	var/current = null
+ 	anchored = 1.0
+ 	flags = 2.0
++/obj/bullet/electrodes
++	name = "electrodes"
++	icon_state = "spark"
+ 
+ /obj/ctf_assist
+ 	name = "ctf assist"
+@@ -1117,7 +1120,7 @@
+ 	throw_speed = 2
+ 	throw_range = 10
+ 	force = 7.0
+-/obj/item/weapon/gun/energy/taser_gun
++/obj/item/weapon/gun/taser_gun
+ 	name = "taser gun"
+ 	icon_state = "t_gun"
+ 	w_class = 3.0
+@@ -1125,8 +1128,8 @@
+ 	force = 10.0
+ 	throw_speed = 2
+ 	throw_range = 10
+-	maximum_charges = 4
+-	charges = 4
++	var/maximum_charges = 4
++	var/charges = 4
+ /obj/item/weapon/gun/revolver
+ 	desc = "There are 0 bullets left. Uses 357"
+ 	name = "revolver"
+Index: game/demo.dm
+===================================================================
+--- game/demo.dm	(revision 281)
++++ game/demo.dm	(working copy)
+@@ -1043,7 +1043,7 @@
+ 	sleep(2)
+ 	new /obj/item/weapon/storage/flashbang_kit(src)
+ 	new /obj/item/weapon/handcuffs(src)
+-	new /obj/item/weapon/gun/energy/taser_gun(src)
++	new /obj/item/weapon/gun/taser_gun(src)
+ 	new /obj/item/weapon/flash(src)
+ 	new /obj/item/weapon/clothing/under/red(src)
+ 	new /obj/item/weapon/clothing/shoes/brown(src)
+@@ -1058,7 +1058,7 @@
+ 	..()
+ 	sleep(2)
+ 	new /obj/item/weapon/gun/energy/laser_gun( src )
+-	new /obj/item/weapon/gun/energy/taser_gun( src )
++	new /obj/item/weapon/gun/taser_gun( src )
+ 	new /obj/item/weapon/flash( src )
+ 	new /obj/item/weapon/storage/id_kit( src )
+ 	new /obj/item/weapon/clothing/under/green( src )
+@@ -1073,7 +1073,7 @@
+ 	..()
+ 	sleep(2)
+ 	new /obj/item/weapon/gun/energy/laser_gun( src )
+-	new /obj/item/weapon/gun/energy/taser_gun( src )
++	new /obj/item/weapon/gun/taser_gun( src )
+ 	new /obj/item/weapon/storage/id_kit( src )
+ 	new /obj/item/weapon/clothing/under/darkgreen( src )
+ 	new /obj/item/weapon/clothing/shoes/brown( src )
+@@ -1427,9 +1427,9 @@
+ 	new /obj/item/weapon/ammo/a357( src )
+ 	new /obj/item/weapon/storage/handcuff_kit( src )
+ 	new /obj/item/weapon/storage/flashbang_kit( src )
+-	new /obj/item/weapon/gun/energy/taser_gun( src )
+-	new /obj/item/weapon/gun/energy/taser_gun( src )
+-	new /obj/item/weapon/gun/energy/taser_gun( src )
++	new /obj/item/weapon/gun/taser_gun( src )
++	new /obj/item/weapon/gun/taser_gun( src )
++	new /obj/item/weapon/gun/taser_gun( src )
+ 	var/obj/item/weapon/syndicate_uplink/U = new /obj/item/weapon/syndicate_uplink( src )
+ 	U.uses = 5
+ 	return
+Index: game/items.dm
+===================================================================
+--- game/items.dm	(revision 281)
++++ game/items.dm	(working copy)
+@@ -938,14 +938,14 @@
+ 		H.show_viewers(text("\red <B>[] has been knocked unconscious!</B>", M))
+ 	return
+ 
+-/obj/item/weapon/gun/energy/taser_gun/update_icon()
++/obj/item/weapon/gun/taser_gun/proc/update_icon()
+ 
+ 	var/ratio = src.charges / maximum_charges
+ 	ratio = round(ratio, 0.25) * 100
+ 	src.icon_state = text("t_gun[]", ratio)
+ 	return
+ 
+-/obj/item/weapon/gun/energy/taser_gun/afterattack(atom/target as mob|obj|turf|area, mob/user as mob, flag)
++/obj/item/weapon/gun/taser_gun/afterattack(atom/target as mob|obj|turf|area, mob/user as mob, flag)
+ 
+ 	if (flag)
+ 		return
+@@ -968,7 +968,7 @@
+ 	if (U == T)
+ 		user.las_act(1)
+ 		return
+-	var/obj/beam/a_laser/s_laser/A = new /obj/beam/a_laser/s_laser( user.loc )
++	var/obj/bullet/electrodes/A = new /obj/bullet/electrodes(user.loc)
+ 	if (!( istype(U, /turf) ))
+ 		//A = null
+ 		del(A)
+Index: game/machinery/turrets.dm
+===================================================================
+--- game/machinery/turrets.dm	(revision 281)
++++ game/machinery/turrets.dm	(working copy)
+@@ -172,7 +172,7 @@
+ 		A = new /obj/beam/a_laser( loc )
+ 		use_power(50)
+ 	else
+-		A = new /obj/beam/a_laser/s_laser( loc )
++		A = new /obj/bullet/electrode( loc )
+ 		use_power(100)
+ 
+ 	if (!( istype(U, /turf) ))
+Index: game/weapons.dm
+===================================================================
+--- game/weapons.dm	(revision 281)
++++ game/weapons.dm	(working copy)
+@@ -1464,6 +1464,13 @@
+ 		return
+ 	return
+ 
++/obj/bullet/electrode/Bump(atom/A as mob|obj|turf|area)
++{
++	spawn( 0 )
++		if(A) A.las_act(1)
++		del(src)
++}
++
+ /obj/bullet/CheckPass(B as obj)
+ 
+ 	if (istype(B, /obj/bullet))
+@@ -1525,17 +1532,6 @@
+ 		return
+ 	return
+ 
+-/obj/beam/a_laser/s_laser/Bump(atom/A as mob|obj|turf|area)
+-
+-	spawn( 0 )
+-		if(A)
+-			A.las_act(1)
+-		//SN src = null
+-		del(src)
+-		return
+-		return
+-	return
+-
+ /obj/beam/i_beam/proc/hit()
+ 
+ 	//world << "beam \ref[src]: hit"

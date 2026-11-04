@@ -1,0 +1,44 @@
+Index: code/game/admin/admin_powers/summon_mob.dm
+===================================================================
+--- code/game/admin/admin_powers/summon_mob.dm	(revision 0)
++++ code/game/admin/admin_powers/summon_mob.dm	(revision 0)
+@@ -0,0 +1,27 @@
++/datum/admin_power/summon
++	name = "Summon Mob"
++	panel_type = PANEL_TYPE_GAME
++
++	New(adminlevel)
++		if(adminlevel < ADMIN_ADMIN) del(src)
++
++	Topic(href, href_list)
++		var/mob/vch = input(usr, "Which mob will you summon?",null) as mob in world
++		if(usr == vch) usr << "What? You can't summon yourself!"
++		if(!usr || !usr.loc || !vch || usr == vch) return
++		vch << "You've been summoned."
++		usr << "[vch] summoned."
++		var/list/locs = new()
++		for(var/x = -1 to 1)
++			for(var/y = -1 to 1)
++				var/turf/loc = locate(usr.loc.x+x,usr.loc.y+y,usr.loc.z)
++				if(loc) locs += loc
++		locs -= usr.loc
++		while(locs.len)
++			var/turf/loc = pick(locs)
++			if(loc.Enter(vch)) return vch.Move(loc)
++			locs.Remove(loc)
++		vch.loc = usr.loc
++
++	get_desc()
++		return "<a href='?src=\ref[src]'>Summon Mob</a>"
+Index: unstable.dme
+===================================================================
+--- unstable.dme	(revision 576)
++++ unstable.dme	(working copy)
+@@ -132,6 +132,7 @@
+ #include "code\game\admin\admin_powers\restart.dm"
+ #include "code\game\admin\admin_powers\show_traitor.dm"
+ #include "code\game\admin\admin_powers\start_now.dm"
++#include "code\game\admin\admin_powers\summon_mob.dm"
+ #include "code\game\admin\admin_powers\toggle_mode_voting.dm"
+ #include "code\game\admin\admin_powers\toggle_ooc.dm"
+ #include "code\game\admin\admin_powers\toggle_respawn.dm"

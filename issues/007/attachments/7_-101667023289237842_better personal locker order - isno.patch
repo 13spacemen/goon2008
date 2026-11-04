@@ -1,0 +1,17 @@
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 67)
++++ code/game/demo.dm	(working copy)
+@@ -1220,10 +1220,10 @@
+ 
+ 	..()
+ 	sleep(2)
++	new /obj/item/weapon/radio/signaler( src )
++	new /obj/item/weapon/pen( src )
+ 	new /obj/item/weapon/storage/backpack( src )
+ 	new /obj/item/weapon/radio/headset( src )
+-	new /obj/item/weapon/radio/signaler( src )
+-	new /obj/item/weapon/pen( src )
+ 	return
+ 
+ /obj/secloset/personal/attackby(obj/item/weapon/W as obj, mob/user as mob)

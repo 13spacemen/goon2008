@@ -1,0 +1,12 @@
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 67)
++++ code/game/demo.dm	(working copy)
+@@ -737,6 +737,7 @@
+ 		if ((href_list["stat"] && src.loc == usr))
+ 			if (usr.internal == src)
+ 				usr.internal = null
++				usr << "\blue No longer running on internals!"
+ 				return
+ 			if (usr.internal)
+ 				usr.internal = null

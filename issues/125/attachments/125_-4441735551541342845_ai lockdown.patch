@@ -1,0 +1,59 @@
+Index: code/game/computer.dm
+===================================================================
+--- code/game/computer.dm	(revision 250)
++++ code/game/computer.dm	(working copy)
+@@ -28,6 +28,10 @@
+ 		//Foreach goto(17)
+ 	src.icon_state = "broken"
+ 	stat |= BROKEN
++	var/obj/effects/smoke/pasta = new /obj/effects/smoke( src.loc )
++	pasta.dir = pick(NORTH, SOUTH, EAST, WEST)
++	spawn( 0 )
++		pasta.Life()
+ 	return
+ 
+ /obj/machinery/computer/communications/ex_act(severity)
+@@ -125,6 +129,38 @@
+ 	src.viewalerts = 1
+ 	src << browse(dat, "window=aialerts&can_close=0")
+ 
++/mob/ai/proc/lockdown()
++	set category = "AI Commands"
++	set name = "Lockdown"
++
++	if(usr.stat > 0)
++		usr <<"You cannot initiate lockdown because you are dead!"
++
++	world << "\red Lockdown initiated by [usr.name]!"
++
++	for(var/obj/machinery/firealarm/FA in world)
++		spawn( 0 )
++			FA.alarm()
++
++	usr << "\red Lockdown command removed for 10 seconds."
++	src.verbs -= /mob/ai/proc/lockdown
++	src.verbs += /mob/ai/proc/disablelockdown //add disable lockdown command since we're in lockdown now
++	sleep(100) //wait 10 seconds so the faggots dont spam it
++	src.verbs += /mob/ai/proc/lockdown
++	usr << "\red Lockdown command re-enabled."
++
++/mob/ai/proc/disablelockdown()
++	set category = "AI Commands"
++	set name = "Disable Lockdown"
++
++	if(usr.stat > 0)
++		usr <<"You cannot disable lockdown because you are dead!"
++
++	world << "\red Lockdown cancelled by [usr.name]!"
++
++	for(var/obj/machinery/firealarm/FA in world)
++		spawn( 0 )
++			FA.reset()
++
++	usr << "\red Disable lockdown command disabled until lockdown engaged again!"
++	src.verbs -= /mob/ai/proc/disablelockdown
++
+
+ /mob/ai/proc/ai_camera_list()
+ 	set category = "AI Commands"
+ 	set name = "Show Camera List"

@@ -1,0 +1,31 @@
+Index: code/game/item/weapon/aimodules.dm
+===================================================================
+--- code/game/item/weapon/aimodules.dm	(revision 250)
++++ code/game/item/weapon/aimodules.dm	(working copy)
+@@ -173,6 +173,26 @@
+ 	if (ticker.killer != target)
+ 		target.addLaw(9, law)
+ 
++/******************** Freeform ********************/
++
++/obj/item/weapon/aiModule/freeform
++	name = "'Freeform' AI Module"
++	var/newfreeformLaw = "freeform"
++	desc = "A 'freeform' AI module: '<freeform>'"
++
++/obj/item/weapon/aiModule/freeform/attack_hand(var/mob/user as mob)
++	..()
++	var/targName = input(usr, "Please enter anything you want the AI to do. Anything. Serious.", "What?", user.rname)
++	newfreeformLaw = targName
++	desc = text("A 'freeform' AI module: '[]'", newfreeformLaw)
++
++/obj/item/weapon/aiModule/freeform/transmitInstructions(var/mob/ai/target, var/mob/sender)
++	..()
++	var/law = text("[]", newfreeformLaw)
++	target << law
++	if (ticker.killer != target)
++		target.addLaw(10, law)
++
+ /******************** Reset ********************/
+ 
+ /obj/item/weapon/aiModule/reset

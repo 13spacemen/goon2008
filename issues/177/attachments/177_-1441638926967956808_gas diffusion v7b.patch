@@ -1,0 +1,1684 @@
+Index: code/atoms/false_wall.dm
+===================================================================
+--- code/atoms/false_wall.dm	(revision 524)
++++ code/atoms/false_wall.dm	(working copy)
+@@ -32,26 +32,25 @@
+ 
+ /turf/station/wall/false_wall/attackby(obj/item/weapon/screwdriver/S as obj, mob/user as mob)
+ 	src.add_fingerprint(user)
+-	if (istype(S, /obj/item/weapon/screwdriver))
+-		var/known = (user in known_by)
+- 		//try to disassemble the false wall
+-		if (!src.density || known || prob(prob_opens)) //without this, you can detect a false wall just by going down the line with screwdrivers
+- 			//if it's already open, you can disassemble it no problem
+-			if (src.density && !known) //if it was closed, let them know that they did something
+-				user << "\blue It was a false wall!"
+-			//disassemble it
+-			user << "\blue Now dismantling false wall."
+-			var/turf/station/floor/F = src.ReplaceWithFloor()
+-			//a false wall turns into a sheet of metal and displaced girders
+-			new /obj/item/weapon/sheet/metal( F )
+-			new /obj/d_girders( F )
+-			F.levelupdate()
+-			return
+-		else
+-			return ..()
+-	else
++	if(!istype(S, /obj/item/weapon/screwdriver))
+ 		return src.interact(user)
+ 
++	var/known = (user in known_by)
++	//try to disassemble the false wall
++	if (!src.density || known || prob(prob_opens)) //without this, you can detect a false wall just by going down the line with screwdrivers
++		//if it's already open, you can disassemble it no problem
++		if (src.density && !known) //if it was closed, let them know that they did something
++			user << "\blue It was a false wall!"
++		//disassemble it
++		user << "\blue Now dismantling false wall."
++		var/turf/station/floor/F = src.ReplaceWithFloor()
++		//a false wall turns into a sheet of metal and displaced girders
++		new /obj/item/weapon/sheet/metal( F )
++		new /obj/d_girders( F )
++		F.levelupdate()
++		return
++	return ..()
++
+ /turf/station/wall/false_wall/proc/open()
+ 	if (src.operating)
+ 		return 0
+Index: code/game/areas.dm
+===================================================================
+--- code/game/areas.dm	(revision 524)
++++ code/game/areas.dm	(working copy)
+@@ -71,8 +71,7 @@
+ 		for(var/turf/T in src)		// count the number of turfs (for lighting calc)
+ 			numturfs++				// spawned with a delay so turfs can finish loading
+ 			if(no_air)
+-				T.gas.oxygen = 0		// remove air if so specified for this area
+-				T.gas.nitrogen = 0
++				T.gas.clear()		// remove air if so specified for this area
+ 				T.reset_phases()
+ 
+ 		if(linkarea)
+Index: code/game/cell_process.dm
+===================================================================
+--- code/game/cell_process.dm	(revision 524)
++++ code/game/cell_process.dm	(working copy)
+@@ -21,7 +21,7 @@
+ 	..()
+ 
+ 	spawn(5)
+-		src.UpdateLinks()
++		src.updatelinks()
+ 
+ /obj/move/interact(var/mob/user as mob)
+ 	if(!user.canmove)
+@@ -52,12 +52,6 @@
+ 		A.loc = T
+ 
+ /obj/move/proc/process()
+-	// if(locate(/obj/move/shuttle/door, src.loc))
+-	//	var/obj/move/shuttle/door/D = locate(/obj/move/shuttle/door, src.loc)
+-	//	src.updatecell = !D.density
+-	//	if(!src.updatecell)
+-	//		return
+-
+ 	src.checkfire = !src.checkfire
+ 	UpdateGasses(src, src.FindTurfs())
+ 
+@@ -69,15 +63,11 @@
+ 		else  L += T
+ 	return L
+ 
+-/obj/move/proc/UpdateLinks()
+-	if(!src.loc)
+-		return
++/obj/move/proc/updatelinks()
++	if(!src.loc) return
+ 	DiffuseAir = gas.DiffusionLinks(src.loc)
+ 	ConductHeat= gas.ConductionLinks(src.loc)
+ 
+-// /obj/move/wall/process()
+-// 	src.updatecell = 0
+-
+ /obj/move/wall/blob_act()
+ 	del(src)
+ 
+@@ -85,9 +75,6 @@
+ 	var/F = locate(/obj/move/floor, src.loc)
+ 	if(F) del(F)
+ 
+-/turf/proc/tot_gas()
+-	return src.gas.total()
+-
+ /turf/proc/report()
+ 	return "[src.type] [x] [y] [z]"
+ 
+@@ -96,6 +83,12 @@
+ 	phase2.copy_all(gas)
+ 	equilibrium = 0
+ 
++/turf/proc/match_gasses(var/turf/target)
++	equilibrium = 0
++	gas.copy_all(target.gas)
++	phase1.copy_all(target.phase1)
++	phase2.copy_all(target.phase2)
++
+ /turf/proc/unburn()
+ 	icon_state = initial(src.icon_state)
+ 	luminosity = 0
+@@ -113,11 +106,11 @@
+ 	for(var/atom/movable/AM as mob|obj in src)
+ 		src.Entered(AM)
+ 
+-	spawn(5)
+-		UpdateLinks()
+-
+ 	..()
+ 
++	spawn(5)
++		src.updatelinks()
++
+ /turf/proc/isempty()	// 0 if turf is dense or contains a dense object  (else 1)
+ 	if(src.density)
+ 		return 0
+@@ -130,35 +123,32 @@
+ 	src.checkfire = !src.checkfire
+ 	UpdateGasses(src, src.FindTurfs())
+ 
+-/turf/buildlinks()
+-	// seriously, who removed this, it broke a lot of things damnit.
+-	// something happened near us that affects airflow, update our Diffusion and our neighbor's diffusion now.
+-	// make sure all our (current) peers are updated
+-	for(var/turf/T in DiffuseAir)
+-		T.UpdateLinks()
+-
++/turf/proc/updatelinks()	//	update our links
+ 	DiffuseAir = gas.DiffusionLinks(src)
+ 	ConductHeat= gas.ConductionLinks(src)
+ 
+-	equilibrium = 1
+-	// test for equilibrium, and also re-run UpdateLinks on peers to create new links
+ 	for(var/turf/T in DiffuseAir)
+ 		if(!TestEquilibrium(T))
+-			equilibrium = 0
+-		T.UpdateLinks()
++			src.equilibrium = 0
++			return
++	src.equilibrium = 1
+ 
++/turf/proc/buildlinks()		//	update our neighbors' links
++	src.updatelinks()
++	for(var/dir in cardinal.Copy())
++		var/turf/N = get_step(src,dir)
++		if(N) N.updatelinks()
++
+ /turf/proc/FindTurfs()
+ 	var/list/L = list()
+ 	if(locate(/obj/move, src))
+ 		return list()
+ 	for(var/turf/T in src.DiffuseAir)
+ 		var/obj/move/O = locate(/obj/move,T)
+-		if(O)
+-			if(O.updatecell)
+-				L += O
+-		else
++		if(!O)
+ 			L += T
+-
++		else if(O.updatecell)
++			L += O
+ 	return L
+ 
+ /turf/conduction()
+@@ -179,17 +169,6 @@
+ 		return 0
+ 	return 1
+ 
+-/turf/proc/UpdateLinks()
+-	DiffuseAir = gas.DiffusionLinks(src)
+-	ConductHeat= gas.ConductionLinks(src)
+-
+-	for(var/turf/T in DiffuseAir)
+-		if(!TestEquilibrium(T))
+-			equilibrium = 0
+-			return
+-
+-	equilibrium = 1
+-
+ /turf/station/floor/updatecell()
+ 	..()
+ 	if(!src.checkfire)
+@@ -213,216 +192,6 @@
+ 	for(var/atom/movable/AM as mob|obj in src)
+ 		src.Entered(AM)
+ 
+-/turf/space/UpdateLinks()
++/turf/space/updatelinks()
+ 	return
+ 
+-/datum/substance/gas/proc/DiffusionLinks(var/turf/T)
+-	if(T.density && !T.updatecell) // if this is a dense turf (wall, closed false_wall etc, just return nothing)
+-		return list()
+-
+-	for(var/obj/move/M in T) // are there any dense obj/move in this turf?
+-		if(!M.density)
+-			continue
+-		return list()
+-
+-	var/list/L = cardinal.Copy()
+-	for(var/obj/window/D in T)
+-		if(!D.density)
+-			continue
+-		if(D.dir == SOUTHWEST)
+-			return list()
+-		L -= D.dir
+-
+-	for(var/obj/machinery/door/D in T)
+-		if(!D.density)
+-			continue
+-		if(istype(D, /obj/machinery/door/window))
+-			if(D.dir & (EAST|WEST))
+-				L -= istype(D, /obj/machinery/door/window/alt) ? NORTH : SOUTH
+-			if(D.dir & (NORTH|SOUTH))
+-				L -= istype(D, /obj/machinery/door/window/alt) ? WEST : EAST
+-		else
+-			// it's another door, such as a pod/fire/airlock, no airflow is possible
+-			return list()
+-
+-	var/list/links = list()
+-	for(var/dir in L)
+-		var/turf/N = get_step(T,dir)
+-		if(N && CheckAirflow(dir,N) == 1)
+-			links += N
+-	return links
+-
+-/datum/substance/gas/proc/ConductionLinks(var/turf/T)
+-	var/list/cond = new()
+-	for(var/obj/window/D in T)
+-		if(!D.density)
+-			continue
+-		if(D.dir == SOUTHWEST)
+-			return list()
+-		cond[get_step(T,D.dir)] += 1+D.reinf
+-
+-	for(var/obj/machinery/door/window/D in T)
+-		if(!D.density)
+-			continue
+-		if(D.dir & (EAST|WEST))
+-			cond[get_step(T,D.dir)] += 1
+-		if(D.dir & (NORTH|SOUTH))
+-			cond[get_step(T,D.dir)]  += 1
+-
+-	for(var/obj/machinery/door/window/alt/D in T)
+-		if(!D.density)
+-			continue
+-		if(D.dir & (EAST|WEST))
+-			cond[get_step(T,D.dir)] += 1
+-		if(D.dir & (NORTH|SOUTH))
+-			cond[get_step(T,D.dir)]  += 1
+-
+-	cond -= 0 // we inserted possibly null get_step(T,D.dir)
+-	return cond
+-
+-/datum/substance/gas/proc/CheckAirflow(var/srcDir, var/turf/target)
+-	if(!target)
+-		return 0
+-	if(!target.updatecell)
+-		return 0
+-
+-	srcDir = turn(srcDir, 180)
+-
+-	for(var/obj/move/M in target)
+-		if(!M.density)
+-			continue
+-		return 0
+-
+-	for(var/obj/window/D in target)
+-		if(!D.density)
+-			continue
+-		if(D.dir == SOUTHWEST)
+-			return 0
+-		if(D.dir == srcDir)
+-			return 0
+-
+-	for(var/obj/machinery/door/D in target)
+-		if(!D.density)
+-			continue
+-		if(istype(D, /obj/machinery/door/window))
+-			if(istype(D, /obj/machinery/door/window/alt))
+-				if((srcDir & NORTH) && (D.dir & (EAST|WEST)))
+-					return 0
+-				if((srcDir & WEST ) && (D.dir & (NORTH|SOUTH)))
+-					return 0
+-			else
+-				if((srcDir & SOUTH) && (D.dir & (EAST|WEST)))
+-					return 0
+-				if((srcDir & EAST ) && (D.dir & (NORTH|SOUTH)))
+-					return 0
+-		else
+-			// it's a real, air blocking door
+-			return 0
+-	return 1
+-
+-/proc/UpdateGasses(var/turf/loc as turf, var/list/neighbors)
+-	if(!loc)
+-		return
+-	if(!neighbors.len)
+-		return
+-
+-	if(loc.equilibrium)
+-		for(var/turf/T in neighbors)
+-			if(!T.equilibrium)
+-				loc.equilibrium = 0
+-		if(loc.equilibrium)
+-			return	// no need for updates!
+-
+-	var/divisor = 1
+-	var/datum/substance/gas/TPhase	= null
+-	var/datum/substance/gas/SPhase	= ((cellcontrol.var_swap)?loc.phase1 : loc.phase2)
+-
+-	var/space = 0
+-	var/burn = loc.firelevel >= 10
+-	var/adiff = null
+-
+-	var/airdir = null
+-	var/airforce= 0
+-
+-	for(var/turf/T in neighbors)
+-		if(istype(T, /turf/space))
+-			if(!loc.checkfire)
+-				airforce = T.gas.total() + 25000
+-				airdir = get_dir(loc, T)
+-			space = 1;
+-			break
+-
+-		divisor++
+-		if(T.firelevel >= 900000.0)
+-			burn = 1
+-		TPhase = (cellcontrol.var_swap) ? T.phase1 : T.phase2
+-		loc.gas.gain_all(TPhase)
+-
+-		if(loc.checkfire)
+-			continue
+-
+-		adiff = SPhase.total() - TPhase.total()
+-		if(airforce > adiff)
+-			continue
+-		airdir = get_dir(loc,T)
+-		airforce = adiff;
+-
+-	if(!loc.checkfire && airforce > 25000)
+-		for(var/atom/movable/AM in loc)
+-			if(!AM.anchored && AM.weight <= airforce)
+-				step(AM, airdir)
+-
+-	if(space)
+-		loc.gas.clear()
+-		loc.firelevel = 0
+-		if(loc.icon_state == "burning")
+-			loc.unburn()
+-		if(loc.gas.temp > TCMB)
+-			loc.gas.temp /= 2
+-		SPhase.copy_all(loc.gas)
+-		return
+-
+-	loc.gas.multiply_all(1/divisor)
+-
+-	if(loc.gas.plasma > 100000.0)
+-		loc.overlays = list(plmaster)
+-	else if(loc.gas.no2 > 101000.0)
+-		loc.overlays = list(slmaster)
+-	else
+-		loc.overlays = null
+-	if(burn)
+-		loc.firelevel = loc.gas.oxygen + loc.gas.plasma
+-
+-	if(!loc.checkfire)
+-		//	Why does plasma annihilate carbon?
+-		var/PlasmaConverter = min(loc.gas.co2,loc.gas.plasma)
+-		loc.gas.co2		-= PlasmaConverter
+-		loc.gas.oxygen	+= PlasmaConverter
+-		loc.gas.plasma	-= PlasmaConverter
+-	else if(loc.firelevel > 900000)
+-		var/OxygenBurned = min(loc.gas.oxygen,5000)
+-		loc.gas.co2		+= OxygenBurned
+-		loc.gas.oxygen	-= OxygenBurned
+-
+-	if(loc.firelevel < 900000)
+-		if(loc.icon_state == "burning")
+-			loc.firelevel = 0
+-			loc.unburn()
+-	else
+-		loc.luminosity = 2
+-		loc.icon_state = "burning"
+-
+-		// heating from fire
+-		loc.gas.temp += (loc.firelevel/FIREQUOT+FIREOFFSET - loc.gas.temp) / FIRERATE
+-
+-		if(locate(/obj/effects/water, loc))
+-			loc.firelevel = 0
+-		for(var/atom/movable/A in loc)
+-			A.burn(loc.firelevel)
+-
+-	SPhase.copy_all(loc.gas)
+-
+-	if((locate(/obj/effects/water, loc) || loc.firelevel < 900000.0))
+-		//	water soothes the burning
+-		loc.gas.temp += (T20C - loc.gas.temp) / FIRERATE
+-
+Index: code/game/cellautomata.dm
+===================================================================
+--- code/game/cellautomata.dm	(revision 524)
++++ code/game/cellautomata.dm	(working copy)
+@@ -379,10 +379,7 @@
+ 					AM.z = shuttle_z
+ 					//Foreach goto(2483)
+ 				var/turf/U = locate(T.x, T.y, shuttle_z)
+-				U.gas.copy_cop(T.gas)
+-				U.phase1.copy_cop(T.phase1)
+-				U.phase2.copy_cop(T.phase2)
+-
++				U.match_gasses(T)
+ 				U.buildlinks()
+ 				//T = null
+ 				del(T)
+Index: code/game/chemical.dm
+===================================================================
+--- code/game/chemical.dm	(revision 524)
++++ code/game/chemical.dm	(working copy)
+@@ -133,247 +133,16 @@
+ 	..()
+ 	return
+ 
+-#define TURF_ADD_FRAC 0.95		//cooling due to release of gas into tile
+-#define TURF_TAKE_FRAC 1.06		//heating due to pressurization into pipework
+-
+-/datum/substance/gas/proc/clear()
+-	src.oxygen = 0
+-	src.plasma = 0
+-	src.no2 = 0
+-	src.co2 = 0
+-	src.nitrogen = 0
+-
+-/datum/substance/gas/proc/total()
+-	return (src.co2 + src.oxygen + src.plasma + src.no2 + src.nitrogen)
+-
+-/datum/substance/gas/proc/add_gas(C,N,O,P,S)
+-	src.co2 += C
+-	src.nitrogen += N
+-	src.oxygen += O
+-	src.plasma += P
+-	src.no2 += S
+-
+-/datum/substance/gas/proc/rem_gas(C,N,O,P,S)
+-	src.co2 -= C
+-	src.nitrogen -= N
+-	src.oxygen -= O
+-	src.plasma -= P
+-	src.no2 -= S
+-
+-/datum/substance/gas/proc/set_gas(C,N,O,P,S)
+-	src.co2 = C
+-	src.nitrogen = N
+-	src.oxygen = O
+-	src.plasma = P
+-	src.no2 = S
+-
+-/datum/substance/gas/proc/multiply_gas(F)
+-	src.co2 *= F
+-	src.nitrogen *= F
+-	src.oxygen *= F
+-	src.plasma *= F
+-	src.no2 *= F
+-
+-/datum/substance/gas/proc/multiply_all(F)
+-	src.co2 *= F
+-	src.nitrogen *= F
+-	src.oxygen *= F
+-	src.plasma *= F
+-	src.no2 *= F
+-	temp *= F
+-
+-/datum/substance/gas/proc/gain_gas(var/datum/substance/gas/T)
+-	src.co2 += T.co2
+-	src.nitrogen += T.nitrogen
+-	src.oxygen += T.oxygen
+-	src.plasma += T.plasma
+-	src.no2 += T.no2
+-
+-/datum/substance/gas/proc/lose_gas(var/datum/substance/gas/T)
+-	src.co2 -= T.co2
+-	src.nitrogen -= T.nitrogen
+-	src.oxygen -= T.oxygen
+-	src.plasma -= T.plasma
+-	src.no2 -= T.no2
+-
+-/datum/substance/gas/proc/copy_gas(var/datum/substance/gas/T)
+-	src.co2 = T.co2
+-	src.nitrogen = T.nitrogen
+-	src.oxygen = T.oxygen
+-	src.plasma = T.plasma
+-	src.no2 = T.no2
+-
+-/datum/substance/gas/proc/copy_cop(var/datum/substance/gas/T)
+-	src.co2 = T.co2
+-	src.oxygen = T.oxygen
+-	src.plasma = T.plasma
+-
+-/datum/substance/gas/proc/gain_all(var/datum/substance/gas/T)
+-	src.co2 += T.co2
+-	src.nitrogen += T.nitrogen
+-	src.oxygen += T.oxygen
+-	src.plasma += T.plasma
+-	src.no2 += T.no2
+-	src.temp += T.temp
+-
+-/datum/substance/gas/proc/copy_all(var/datum/substance/gas/T)
+-	src.co2 = T.co2
+-	src.nitrogen = T.nitrogen
+-	src.oxygen = T.oxygen
+-	src.plasma = T.plasma
+-	src.no2 = T.no2
+-	src.temp  = T.temp
+-
+-/datum/substance/gas/proc/tostring()
+-	return "O2 ([oxygen]), N2 ([nitrogen]), NO2 ([no2]), CO2 ([co2]), Plasma ([plasma]), Temp ([temp])"
+-
+-/datum/substance/gas/proc/add_delta(var/datum/substance/gas/T)
+-	var/source = src.total()
+-	if(source <  0)
+-		return
+-
+-	var/target = T.total()
+-	if(target <= 0)
+-		return
+-
+-	src.temp = (source*src.temp + target*T.temp) / (source+target)
+-	src.gain_gas(T)
+-
+-/datum/substance/gas/proc/sub_delta(var/datum/substance/gas/T)
+-	src.lose_gas(T)
+-
+-/datum/substance/gas/proc/transfer(var/datum/substance/gas/target, var/amount)
+-	// transfers [amount] from [src] to [target]
+-	if(!amount)
+-		return 0
+-	if(!istype(target,/datum/substance/gas))
+-		return 0
+-
+-	var/sTotal = src.total()
+-	if(sTotal<=0)
+-		return 0
+-	var/nTotal = target.total()
+-
+-	//	transfer, at most, all the gas in target
+-	if(amount < 0 || amount > sTotal)
+-		amount = sTotal
+-
+-	//	don't overfill the container
+-	if(target.maximum > 0)
+-		if(target.maximum < (amount + nTotal))
+-			amount = target.maximum - nTotal
+-
+-	//	all gasses are transferred at the same rate
+-	var/datum/substance/gas/tmp = new/datum/substance/gas()
+-	tmp.gain_all(src)
+-	tmp.multiply_gas(amount/sTotal)
+-
+-	//	energy is preserved during the transfer
+-	if(target.temp != src.temp)
+-		if(!nTotal)	//	need to do this due to bugginess with this var
+-			target.temp = src.temp
+-		else
+-			target.temp = (nTotal*target.temp + amount*src.temp)/(amount + nTotal)
+-	target.gain_gas(tmp)
+-	src.lose_gas(tmp)
+-
+-/datum/substance/gas/proc/transfer_from(var/datum/substance/gas/target as obj, amount)
+-	//	transfers [amount] from [target] to [src]
+-	return target.transfer(src,amount)
+-
+-/datum/substance/gas/proc/merge_into(var/datum/substance/gas/target as obj)
+-	return target.transfer(src,target.total())
+-
+-/datum/substance/gas/proc/turf_add(var/turf/target as turf, amount = -1)
+-	if(!amount)
+-		return
+-	if(!istype(target, /turf) && !istype(target, /obj/move))
+-		return
+-	if(locate(/obj/move, target))
+-		target = locate(/obj/move, target)
+-	src.transfer(target.gas,amount) // might need TURF_ADD_FRAC
+-	target.reset_phases()
+-
+-/datum/substance/gas/proc/turf_take(var/turf/target as turf, amount)
+-	if(!amount)
+-		return
+-	if(!istype(target, /turf) && !istype(target, /obj/move))
+-		return
+-	if(locate(/obj/move, target))
+-		target = locate(/obj/move, target)
+-	target.gas.transfer(src,amount)	// might need TURF_ADD_FRAC
+-	target.reset_phases()
+-
+-/datum/substance/gas/proc/turf_add_all_oxy(var/turf/target as turf)
+-	var/t_gas = src.total()
+-	var/t_turf = target.gas.total()
+-
+-	if(t_gas <= 0)
+-		return
+-	if(src.oxygen <= 0)
+-		return
+-
+-	target.gas.temp = (target.gas.temp * t_turf + src.oxygen*src.temp) / (t_turf + src.oxygen)
+-	target.gas.oxygen += src.oxygen
+-	target.reset_phases()
+-	src.oxygen = 0
+-
+-// replaces gas values of src with n - updates during gas_flow step
+-/datum/substance/gas/proc/replace_by(var/datum/substance/gas/n)
+-	src.co2 = n.co2
+-	src.nitrogen = n.nitrogen
+-	src.oxygen = n.oxygen
+-	src.plasma = n.plasma
+-	src.no2 = n.no2
+-	src.temp  = n.temp
+-
+-/datum/substance/gas/proc/is_equal(var/datum/substance/gas/T)
+-	return ((co2==T.co2) && (no2==T.no2) && (oxygen==T.oxygen) && (plasma==T.plasma) && (nitrogen==T.nitrogen) && (temp==T.temp))
+-
+-// relative "specific heat capacity" of gas contents
+-/datum/substance/gas/proc/shc()
+-	return 2*co2 + 1.5*nitrogen + oxygen + 0.5*no2 + 1.2*plasma
+-
+-/datum/substance/gas/proc/extract_toxs(var/turf/target as turf)
+-	if(!istype(target,/turf) && !istype(target,/obj/move))
+-		return
+-	if(locate(/obj/move, target))
+-		target = locate(/obj/move, target)
+-
+-	var/datum/substance/gas/air = new();
+-	air.co2	= max(0, target.gas.co2)
+-	air.oxygen = max(0, target.gas.oxygen - O2STANDARD)
+-	air.no2	= max(0, target.gas.no2)
+-	air.nitrogen = max(0, target.gas.nitrogen - N2STANDARD)
+-	air.plasma = max(0, target.gas.plasma)
+-
+-	var/air_total = air.total()
+-	var/src_total = src.total()
+-
+-	if(!air_total)
+-		return	//	no air to clean
+-	src.temp = (src_total*src.temp + air_total*target.gas.temp)/(src_total+air_total)
+-	target.gas.lose_gas(air)
+-	target.reset_phases()
+-	src.gain_gas(air)
+-
+-	//make stored temp closer to nominal (20C)
+-	src.temp += (T20C - src.temp) / REGULATE_RATE
+-
+ /datum/chemical/pathogen/proc/process(source as obj)
+-
+ 	return
+ 
+ /datum/chemical/proc/react(S as obj)
+-
+ 	return
+ 
+ /datum/chemical/proc/react_organ(O as obj)
+-
+ 	return
+ 
+ /datum/chemical/proc/injected(M as mob, zone)
+-
+ 	if (zone == null)
+ 		zone = "body"
+ 	return
+Index: code/game/computer.dm
+===================================================================
+--- code/game/computer.dm	(revision 524)
++++ code/game/computer.dm	(working copy)
+@@ -772,10 +772,9 @@
+ 			sleep(15)
+ 			src.density = 0
+ 			src.opacity = 0
+-			var/turf/T = src.loc
+-			if (istype(T, /turf))
+-				T.updatecell = 1
+-				T.buildlinks()
++			if(isturf(src.loc))
++				src.loc:updatecell = 1
++				src.loc:buildlinks()
+ 			src.operating = 0
+ 			return
+ 	return
+@@ -794,10 +793,9 @@
+ 	sleep(15)
+ 	src.density = 0
+ 	src.opacity = 0
+-	var/turf/T = src.loc
+-	if (istype(T, /turf))
+-		T.updatecell = 1
+-		T.buildlinks()
++	if(isturf(src.loc))
++		src.loc:updatecell = 1
++		src.loc:buildlinks()
+ 	src.operating = 0
+ 	return
+ 
+@@ -814,10 +812,9 @@
+ 	src.icon_state = "pdoor1"
+ 	src.density = 1
+ 	src.opacity = 1
+-	var/turf/T = src.loc
+-	if (istype(T, /turf))
+-		T.updatecell = 0
+-		T.buildlinks()
++	if(isturf(src.loc))
++		src.loc:updatecell = 0
++		src.loc:buildlinks()
+ 	sleep(15)
+ 	src.operating = 0
+ 	return
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 524)
++++ code/game/demo.dm	(working copy)
+@@ -7,19 +7,14 @@
+ 	..()
+ 
+ /obj/machinery/door/meteorhit(obj/M as obj)
+-
+ 	src.open()
+-	return
+ 
+ /obj/machinery/door/Move()
+-
+ 	..()
+-	if (src.density)
+-		var/turf/location = src.loc
+-		if (istype(location, /turf))
+-			location.updatecell = 0
+-			buildlinks()
+-	return
++	if(!src.density) return
++	if(isturf(src.loc))
++		src.loc:updatecell = 0
++		src.loc:buildlinks()
+ 
+ /obj/machinery/door/interact(mob/user as mob)
+ 	return src.attackby(user, user)
+@@ -132,12 +127,11 @@
+ /obj/machinery/door/New()
+ 
+ 	..()
+-	var/turf/T = src.loc
+-	if (istype(T, /turf))
+-		if (src.density)
+-			if(!istype(src, /obj/machinery/door/window))
+-				T.updatecell = 0
+-			T.buildlinks()
++	if(!src.density) return
++	if(isturf(src.loc))
++		if(!istype(src,/obj/machinery/door/window))
++			src.loc:updatecell = 0
++		src.loc:buildlinks()
+ 	return
+ 
+ /obj/machinery/door/proc/open()
+@@ -149,11 +143,10 @@
+ 	sleep(15)
+ 	src.density = 0
+ 	src.opacity = 0
+-	var/turf/T = src.loc
+-	if (istype(T, /turf))
+-		if(!istype(src, /obj/machinery/door/window))
+-			T.updatecell = 1
+-		T.buildlinks()
++	if(isturf(src.loc))
++		if(!istype(src,/obj/machinery/door/window))
++			src.loc:updatecell = 1
++		src.loc:buildlinks()
+ 	src.operating = 0
+ 	return
+ 
+@@ -166,11 +159,10 @@
+ 	src.density = 1
+ 	if (src.visible)
+ 		src.opacity = 1
+-	var/turf/T = src.loc
+-	if (istype(T, /turf))
+-		if(!istype(src, /obj/machinery/door/window))
+-			T.updatecell = 0
+-		T.buildlinks()
++	if(isturf(src.loc))
++		if(!istype(src,/obj/machinery/door/window))
++			src.loc:updatecell = 0
++		src.loc:buildlinks()
+ 	sleep(15)
+ 	src.operating = 0
+ 	return
+@@ -2138,7 +2130,8 @@
+ 			new /obj/item/weapon/shard( src.loc )
+ 			//SN src = null
+ 			src.density = 0
+-			src.loc.buildlinks()
++			if(isturf(src.loc))
++				src.loc:buildlinks()
+ 
+ 			del(src)
+ 		else
+@@ -2147,7 +2140,8 @@
+ 				new /obj/item/weapon/shard( src.loc )
+ 				new /obj/item/weapon/rods( src.loc )
+ 				src.density = 0
+-				src.loc.buildlinks()
++				if(isturf(src.loc))
++					src.loc:buildlinks()
+ 				del(src)
+ 
+ 		return
+@@ -2182,7 +2176,8 @@
+ 		new /obj/item/weapon/shard( src.loc )
+ 		if(reinf) new /obj/item/weapon/rods( src.loc)
+ 		density = 0
+-		src.loc.buildlinks()
++		if(isturf(src.loc))
++			src.loc:buildlinks()
+ 		del(src)
+ 
+ /obj/window/CheckPass(atom/movable/O as mob|obj, target as turf)
+@@ -2214,7 +2209,8 @@
+ 	new /obj/item/weapon/shard( src.loc )
+ 	if(reinf) new /obj/item/weapon/rods( src.loc)
+ 	src.density = 0
+-	src.loc.buildlinks()
++	if(isturf(src.loc))
++		src.loc:buildlinks()
+ 
+ 
+ 	////SN src = null
+@@ -2236,8 +2232,8 @@
+ 		new /obj/item/weapon/shard( src.loc )
+ 		if(reinf) new /obj/item/weapon/rods( src.loc)
+ 		src.density = 0
+-		src.loc.buildlinks()
+-		//SN src = null
++		if(isturf(src.loc))
++			src.loc:buildlinks()
+ 		del(src)
+ 		return
+ 	..()
+@@ -2269,7 +2265,8 @@
+ 			var/turf/sl = src.loc
+ 			step(src, get_dir(user, src))
+ 			sl.buildlinks()
+-			src.loc.buildlinks()
++			if(isturf(src.loc))
++				src.loc:buildlinks()
+ 		if (src.health <= 0)
+ 			if (src.dir == SOUTHWEST)
+ 				var/index = null
+@@ -2284,11 +2281,13 @@
+ 			//SN src = null
+ 
+ 			src.density = 0
+-			src.loc.buildlinks()
++			if(isturf(src.loc))
++				src.loc:buildlinks()
+ 			del(src)
+ 			return
+ 		..()
+-	src.loc.buildlinks()
++	if(isturf(src.loc))
++		src.loc:buildlinks()
+ 	return
+ 
+ /obj/window/verb/rotate()
+@@ -2303,7 +2302,8 @@
+ 			return 0
+ 	src.dir = turn(src.dir, 90)
+ 	src.ini_dir = src.dir
+-	src.loc.buildlinks()
++	if(isturf(src.loc))
++		src.loc:buildlinks()
+ 	return
+ 
+ /obj/window/New(Loc,re=0)
+@@ -2313,7 +2313,8 @@
+ 	if(re)	reinf = re
+ 
+ 	src.ini_dir = src.dir
+-	src.loc.buildlinks()
++	if(isturf(src.loc))
++		src.loc:buildlinks()
+ 	if(reinf)
+ 		icon_state = "rwindow"
+ 		desc = "A reinforced window."
+@@ -2325,7 +2326,8 @@
+ 
+ /obj/window/Del()
+ 	src.density = 0
+-	src.loc.buildlinks()
++	if(isturf(src.loc))
++		src.loc:buildlinks()
+ 	..()
+ 
+ /obj/window/Move()
+@@ -2334,7 +2336,8 @@
+ 	..()
+ 	src.dir = src.ini_dir
+ 	sl.buildlinks()
+-	src.loc.buildlinks()
++	if(isturf(src.loc))
++		src.loc:buildlinks()
+ 	return
+ 
+ /atom/proc/meteorhit(obj/meteor as obj)
+@@ -2733,7 +2736,7 @@
+ 			if (prob(50))
+ 				src.opacity = 0
+ 				src.updatecell = 1
+-				buildlinks()
++				src.buildlinks()
+ 				src.state = 1
+ 				src.intact = 0
+ 				src.levelupdate()
+@@ -2753,7 +2756,7 @@
+ 			if (prob(25))
+ 				src.opacity = 0
+ 				src.updatecell = 1
+-				buildlinks()
++				src.buildlinks()
+ 				src.intact = 0
+ 				levelupdate()
+ 				src.state = 1
+@@ -2776,7 +2779,7 @@
+ 		else
+ 			src.opacity = 0
+ 			src.updatecell = 1
+-			buildlinks()
++			src.buildlinks()
+ 			src.state = 1
+ 			src.intact = 0
+ 			levelupdate()
+@@ -2862,7 +2865,7 @@
+ 		if ((user.loc == T && src.state == 2 && user.equipped() == W))
+ 			src.opacity = 0
+ 			src.updatecell = 1
+-			buildlinks()
++			src.buildlinks()
+ 			src.state = 1
+ 			src.intact = 0
+ 			levelupdate()
+@@ -2903,7 +2906,7 @@
+ 			src.state = 1
+ 			src.opacity = 0
+ 			src.updatecell = 1
+-			buildlinks()
++			src.buildlinks()
+ 			src.firelevel = 11
+ 			new /obj/item/weapon/sheet/metal( src )
+ 			new /obj/item/weapon/sheet/metal( src )
+Index: code/game/engine.dm
+===================================================================
+--- code/game/engine.dm	(revision 524)
++++ code/game/engine.dm	(working copy)
+@@ -214,10 +214,7 @@
+ 
+ 		for(var/atom/movable/AM as mob|obj in T)
+ 			AM.loc = S
+-			S.gas.copy_gas(T.gas)
+-			S.phase1.copy_all(T.phase1)
+-			S.phase2.copy_all(T.phase2)
+-
++			S.match_gasses(T)
+ 			S.buildlinks()
+ 
+ 
+Index: code/game/gas_diffusion.dm
+===================================================================
+--- code/game/gas_diffusion.dm	(revision 0)
++++ code/game/gas_diffusion.dm	(revision 0)
+@@ -0,0 +1,438 @@
++
++#define TURF_ADD_FRAC 0.95		//cooling due to release of gas into tile
++#define TURF_TAKE_FRAC 1.06		//heating due to pressurization into pipework
++
++/datum/substance/gas/proc/clear()
++	src.nitrogen = 0
++	src.oxygen = 0
++	src.plasma = 0
++	src.no2 = 0
++	src.co2 = 0
++
++/datum/substance/gas/proc/total()
++	return (src.co2 + src.oxygen + src.plasma + src.no2 + src.nitrogen)
++
++/datum/substance/gas/proc/add_gas(C,N,O,P,S)
++	src.nitrogen += N
++	src.oxygen += O
++	src.plasma += P
++	src.no2 += S
++	src.co2 += C
++
++/datum/substance/gas/proc/rem_gas(C,N,O,P,S)
++	src.nitrogen -= N
++	src.oxygen -= O
++	src.plasma -= P
++	src.no2 -= S
++	src.co2 -= C
++
++/datum/substance/gas/proc/set_gas(C,N,O,P,S)
++	src.nitrogen = N
++	src.oxygen = O
++	src.plasma = P
++	src.no2 = S
++	src.co2 = C
++
++/datum/substance/gas/proc/multiply_gas(F)
++	src.nitrogen *= F
++	src.oxygen *= F
++	src.plasma *= F
++	src.no2 *= F
++	src.co2 *= F
++
++/datum/substance/gas/proc/multiply_all(F)
++	src.nitrogen *= F
++	src.oxygen *= F
++	src.plasma *= F
++	src.no2 *= F
++	src.co2 *= F
++	temp *= F
++
++/datum/substance/gas/proc/gain_gas(var/datum/substance/gas/T)
++	src.nitrogen += T.nitrogen
++	src.oxygen += T.oxygen
++	src.plasma += T.plasma
++	src.no2 += T.no2
++	src.co2 += T.co2
++
++/datum/substance/gas/proc/lose_gas(var/datum/substance/gas/T)
++	src.nitrogen -= T.nitrogen
++	src.oxygen -= T.oxygen
++	src.plasma -= T.plasma
++	src.no2 -= T.no2
++	src.co2 -= T.co2
++
++/datum/substance/gas/proc/copy_gas(var/datum/substance/gas/T)
++	src.nitrogen = T.nitrogen
++	src.oxygen = T.oxygen
++	src.plasma = T.plasma
++	src.no2 = T.no2
++	src.co2 = T.co2
++
++/datum/substance/gas/proc/copy_cop(var/datum/substance/gas/T)
++	src.oxygen = T.oxygen
++	src.plasma = T.plasma
++	src.co2 = T.co2
++
++/datum/substance/gas/proc/gain_all(var/datum/substance/gas/T)
++	src.nitrogen += T.nitrogen
++	src.oxygen += T.oxygen
++	src.plasma += T.plasma
++	src.no2 += T.no2
++	src.co2 += T.co2
++	src.temp += T.temp
++
++/datum/substance/gas/proc/copy_all(var/datum/substance/gas/T)
++	src.nitrogen = T.nitrogen
++	src.oxygen = T.oxygen
++	src.plasma = T.plasma
++	src.no2 = T.no2
++	src.co2 = T.co2
++	src.temp  = T.temp
++
++/datum/substance/gas/proc/tostring()
++	return "O2 ([oxygen]), N2 ([nitrogen]), NO2 ([no2]), CO2 ([co2]), Plasma ([plasma]), Temp ([temp])"
++
++/datum/substance/gas/proc/add_delta(var/datum/substance/gas/T)
++	var/source = src.total()
++	if(source <  0)
++		return
++
++	var/target = T.total()
++	if(target <= 0)
++		return
++
++	src.temp = (source*src.temp + target*T.temp) / (source+target)
++	src.gain_gas(T)
++
++/datum/substance/gas/proc/sub_delta(var/datum/substance/gas/T)
++	src.lose_gas(T)
++
++/datum/substance/gas/proc/transfer(var/datum/substance/gas/target, var/amount)
++	// transfers [amount] from [src] to [target]
++	if(!amount)
++		return 0
++	if(!istype(target,/datum/substance/gas))
++		return 0
++
++	var/sTotal = src.total()
++	if(sTotal<=0)
++		return 0
++	var/nTotal = target.total()
++
++	//	transfer, at most, all the gas in target
++	if(amount < 0 || amount > sTotal)
++		amount = sTotal
++
++	//	don't overfill the container
++	if(target.maximum > 0)
++		if(target.maximum < (amount + nTotal))
++			amount = target.maximum - nTotal
++
++	//	all gasses are transferred at the same rate
++	var/datum/substance/gas/tmp = new/datum/substance/gas()
++	tmp.gain_all(src)
++	tmp.multiply_gas(amount/sTotal)
++
++	//	energy is preserved during the transfer
++	if(target.temp != src.temp)
++		if(!nTotal)	//	need to do this due to bugginess with this var
++			target.temp = src.temp
++		else
++			target.temp = (nTotal*target.temp + amount*src.temp)/(amount + nTotal)
++	target.gain_gas(tmp)
++	src.lose_gas(tmp)
++
++/datum/substance/gas/proc/transfer_from(var/datum/substance/gas/target as obj, amount)
++	//	transfers [amount] from [target] to [src]
++	return target.transfer(src,amount)
++
++/datum/substance/gas/proc/merge_into(var/datum/substance/gas/target as obj)
++	return target.transfer(src,target.total())
++
++/datum/substance/gas/proc/turf_add(var/turf/target as turf, amount = -1)
++	if(!amount)
++		return
++	if(locate(/obj/move, target))
++		target = locate(/obj/move, target)
++	if(!istype(target, /turf) && !istype(target, /obj/move))
++		return
++	src.transfer(target.gas,amount) // might need TURF_ADD_FRAC
++	target.reset_phases()
++
++/datum/substance/gas/proc/turf_take(var/turf/target as turf, amount)
++	if(!amount)
++		return
++	if(!istype(target, /turf) && !istype(target, /obj/move))
++		return
++	if(locate(/obj/move, target))
++		target = locate(/obj/move, target)
++	target.gas.transfer(src,amount)	// might need TURF_ADD_FRAC
++	target.reset_phases()
++
++/datum/substance/gas/proc/turf_add_all_oxy(var/turf/target as turf)
++	var/t_gas = src.total()
++	var/t_turf = target.gas.total()
++
++	if(t_gas <= 0)
++		return
++	if(src.oxygen <= 0)
++		return
++
++	target.gas.temp = (target.gas.temp * t_turf + src.oxygen*src.temp) / (t_turf + src.oxygen)
++	target.gas.oxygen += src.oxygen
++	target.reset_phases()
++	src.oxygen = 0
++
++// replaces gas values of src with n - updates during gas_flow step
++/datum/substance/gas/proc/replace_by(var/datum/substance/gas/n)
++	src.nitrogen = n.nitrogen
++	src.oxygen = n.oxygen
++	src.plasma = n.plasma
++	src.no2 = n.no2
++	src.co2 = n.co2
++	src.temp  = n.temp
++
++/datum/substance/gas/proc/is_equal(var/datum/substance/gas/T)
++	return ((co2==T.co2) && (no2==T.no2) && (oxygen==T.oxygen) && (plasma==T.plasma) && (nitrogen==T.nitrogen) && (temp==T.temp))
++
++// relative "specific heat capacity" of gas contents
++/datum/substance/gas/proc/shc()
++	return 2*co2 + 1.5*nitrogen + oxygen + 0.5*no2 + 1.2*plasma
++
++/datum/substance/gas/proc/extract_toxs(var/turf/target as turf)
++	if(!istype(target,/turf) && !istype(target,/obj/move))
++		return
++	if(locate(/obj/move, target))
++		target = locate(/obj/move, target)
++
++	var/datum/substance/gas/air = new();
++	air.co2	= max(0, target.gas.co2)
++	air.oxygen = max(0, target.gas.oxygen - O2STANDARD)
++	air.no2	= max(0, target.gas.no2)
++	air.nitrogen = max(0, target.gas.nitrogen - N2STANDARD)
++	air.plasma = max(0, target.gas.plasma)
++
++	var/air_total = air.total()
++	var/src_total = src.total()
++
++	if(!air_total)
++		return	//	no air to clean
++	src.temp = (src_total*src.temp + air_total*target.gas.temp)/(src_total+air_total)
++	target.gas.lose_gas(air)
++	target.reset_phases()
++	src.gain_gas(air)
++
++	//make stored temp closer to nominal (20C)
++	src.temp += (T20C - src.temp) / REGULATE_RATE
++
++/datum/substance/gas/proc/DiffusionLinks(var/turf/T)
++	if(T.density && !T.updatecell) // if this is a dense turf (wall, closed false_wall etc, just return nothing)
++		return list()
++
++	for(var/obj/move/M in T) // are there any dense obj/move in this turf?
++		if(!M.density)
++			continue
++		return list()
++
++	var/list/L = cardinal.Copy()
++	for(var/obj/window/D in T)
++		if(!D.density)
++			continue
++		if(D.dir == SOUTHWEST)
++			return list()
++		L -= D.dir
++
++	for(var/obj/machinery/door/D in T)
++		if(!D.density)
++			continue
++		if(istype(D, /obj/machinery/door/window))
++			if(D.dir & (EAST|WEST))
++				L -= istype(D, /obj/machinery/door/window/alt) ? NORTH : SOUTH
++			if(D.dir & (NORTH|SOUTH))
++				L -= istype(D, /obj/machinery/door/window/alt) ? WEST : EAST
++		else
++			// it's another door, such as a pod/fire/airlock, no airflow is possible
++			return list()
++
++	var/list/links = list()
++	for(var/dir in L)
++		var/turf/N = get_step(T,dir)
++		if(N && CheckAirflow(dir,N) == 1)
++			links += N
++	return links
++
++/datum/substance/gas/proc/ConductionLinks(var/turf/T)
++	var/list/cond = new()
++	for(var/obj/window/D in T)
++		if(!D.density)
++			continue
++		if(D.dir == SOUTHWEST)
++			return list()
++		cond[get_step(T,D.dir)] += 1+D.reinf
++
++	for(var/obj/machinery/door/window/D in T)
++		if(!D.density)
++			continue
++		if(D.dir & (EAST|WEST))
++			cond[get_step(T,D.dir)] += 1
++		if(D.dir & (NORTH|SOUTH))
++			cond[get_step(T,D.dir)]  += 1
++
++	for(var/obj/machinery/door/window/alt/D in T)
++		if(!D.density)
++			continue
++		if(D.dir & (EAST|WEST))
++			cond[get_step(T,D.dir)] += 1
++		if(D.dir & (NORTH|SOUTH))
++			cond[get_step(T,D.dir)]  += 1
++
++	cond -= 0 // we inserted possibly null get_step(T,D.dir)
++	return cond
++
++/datum/substance/gas/proc/CheckAirflow(var/srcDir, var/turf/target)
++	if(!target)
++		return 0
++	if(!target.updatecell)
++		return 0
++
++	srcDir = turn(srcDir, 180)
++
++	for(var/obj/move/M in target)
++		if(!M.density)
++			continue
++		return 0
++
++	for(var/obj/window/D in target)
++		if(!D.density)
++			continue
++		if(D.dir == SOUTHWEST)
++			return 0
++		if(D.dir == srcDir)
++			return 0
++
++	for(var/obj/machinery/door/D in target)
++		if(!D.density)
++			continue
++		if(istype(D, /obj/machinery/door/window))
++			if(istype(D, /obj/machinery/door/window/alt))
++				if((srcDir & NORTH) && (D.dir & (EAST|WEST)))
++					return 0
++				if((srcDir & WEST ) && (D.dir & (NORTH|SOUTH)))
++					return 0
++			else
++				if((srcDir & SOUTH) && (D.dir & (EAST|WEST)))
++					return 0
++				if((srcDir & EAST ) && (D.dir & (NORTH|SOUTH)))
++					return 0
++		else
++			// it's a real, air blocking door
++			return 0
++	return 1
++
++/proc/UpdateGasses(var/turf/loc as turf, var/list/neighbors)
++	if(!loc)
++		return
++	if(!neighbors.len)
++		return
++
++	if(loc.equilibrium)
++		for(var/turf/T in neighbors)
++			if(!T.equilibrium)
++				loc.equilibrium = 0
++		if(loc.equilibrium)
++			return	// no need for updates!
++
++	var/divisor = 1
++	var/datum/substance/gas/TPhase	= null
++	var/datum/substance/gas/SPhase	= ((cellcontrol.var_swap)?loc.phase1 : loc.phase2)
++
++	var/space = 0
++	var/burn = loc.firelevel >= 10
++	var/adiff = null
++
++	var/airdir = null
++	var/airforce= 0
++
++	for(var/turf/T in neighbors)
++		if(istype(T, /turf/space))
++			if(!loc.checkfire)
++				airforce = T.gas.total() + 25000
++				airdir = get_dir(loc, T)
++			space = 1;
++			break
++
++		divisor++
++		if(T.firelevel >= 900000.0)
++			burn = 1
++		TPhase = (cellcontrol.var_swap) ? T.phase1 : T.phase2
++		loc.gas.gain_all(TPhase)
++
++		if(loc.checkfire)
++			continue
++
++		adiff = SPhase.total() - TPhase.total()
++		if(airforce > adiff)
++			continue
++		airdir = get_dir(loc,T)
++		airforce = adiff;
++
++	if(!loc.checkfire && airforce > 25000)
++		for(var/atom/movable/AM in loc)
++			if(!AM.anchored && AM.weight <= airforce)
++				step(AM, airdir)
++
++	if(space)
++		loc.gas.clear()
++		loc.firelevel = 0
++		if(loc.icon_state == "burning")
++			loc.unburn()
++		if(loc.gas.temp > TCMB)
++			loc.gas.temp /= 2
++		SPhase.copy_all(loc.gas)
++		return
++
++	loc.gas.multiply_all(1/divisor)
++
++	if(loc.gas.plasma > 100000.0)
++		loc.overlays = list(plmaster)
++	else if(loc.gas.no2 > 101000.0)
++		loc.overlays = list(slmaster)
++	else
++		loc.overlays = null
++	if(burn)
++		loc.firelevel = loc.gas.oxygen + loc.gas.plasma
++
++	if(!loc.checkfire)
++		//	Why does plasma annihilate carbon?
++		var/PlasmaConverter = min(loc.gas.co2,loc.gas.plasma)
++		loc.gas.co2		-= PlasmaConverter
++		loc.gas.oxygen	+= PlasmaConverter
++		loc.gas.plasma	-= PlasmaConverter
++	else if(loc.firelevel > 900000)
++		var/OxygenBurned = min(loc.gas.oxygen,5000)
++		loc.gas.co2		+= OxygenBurned
++		loc.gas.oxygen	-= OxygenBurned
++
++	if(loc.firelevel < 900000)
++		if(loc.icon_state == "burning")
++			loc.firelevel = 0
++			loc.unburn()
++	else
++		loc.luminosity = 2
++		loc.icon_state = "burning"
++
++		// heating from fire
++		loc.gas.temp += (loc.firelevel/FIREQUOT+FIREOFFSET - loc.gas.temp) / FIRERATE
++
++		if(locate(/obj/effects/water, loc))
++			loc.firelevel = 0
++		for(var/atom/movable/A in loc)
++			A.burn(loc.firelevel)
++
++	SPhase.copy_all(loc.gas)
++
++	if((locate(/obj/effects/water, loc) || loc.firelevel < 900000.0))
++		//	water soothes the burning
++		loc.gas.temp += (T20C - loc.gas.temp) / FIRERATE
++
+Index: code/game/h_sandbox.dm
+===================================================================
+--- code/game/h_sandbox.dm	(revision 524)
++++ code/game/h_sandbox.dm	(working copy)
+@@ -114,7 +114,8 @@
+ 							hsb.req_access += A
+ 
+ 					hsb.loc = usr.loc
+-					hsb.loc.buildlinks()
++					if(hsb.loc && istype(hsb.loc,/turf))
++						hsb.loc:buildlinks()
+ 					usr << "<b>Sandbox:  Created an airlock."
+ 				if("hsbregulator")
+ 					var/obj/machinery/atmoalter/siphs/fullairsiphon/hsb = new/obj/machinery/atmoalter/siphs/fullairsiphon/air_vent
+Index: code/game/items.dm
+===================================================================
+--- code/game/items.dm	(revision 524)
++++ code/game/items.dm	(working copy)
+@@ -2421,57 +2421,45 @@
+ 	return
+ 
+ /obj/item/weapon/analyzer/attack_self(mob/carbon/user as mob)
++	if(!user.is_active())			return
++	if(!user.check_dexterity())		return
+ 
+-	if (!user.is_active())
+-		return
+-	if(!user.check_dexterity())
+-		return
+ 	var/turf/T = user.loc
+-	if (!( istype(T, /turf) ))
+-		return
+-	if (locate(/obj/move, T))
+-		T = locate(/obj/move, T)
++	if(!istype(T, /turf))			return
++	if(locate(/obj/move, T))		T = locate(/obj/move, T)
++	src.add_fingerprint(user)
++
+ 	var/turf_total = max(T.gas.total(), 1) / 100
+ 	usr.see("\blue <B>Results:</B>")
+ 	var/t = ""
+ 	var/t1 = turf_total / CELLSTANDARD * 10000
+-	if(90 > t1 || t1 > 110)
+-		t += text("\blue Air Pressure: []%", t1)
+-	else
+-		t += text("\blue Air Pressure:\red []%", t1)
++	if(90 > t1 || t1 > 110)		t += text("\red Air Pressure: []% ", t1)
++	else						t += text("\blue Air Pressure: []% ", t1)
+ 
+ 	t1 = round(T.gas.nitrogen / turf_total,0.0010)
+-	if(60 > t1 || t1 >  80)
+-		t += text("<font color=blue>Nitrogen: []</font> ", t1)
+-	else
+-		t += text("<font color=red>Nitrogen: []</font> ", t1)
++	if(60 > t1 || t1 >  80)		t += text("\red Nitrogen1: [] ", t1)
++	else						t += text("\blue Nitrogen2: [] ", t1)
+ 
+ 	t1 = round(T.gas.oxygen / turf_total, 0.0010)
+-	if(20 > t1 || t1 > 24)
+-		t += text("<font color=blue>Oxygen: []</font> ", t1)
+-	else
+-		t += text("<font color=red>Oxygen: []</font> ", t1)
++	if(20 > t1 || t1 > 24)		t += text("\red Oxygen: [] ", t1)
++	else						t += text("\blue Oxygen: [] ", t1)
+ 
+ 	t1 = round(T.gas.plasma / turf_total, 0.0010)
+-	if(t1 > 0.5)
+-		t += text("<font color=blue>Plasma: []</font> ", t1)
+-	else
+-		t += text("<font color=red>Plasma: []</font> ", t1)
++	if(t1 > 0.5)				t += text("\red Plasma: [] ", t1)
++	else						t += text("\blue Plasma: [] ", t1)
+ 
+ 	t1 = round(T.gas.co2 / turf_total, 0.0010)
+-	if(t1 > 1)
+-		t += text("<font color=blue>CO2: []</font> ", t1)
+-	else
+-		t += text("<font color=red>CO2: []</font> ", t1)
++	if(t1 > 1)					t += text("\red CO2: [] ", t1)
++	else						t += text("\blue CO2: [] ", t1)
+ 
+ 	t1 = round(T.gas.no2 / turf_total, 0.0010)
+-	if(t1 > 5)
+-		t += text("<font color=blue>NO2: []</font>", t1)
+-	else
+-		t += text("<font color=red>NO2: []</font>", t1)
++	if(t1 > 5)					t += text("\red NO2: []", t1)
++	else						t += text("\blue NO2: []", t1)
+ 	user.see(t)
+-	user.see(text("\blue \t Temperature: []&deg;C", (T.gas.temp-T0C) ))
+-	src.add_fingerprint(user)
++
++	t1 = T.gas.temp - T0C
++	if(-20 > t1 || t1 > 150)	user.see(text("\red \t Temperature: []&deg;C", t1))
++	else						user.see(text("\blue \t Temperature: []&deg;C", t1))
+ 	return
+ 
+ /obj/item/weapon/storage/proc/return_inv()
+Index: code/game/machinery/airlock.dm
+===================================================================
+--- code/game/machinery/airlock.dm	(revision 524)
++++ code/game/machinery/airlock.dm	(working copy)
+@@ -678,10 +678,9 @@
+ 				sleep(15)
+ 				src.density = 0
+ 				src.opacity = 0
+-				var/turf/T = src.loc
+-				if (istype(T, /turf))
+-					T.updatecell = 1
+-					T.buildlinks()
++				if(isturf(src.loc))
++					src.loc:updatecell = 1
++					src.loc:buildlinks()
+ 				src.operating = 0
+ 				return
+ 		else
+@@ -693,10 +692,9 @@
+ 					src.density = 1
+ 					if (src.visible)
+ 						src.opacity = 1
+-					var/turf/T = src.loc
+-					if (istype(T, /turf))
+-						T.updatecell = 0
+-						T.buildlinks()
++					if(isturf(src.loc))
++						src.loc:updatecell = 0
++						src.loc:buildlinks()
+ 					sleep(15)
+ 					src.operating = 0
+ 
+Index: code/game/machinery/firedoor.dm
+===================================================================
+--- code/game/machinery/firedoor.dm	(revision 524)
++++ code/game/machinery/firedoor.dm	(working copy)
+@@ -42,10 +42,9 @@
+ 				sleep(15)
+ 				src.density = 0
+ 				src.opacity = 0
+-				var/turf/T = src.loc
+-				if (istype(T, /turf))
+-					T.updatecell = 1
+-					T.buildlinks()
++				if(isturf(src.loc))
++					src.loc:updatecell = 1
++					src.loc:buildlinks()
+ 				src.operating = 0
+ 				return
+ 		else //close it up again
+@@ -56,10 +55,9 @@
+ 				sleep(15)
+ 				src.density = 1
+ 				src.opacity = 1
+-				var/turf/T = src.loc
+-				if (istype(T, /turf))
+-					T.updatecell = 1
+-					T.buildlinks()
++				if(isturf(src.loc))
++					src.loc:updatecell = 1
++					src.loc:buildlinks()
+ 				src.operating = 0
+ 				return
+ 	return
+Index: code/game/modes/blob.dm
+===================================================================
+--- code/game/modes/blob.dm	(revision 524)
++++ code/game/modes/blob.dm	(working copy)
+@@ -41,13 +41,10 @@
+ 				break
+ 
+ 			var/obj/blob/B = pick(blobs)
+-			var/turf/BL = B.loc
+-
+-			for (var/atom/A in B.loc)
+-				A.blob_act()
+-
++			for (var/atom/A in B.loc) A.blob_act()
+ 			B.Life()
+-			BL.buildlinks()
++			if(B.loc && istype(B.loc,/turf))
++				B.loc:buildlinks()
+ 
+ /datum/game_mode/blob/proc/stage()
+ 	// initial stage timing
+Index: code/game/shuttle.dm
+===================================================================
+--- code/game/shuttle.dm	(revision 524)
++++ code/game/shuttle.dm	(working copy)
+@@ -253,7 +253,8 @@
+ 	src.density = 0
+ 	src.opacity = 0
+ 	src.operating = 0
+-	src.loc.buildlinks()
++	if(isturf(src.loc))
++		src.loc:buildlinks()
+ 	return
+ 
+ /obj/move/shuttle/door/proc/close()
+@@ -269,7 +270,8 @@
+ 	sleep(15)
+ 
+ 	src.operating = 0
+-	src.loc.buildlinks()
++	if(isturf(src.loc))
++		src.loc:buildlinks()
+ 	return
+ 
+ /turf/station/shuttle/ex_act(severity)
+Index: code/game/weapons.dm
+===================================================================
+--- code/game/weapons.dm	(revision 524)
++++ code/game/weapons.dm	(working copy)
+@@ -1671,9 +1671,6 @@
+ 
+ 	return
+ 
+-/atom/proc/buildlinks()
+-	return
+-
+ /turf/Entered(atom/A as mob|obj)
+ 
+ 	..()
+@@ -1682,7 +1679,7 @@
+ 	if(!A.density)
+ 		return
+ 
+-	src.UpdateLinks(A)
++	src.updatelinks()
+ 
+ 	if(!istype(A, /obj/beam))
+ 		spawn(0)
+Index: unstable.dme
+===================================================================
+--- unstable.dme	(revision 524)
++++ unstable.dme	(working copy)
+@@ -91,6 +91,7 @@
+ #include "code\game\drag.dm"
+ #include "code\game\engine.dm"
+ #include "code\game\game_mode.dm"
++#include "code\game\gas_diffusion.dm"
+ #include "code\game\grab.dm"
+ #include "code\game\h_sandbox.dm"
+ #include "code\game\hologram.dm"

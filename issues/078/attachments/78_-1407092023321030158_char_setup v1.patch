@@ -1,0 +1,619 @@
+Index: code/game/algorithm.dm
+===================================================================
+--- code/game/algorithm.dm	(revision 457)
++++ code/game/algorithm.dm	(working copy)
+@@ -13,7 +13,7 @@
+ 	if(!joined_late)
+ 		var/obj/S = null
+ 		for(var/obj/start/sloc in world)
+-			if (sloc.name != rank) 
++			if (sloc.name != rank)
+ 				continue
+ 			if (locate(/mob) in sloc.loc)
+ 				continue
+@@ -26,15 +26,16 @@
+ 
+ 	if (rank == "AI")
+ 		var/mob/silicon/ai/A = new()
++		A.client = src.client
++		A.prefs = src.prefs
+ 		A.loc = startloc
+-		A.client = src.client
+ 		del(src)
+ 		return
+ 
+ 	if (rank == "Medical Doctor")
+-		src.char_name = addtext("Dr. ",src.char_name)
++		src.prefs.name = addtext("Dr. ",src.prefs.name)
+ 
+-	var/mob/carbon/human/M = new(startloc, src.char_name, src.char_hair_color, src.char_hair_style, src.char_skin_color, src.char_gender)
++	var/mob/carbon/human/M = new(startloc, src.prefs.name, src.prefs.hair_color, src.prefs.hair_style, src.prefs.skin_color, src.prefs.gender)
+ 
+ 	M.equip_if_possible(new /obj/item/weapon/radio/headset(M), SLOT_HEADSET)
+ 	M.equip_if_possible(new /obj/item/weapon/storage/backpack(M), SLOT_BACK)
+@@ -145,6 +146,7 @@
+ 	src << "<B>You are the [rank].</B>"
+ 
+ 	M.client = src.client
++	M.prefs = src.prefs
+ 	M.update_clothing()
+ 	del(src)
+ 
+Index: code/game/jobs.dm
+===================================================================
+--- code/game/jobs.dm	(revision 457)
++++ code/game/jobs.dm	(working copy)
+@@ -14,13 +14,13 @@
+ 	var/list/candidates = list()
+ 
+ 	for (var/mob/prespawn/M in unassigned)
+-		if (level == 1 && M.char_job1 == job)
++		if (level == 1 && M.prefs.job1 == job)
+ 			candidates += M
+ 
+-		if (level == 2 && M.char_job2 == job)
++		if (level == 2 && M.prefs.job2 == job)
+ 			candidates += M
+ 
+-		if (level == 3 && M.char_job3 == job)
++		if (level == 3 && M.prefs.job3 == job)
+ 			candidates += M
+ 
+ 	return candidates
+@@ -31,10 +31,10 @@
+ 		var/list/candidates = FindOccupationCandidates(unassigned + semiassigned, job, level)
+ 		for(var/mob/prespawn/M in candidates) //make sure they want this job more than their old one
+ 			if(M in semiassigned)
+-				if(level >= 2 && M.char_job1 == semiassigned[M]) //first choice is their current job
++				if(level >= 2 && M.prefs.job1 == semiassigned[M]) //first choice is their current job
+ 					candidates -= M
+ 					break
+-				if(level >= 3 && M.char_job2 == semiassigned[M]) //second choice is current job
++				if(level >= 3 && M.prefs.job2 == semiassigned[M]) //second choice is current job
+ 					candidates -= M
+ 					break
+ 		if(candidates.len)
+@@ -161,8 +161,8 @@
+ 	else if(unassigned.len == 1) //don't require a captain or do any of this complex stuff with just one person
+ 		//it makes it harder to test things like being AI
+ 		var/mob/prespawn/M = unassigned[1]
+-		if(M.char_job1 && !(M.char_job1 == "AI" && !config.allow_ai))
+-			M.Assign_Rank(M.char_job1)
++		if(M.prefs.job1 && !(M.prefs.job1 == "AI" && !config.allow_ai))
++			M.Assign_Rank(M.prefs.job1)
+ 		else
+ 			M.Assign_Rank("Captain")
+ 
+Index: code/game/mob/prespawn/hair_color.dm
+===================================================================
+--- code/game/mob/prespawn/hair_color.dm	(revision 457)
++++ code/game/mob/prespawn/hair_color.dm	(working copy)
+@@ -1,18 +0,0 @@
+-/var/const
+-	HAIR_COLOR_BROWN = "brown"
+-	HAIR_COLOR_BLACK = "black"
+-	HAIR_COLOR_WHITE = "white"
+-	HAIR_COLOR_GREY = "grey"
+-	HAIR_COLOR_BLOND = "blond"
+-
+-/proc/get_hair_colors()
+-	return list(
+-		HAIR_COLOR_BROWN,
+-		HAIR_COLOR_BLACK,
+-		HAIR_COLOR_WHITE,
+-		HAIR_COLOR_GREY,
+-		HAIR_COLOR_BLOND
+-	)
+-
+-/mob/prespawn/proc/choose_hair_color()
+-	src.char_hair_color = input("Select a hair color", "Character Generation", src.char_hair_color) in get_hair_colors()
+\ No newline at end of file
+Index: code/game/mob/prespawn/hair_style.dm
+===================================================================
+--- code/game/mob/prespawn/hair_style.dm	(revision 457)
++++ code/game/mob/prespawn/hair_style.dm	(working copy)
+@@ -1,16 +0,0 @@
+-/var/const
+-	HAIR_STYLE_SHORT = "short"
+-	HAIR_STYLE_LONG = "long"
+-	HAIR_STYLE_CUT = "cut"
+-	HAIR_STYLE_BALD = "bald"
+-
+-/proc/get_hair_styles()
+-	return list(
+-		HAIR_STYLE_SHORT,
+-		HAIR_STYLE_LONG,
+-		HAIR_STYLE_CUT,
+-		HAIR_STYLE_BALD
+-	)
+-
+-/mob/prespawn/proc/choose_hair_style()
+-	src.char_hair_style = input("Select a hair style", "Character Generation", src.char_hair_style) in get_hair_styles()
+\ No newline at end of file
+Index: code/game/mob/prespawn/job.dm
+===================================================================
+--- code/game/mob/prespawn/job.dm	(revision 457)
++++ code/game/mob/prespawn/job.dm	(working copy)
+@@ -1,20 +0,0 @@
+-//TODO: make all this use a list instead of 3 variables
+-
+-/mob/prespawn/proc/choose_job(job_num)
+-	var/jobs = uniquelist(list("Captain") + occupations + assistant_occupations + "No Preference")
+-	var/curr_job = null
+-	switch(job_num)
+-		if(1)
+-			curr_job = src.char_job1
+-		if(2)
+-			curr_job = src.char_job2
+-		if(3)
+-			curr_job = src.char_job3
+-	var/job = input("Select a job", "Character Generation", curr_job) in jobs
+-	switch(job_num)
+-		if(1)
+-			src.char_job1 = job
+-		if(2)
+-			src.char_job2 = job
+-		if(3)
+-			src.char_job3 = job
+\ No newline at end of file
+Index: code/game/mob/prespawn/login.dm
+===================================================================
+--- code/game/mob/prespawn/login.dm	(revision 457)
++++ code/game/mob/prespawn/login.dm	(working copy)
+@@ -1,11 +1,11 @@
+ /mob/prespawn/Login()
+ 	src.client.eye = null
+ 
+-	src.savefile_loc = "savefiles/[savefile_ver]/[src.ckey].[SAVEFILE_EXTENSION]"
+-	src.savefile_load()
++	src.prefs.savefile_loc = "savefiles/[savefile_ver]/[src.ckey].sav"
++	src.prefs.load()
+ 
+-	if(!src.char_last_version || src.char_last_version != md5(changes)) //they havent seen this changelog
++	if(!src.prefs.last_version || src.prefs.last_version != md5(changes)) //they havent seen this changelog
+ 		src.changes()
+ 
+-	src.char_setup()
++	src.prefs.setup(src.client)
+ 
+Index: code/game/mob/prespawn/setup.dm
+===================================================================
+--- code/game/mob/prespawn/setup.dm	(revision 457)
++++ code/game/mob/prespawn/setup.dm	(working copy)
+@@ -1,18 +1,5 @@
+ /mob/prespawn
+-	var
+-		char_name = ""
+-		char_gender = MALE
+-		char_job1 = "No Preference"
+-		char_job2 = "No Preference"
+-		char_job3 = "No Preference"
+-		char_skin_color = SKIN_COLOR_LIGHT
+-		char_hair_color = HAIR_COLOR_BROWN
+-		char_hair_style = HAIR_STYLE_SHORT
+-		char_last_version //md5 of changelog, to keep track of the most recent version of ss13 they've seen
+-		char_be_syndicate = "Yes"
+-		ready = 0
+-		savefile_loc = null
+-		const/SAVEFILE_EXTENSION = "sav"
++	var/ready = 0
+ 	opacity = 0
+ 	density = 0
+ 	icon = null
+@@ -29,144 +16,6 @@
+ 
+ 	return
+ 
+-mob/prespawn/proc/savefile_load()
+-	if (fexists(src.savefile_loc))
+-		var/savefile/F = new /savefile(src.savefile_loc, -1)
+-		F["name"] >> src.char_name
+-		F["gender"] >> src.char_gender
+-		F["job1"] >> src.char_job1
+-		F["job2"] >> src.char_job2
+-		F["job3"] >> src.char_job3
+-		F["hair_color"] >> src.char_hair_color
+-		F["hair_style"] >> src.char_hair_style
+-		F["skin_color"] >> src.char_skin_color
+-		F["be_syndicate"] >> src.char_be_syndicate
+-		F["last_version"] >> src.char_last_version
+-		return 1
+-	else
+-		return 0
+-
+-/mob/prespawn/proc/savefile_write()
+-	var/savefile/F = new /savefile(src.savefile_loc, -1)
+-	F["name"] << src.char_name
+-	F["gender"] << src.char_gender
+-	F["job1"] << src.char_job1
+-	F["job2"] << src.char_job2
+-	F["job3"] << src.char_job3
+-	F["hair_color"] << src.char_hair_color
+-	F["hair_style"] << src.char_hair_style
+-	F["skin_color"] << src.char_skin_color
+-	F["be_syndicate"] << src.char_be_syndicate
+-	F["last_version"] << md5(changes)
+-
+ /mob/prespawn/Topic(href, href_list)
+ 	if(src != usr)
+ 		return ..()
+-	if(href_list["ready"])
+-		if (!usr.client.authenticated)
+-			src << "You are not authorized to enter the game. If you are not a member of the Something Awful forums, you aren't allowed to play on this server. If you are, visit http://byond.lljk.net and register your username."
+-			return
+-		if (!enter_allowed)
+-			usr << "\blue There is an administrative lock on entering the game!"
+-			return
+-		world.log_game("[usr.key] entered as [usr.name]")
+-		for (var/mob/carbon/H in world)
+-			if (cmptext(H.spawn_name, src.char_name))
+-				usr << "You are using a name that is very similar to a currently used name, please choose another one using Character Setup."
+-				//TODO: make this work properly before spawning
+-				return
+-		src.ready = 1
+-		savefile_write()
+-		src << browse(null, "window=mob_occupations")
+-		if (ticker)
+-			var/list/L = assistant_occupations
+-			var/job
+-			if (L.Find(src.char_job1))
+-				job = src.char_job1
+-			else if (L.Find(src.char_job2))
+-				job = src.char_job2
+-			else if (L.Find(src.char_job3))
+-				job = src.char_job3
+-			else
+-				job = pick(L)
+-			var/joined_late = 1
+-			src.Assign_Rank(job, joined_late)
+-
+-		return ..()
+-	else if(href_list["name"])
+-		src.char_name = input("What is your character's name?", "Character Generation", src.char_name) as text
+-	else if(href_list["gender"])
+-		src.char_gender = input("Select a gender", "Character Generation", src.char_gender) in list(MALE, FEMALE)
+-	else if(href_list["skin_color"])
+-		src.choose_skin_color()
+-	else if(href_list["hair_color"])
+-		src.choose_hair_color()
+-	else if(href_list["hair_style"])
+-		src.choose_hair_style()
+-	else if(href_list["job"])
+-		src.choose_job(text2num(href_list["job"]))
+-	else if(href_list["reset"])
+-		var/loaded = src.savefile_load()
+-		if(!loaded)
+-			src.char_name = initial(src.char_name)
+-			src.char_gender = initial(src.char_gender)
+-			src.char_job1 = initial(src.char_job1)
+-			src.char_job2 = initial(src.char_job2)
+-			src.char_job3 = initial(src.char_job3)
+-			src.char_hair_color = initial(src.char_hair_color)
+-			src.char_hair_style = initial(src.char_hair_style)
+-			src.char_skin_color = initial(src.char_skin_color)
+-	else if(href_list["prefer_syndicate"])
+-		src.char_be_syndicate = input("Would you like to be eligible for playing as Syndicate?", "Character Generation", src.char_be_syndicate) in list("Yes", "No")
+-	else
+-		return ..()
+-	spawn()
+-		char_setup()
+-
+-/mob/prespawn/verb/char_setup()
+-	if(!trim(src.char_name))
+-		if(src.client)
+-			src.char_name = src.client.key
+-		else
+-			src.char_name = "Cool Person"
+-	if(!(src.char_gender in list(MALE, FEMALE)))
+-		src.char_gender = MALE
+-	if(!(src.char_skin_color in get_skin_colors()))
+-		src.char_skin_color = SKIN_COLOR_LIGHT
+-	if(!(src.char_hair_color in get_hair_colors()))
+-		src.char_hair_color = HAIR_COLOR_BROWN
+-	if(!(src.char_hair_style in get_hair_styles()))
+-		src.char_hair_style = HAIR_STYLE_SHORT
+-	if(!(src.char_be_syndicate in list("Yes", "No")))
+-		src.char_be_syndicate = "No"
+-	if(!(src.char_job1))
+-		src.char_job1 = "No Preference"
+-		src.char_job2 = "No Preference"
+-		src.char_job3 = "No Preference"
+-
+-	var/dat = "<html><body>"
+-	var/vars = list(
+-		"name" = src.char_name,
+-		"gender" = src.char_gender,
+-		"skin_color" = src.char_skin_color,
+-		"hair_color" = src.char_hair_color,
+-		"hair_style" = src.char_hair_style,
+-		"prefer_syndicate" = src.char_be_syndicate
+-	)
+-	for(var/x in vars)
+-		dat += "<b>[capitalize(dd_replacetext(x,"_"," "))]: </b>"
+-		dat += "<a href=\"byond://?src=\ref[src];[x]=input\"><b>[capitalize(vars[x])]</b></a><br>"
+-	dat += "<hr>"
+-
+-	dat += "<b>Occupation Choices</b>:<br>"
+-	dat += "First Choice: <a href=\"byond://?src=\ref[src];job=1\">[src.char_job1 == "No Preference" ? "No Preference" : "<b>[src.char_job1]</b>"]</a><br>"
+-	if (src.char_job1 != "No Preference")
+-		dat += "Second Choice: <a href=\"byond://?src=\ref[src];job=2\">[src.char_job2 == "No Preference" ? "No Preference" : "<b>[src.char_job2]</b>"]</a><br>"
+-		if (src.char_job2 != "No Preference")
+-			dat += "Third Choice: <a href=\"byond://?src=\ref[src];job=3\">[src.char_job3 == "No Preference" ? "No Preference" : "<b>[src.char_job3]</b>"]</a><br>"
+-	dat += "<hr>"
+-	dat += "<br><a href='byond://?src=\ref[src];reset=1'>Reset</a>"
+-	dat += "<h2><a href='byond://?src=\ref[src];ready=1'>Ready</a></h2>"
+-	dat += "</body></html>"
+-	src << browse(dat, "window=mob_occupations;size=300x600;can_close=0")
+-	return
+Index: code/game/mob/prespawn/skin_color.dm
+===================================================================
+--- code/game/mob/prespawn/skin_color.dm	(revision 457)
++++ code/game/mob/prespawn/skin_color.dm	(working copy)
+@@ -1,15 +0,0 @@
+-/var/const
+-	SKIN_COLOR_DARK = "dark"
+-	SKIN_COLOR_MEDIUM = "medium"
+-	SKIN_COLOR_LIGHT = "light"
+-
+-/proc/get_skin_colors()
+-	return list(
+-		SKIN_COLOR_DARK,
+-		SKIN_COLOR_MEDIUM,
+-		SKIN_COLOR_LIGHT
+-	)
+-
+-
+-/mob/prespawn/proc/choose_skin_color()
+-	src.char_skin_color = input("Select a skin color", "Character Generation", src.char_skin_color) in get_skin_colors()
+\ No newline at end of file
+Index: code/game/mob/var.dm
+===================================================================
+--- code/game/mob/var.dm	(revision 457)
++++ code/game/mob/var.dm	(working copy)
+@@ -50,4 +50,5 @@
+ 
+ 	density = 1
+ 
+-	var/cameraFollow = null
+\ No newline at end of file
++	var/cameraFollow = null
++	var/datum/preferences/prefs = new()
+\ No newline at end of file
+Index: code/game/mob/verbs.dm
+===================================================================
+--- code/game/mob/verbs.dm	(revision 457)
++++ code/game/mob/verbs.dm	(working copy)
+@@ -113,4 +113,8 @@
+ 	set name = "Cancel Camera View"
+ 	src.reset_view(null)
+ 	src.machine = null
+-	src:cameraFollow = null
+\ No newline at end of file
++	src:cameraFollow = null
++
++/mob/verb/character_setup()
++	set name = "Character Setup"
++	prefs.setup(src)
+\ No newline at end of file
+Index: code/game/preferences.dm
+===================================================================
+--- code/game/preferences.dm	(revision 0)
++++ code/game/preferences.dm	(revision 0)
+@@ -0,0 +1,216 @@
++/datum/preferences
++	var/name = ""
++	var/gender = MALE
++	var/job1 = "No Preference"
++	var/job2 = "No Preference"
++	var/job3 = "No Preference"
++	var/skin_color = SKIN_COLOR_LIGHT
++	var/hair_color = HAIR_COLOR_BROWN
++	var/hair_style = HAIR_STYLE_SHORT
++	var/last_version //md5 of changelog, to keep track of the most recent version of ss13 they've seen
++	var/be_syndicate = "No"
++	var/savefile_loc = null
++
++/datum/preferences/proc/load()
++	if(!fexists(src.savefile_loc))	return 0
++	var/savefile/F = new /savefile(src.savefile_loc, -1)
++	F["name"] >> src.name
++	F["gender"] >> src.gender
++	F["job1"] >> src.job1
++	F["job2"] >> src.job2
++	F["job3"] >> src.job3
++	F["hair_color"] >> src.hair_color
++	F["hair_style"] >> src.hair_style
++	F["skin_color"] >> src.skin_color
++	F["be_syndicate"] >> src.be_syndicate
++	F["last_version"] >> src.last_version
++	return 1
++
++/datum/preferences/proc/save()
++	var/savefile/F = new /savefile(src.savefile_loc, -1)
++	F["name"] << src.name
++	F["gender"] << src.gender
++	F["job1"] << src.job1
++	F["job2"] << src.job2
++	F["job3"] << src.job3
++	F["hair_color"] << src.hair_color
++	F["hair_style"] << src.hair_style
++	F["skin_color"] << src.skin_color
++	F["be_syndicate"] << src.be_syndicate
++	F["last_version"] << md5(changes)
++
++/datum/preferences/proc/setup(var/mob/M)
++{
++	if(!trim(src.name))
++		if(M.client)	src.name = M.client.key
++		else			src.name = "Cool Person"
++	if(!(src.gender in list(MALE, FEMALE)))			src.gender = MALE
++	if(!(src.skin_color in get_skin_colors()))		src.skin_color = SKIN_COLOR_LIGHT
++	if(!(src.hair_color in get_hair_colors()))		src.hair_color = HAIR_COLOR_BROWN
++	if(!(src.hair_style in get_hair_styles()))		src.hair_style = HAIR_STYLE_SHORT
++	if(!(src.be_syndicate in list("Yes", "No")))	src.be_syndicate = "No"
++	if(!(src.job1))
++		src.job1 = "No Preference"
++		src.job2 = "No Preference"
++		src.job3 = "No Preference"
++
++	var/dat = "<html><body>"
++	var/vars = list(
++		"name" = src.name,
++		"gender" = src.gender,
++		"skin_color" = src.skin_color,
++		"hair_color" = src.hair_color,
++		"hair_style" = src.hair_style,
++		"prefer_syndicate" = src.be_syndicate
++	)
++	for(var/x in vars)
++		dat += "<b>[capitalize(dd_replacetext(x,"_"," "))]: </b>"
++		dat += "<a href=\"byond://?src=\ref[src];[x]=input\"><b>[capitalize(vars[x])]</b></a><br>"
++	dat += "<hr>"
++
++	dat += "<b>Occupation Choices</b>:<br>"
++	dat += "First Choice: <a href=\"byond://?src=\ref[src];job=1\">[src.job1 == "No Preference" ? "No Preference" : "<b>[src.job1]</b>"]</a><br>"
++	if (src.job1 != "No Preference")
++		dat += "Second Choice: <a href=\"byond://?src=\ref[src];job=2\">[src.job2 == "No Preference" ? "No Preference" : "<b>[src.job2]</b>"]</a><br>"
++		if(src.job2 != "No Preference")
++			dat += "Third Choice: <a href=\"byond://?src=\ref[src];job=3\">[src.job3 == "No Preference" ? "No Preference" : "<b>[src.job3]</b>"]</a><br>"
++	dat += "<hr>"
++	dat += "<br><a href='byond://?src=\ref[src];reset=1'>Reset</a>"
++	dat += "<h2><a href='byond://?src=\ref[src];ready=1'>Ready</a></h2>"
++	dat += "</body></html>"
++	M << browse(dat, "window=mob_occupations;size=300x600;can_close=0")
++}
++
++/datum/preferences/Topic(href, href_list)
++{
++	if(href_list["ready"])
++		if(!istype(usr,/mob/prespawn))
++			usr << browse(null, "window=mob_occupations")
++			return save()
++
++		var/mob/prespawn/new_player = usr
++
++		if(!new_player.client.authenticated)
++			usr << "You are not authorized to enter the game. If you are not a member of the Something Awful forums, you aren't allowed to play on this server. If you are, visit http://byond.lljk.net and register your username."
++			return
++		if(!enter_allowed)
++			usr << "\blue There is an administrative lock on entering the game!"
++			return
++		world.log_game("[usr.key] entered as [usr.name]")
++
++		for (var/mob/carbon/H in world)
++			if (cmptext(H.spawn_name, src.name))
++				usr << "You are using a name that is very similar to a currently used name, please choose another one using Character Setup."
++				//TODO: make this work properly before spawning
++				return
++		new_player.ready = 1
++		save()
++		usr << browse(null, "window=mob_occupations")
++		if (ticker)
++			var/list/L = assistant_occupations
++			var/job
++			if(L.Find(src.job1))		job = src.job1
++			else if(L.Find(src.job2))	job = src.job2
++			else if(L.Find(src.job3))	job = src.job3
++			else						job = pick(L)
++			new_player.Assign_Rank(job, 1)
++		return
++
++	else if(href_list["name"])
++		src.name = input("What is your character's name?", "Character Generation", src.name) as text
++	else if(href_list["gender"])
++		src.gender = input("Select a gender", "Character Generation", src.gender) in list(MALE, FEMALE)
++	else if(href_list["skin_color"])
++		src.choose_skin_color()
++	else if(href_list["hair_color"])
++		src.choose_hair_color()
++	else if(href_list["hair_style"])
++		src.choose_hair_style()
++	else if(href_list["job"])
++		world.log_game("You are clicking on the job button!");
++		src.choose_job(text2num(href_list["job"]))
++	else if(href_list["reset"])
++		var/loaded = src.load()
++		if(!loaded)	src = initial(src)
++	else if(href_list["prefer_syndicate"])
++		src.be_syndicate = input("Would you like to be eligible for playing as Syndicate?", "Character Generation", src.be_syndicate) in list("Yes", "No")
++
++	spawn()
++		src.setup(usr)
++}
++
++//----------------------------------------------------------------------------
++
++/var/const
++	SKIN_COLOR_DARK = "dark"
++	SKIN_COLOR_LIGHT = "light"
++	SKIN_COLOR_MEDIUM = "medium"
++
++/proc/get_skin_colors()
++	return list(
++		SKIN_COLOR_DARK,
++		SKIN_COLOR_MEDIUM,
++		SKIN_COLOR_LIGHT
++	)
++
++
++/datum/preferences/proc/choose_skin_color()
++	src.skin_color = input("Select a skin color", "Character Generation", src.skin_color) in get_skin_colors()
++
++//----------------------------------------------------------------------------
++
++/var/const
++	HAIR_COLOR_BROWN = "brown"
++	HAIR_COLOR_BLACK = "black"
++	HAIR_COLOR_WHITE = "white"
++	HAIR_COLOR_BLOND = "blond"
++	HAIR_COLOR_GREY  = "grey"
++
++/proc/get_hair_colors()
++	return list(
++		HAIR_COLOR_BROWN,
++		HAIR_COLOR_BLACK,
++		HAIR_COLOR_WHITE,
++		HAIR_COLOR_GREY,
++		HAIR_COLOR_BLOND
++	)
++
++/datum/preferences/proc/choose_hair_color()
++	src.hair_color = input("Select a hair color", "Character Generation", src.hair_color) in get_hair_colors()
++//----------------------------------------------------------------------------
++
++/var/const
++	HAIR_STYLE_SHORT = "short"
++	HAIR_STYLE_LONG = "long"
++	HAIR_STYLE_BALD = "bald"
++	HAIR_STYLE_CUT = "cut"
++
++/proc/get_hair_styles()
++	return list(
++		HAIR_STYLE_SHORT,
++		HAIR_STYLE_LONG,
++		HAIR_STYLE_CUT,
++		HAIR_STYLE_BALD
++	)
++
++/datum/preferences/proc/choose_hair_style()
++	src.hair_style = input("Select a hair style", "Character Generation", src.hair_style) in get_hair_styles()
++
++//----------------------------------------------------------------------------
++
++//TODO: make all this use a list instead of 3 variables
++
++/datum/preferences/proc/choose_job(job_num)
++	world.log_game("Please click on a job!")
++	var/jobs = uniquelist(list("Captain") + occupations + assistant_occupations + "No Preference")
++	var/curr_job = null
++	switch(job_num)
++		if(1)	curr_job = src.job1
++		if(2)	curr_job = src.job2
++		if(3)	curr_job = src.job3
++
++	var/job = input("Select a job", "Character Generation", curr_job) in jobs
++	switch(job_num)
++		if(1)	src.job1 = job
++		if(2)	src.job2 = job
++		if(3)	src.job3 = job
+\ No newline at end of file

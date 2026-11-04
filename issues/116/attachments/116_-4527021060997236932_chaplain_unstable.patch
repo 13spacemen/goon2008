@@ -1,0 +1,135 @@
+Index: access levels.txt
+===================================================================
+--- access levels.txt	(revision 0)
++++ access levels.txt	(revision 0)
+@@ -0,0 +1,44 @@
++HOW TO CONVERT A MAP TO THE NEW (june 2008) ACCESS LEVEL SYSTEM
++1. Open the .dmp file up in Notepad
++2. Find all the "access = blahblah" attributes of doors.
++3. Delete them.
++4. Open the map up in Dream Maker. If you didn't get them all, it'll tell you so.
++5. Assign the existing doors new access permissions using the method below.
++
++HOW TO MAKE A MAP USING THE NEW (june 2008) ACCESS LEVEL SYSTEM
++1. Make a map as normal
++2. Select a door that you want to not be accessible to everybody
++3. Right click on it and edit its attributes
++4. Make the "req_access_txt" attribute be a semicolon-separated list of the permissions required to open the doors
++5. Repeat for all doors.
++
++For example, a brig door would have it be "2" while a door that requires you have toxins and teleporter access (for whatever reason) would have it be "9;20"
++
++Here is a list of the permissions and their numbers (this may be out of date, see code/game/access.dm for an updated version):
++
++	access_security = 1
++	access_brig = 2
++	access_security_lockers = 3
++	access_forensics_lockers= 4
++	access_security_records = 5
++	access_medical_supplies = 6
++	access_medical_records = 7
++	access_morgue = 8
++	access_tox = 9
++	access_tox_storage = 10
++	access_medlab = 11
++	access_engine = 12
++	access_eject_engine = 13
++	access_maint_tunnels = 14
++	access_external_airlocks = 15
++	access_emergency_storage = 16
++	access_apcs = 17
++	access_change_ids = 18
++	access_ai_upload = 19
++	access_teleporter = 20
++	access_eva = 21
++	access_heads = 22
++	access_captain = 23
++	access_all_personal_lockers = 24
++	access_chapel_office = 25
++	access_tech_storage = 26
+Index: code/data/jobs.dm
+===================================================================
+--- code/data/jobs.dm	(revision 263)
++++ code/data/jobs.dm	(working copy)
+@@ -5,11 +5,12 @@
+ 	"Genetic Researcher",
+ 	"Research Technician",
+ 	"Toxin Researcher",
+-	"Atmospheric Technician", "Atmospheric Technician",
++	"Atmospheric Technician", "Atmospheric Technician", "Atmospheric Technician",
+ 	"Medical Doctor",
+-	"Station Technician",
++	"Station Technician", "Station Technician", "Station Technician",
+ 	"Head of Personnel",
+ 	"Head of Research",
++	"Chaplain",
+ 	"AI")
+ 
+ var/list/assistant_occupations = list(
+Index: code/game/access.dm
+===================================================================
+--- code/game/access.dm	(revision 263)
++++ code/game/access.dm	(working copy)
+@@ -33,6 +33,8 @@
+ 	access_heads = 22
+ 	access_captain = 23
+ 	access_all_personal_lockers = 24
++	access_chaplain_office = 25
++	access_tech_storage = 26
+ 
+ /obj/var/list/req_access = null
+ /obj/var/req_access_txt = "0"
+@@ -81,6 +83,8 @@
+ 
+ /proc/get_access(job)
+ 	switch(job)
++		if("Chaplain")
++			return list(access_morgue, access_chaplain_office)
+ 		if("Research Assistant")
+ 			return list(access_tox, access_medlab)
+ 		if("Staff Assistant")
+@@ -112,7 +116,7 @@
+ 			return list(access_security, access_brig, access_security_lockers, access_forensics_lockers,
+ 						access_security_records, access_tox, access_tox_storage, access_medlab, access_engine,
+ 						access_emergency_storage, access_change_ids, access_ai_upload, access_eva, access_heads,
+-						access_all_personal_lockers)
++						access_all_personal_lockers, access_chaplain_office)
+ 		if("Station Technician")
+ 			return list(access_maint_tunnels, access_external_airlocks, access_apcs, access_all_personal_lockers)
+ 		if("Atmospheric Technician")
+@@ -125,7 +129,7 @@
+ 	            access_security_records, access_medical_supplies, access_medical_records, access_morgue, access_tox,
+ 	            access_tox_storage, access_medlab, access_engine, access_eject_engine, access_maint_tunnels,
+ 	            access_external_airlocks, access_emergency_storage, access_apcs, access_change_ids, access_ai_upload,
+-	            access_teleporter, access_eva, access_heads, access_captain, access_all_personal_lockers)
++	            access_teleporter, access_eva, access_heads, access_captain, access_all_personal_lockers, access_chaplain_office)
+ 
+ /proc/get_access_desc(A)
+ 	switch(A)
+@@ -177,6 +181,8 @@
+ 			return "access the captain's quarters"
+ 		if(access_all_personal_lockers)
+ 			return "open all personal lockers"
++		if(access_chaplain_office)
++			return "access chaplain's office"
+ 
+ /proc/get_all_jobs()
+-	return list("Research Assistant", "Staff Assistant", "Medical Assistant", "Technical Assistant", "Engineer", "Forensic Technician", "Research Technician", "Medical Doctor", "Captain", "Security Officer", "Genetic Researcher", "Toxin Researcher", "Head of Research", "Head of Personnel", "Station Technician", "Atmospheric Technician")
+\ No newline at end of file
++	return list("Research Assistant", "Staff Assistant", "Medical Assistant", "Technical Assistant", "Engineer", "Forensic Technician", "Research Technician", "Medical Doctor", "Captain", "Security Officer", "Genetic Researcher", "Toxin Researcher", "Head of Research", "Head of Personnel", "Station Technician", "Atmospheric Technician", "Chaplain")
+\ No newline at end of file
+Index: code/game/algorithm.dm
+===================================================================
+--- code/game/algorithm.dm	(revision 263)
++++ code/game/algorithm.dm	(working copy)
+@@ -27,6 +27,10 @@
+ 	M.equip_if_possible(new /obj/item/weapon/radio/headset(M), M.SLOT_HEADSET)
+ 	M.equip_if_possible(new /obj/item/weapon/storage/backpack(M), M.SLOT_BACK)
+ 	switch(rank)
++		if("Chaplain")
++			M.equip_if_possible(new /obj/item/weapon/clothing/under/black(M), M.SLOT_JUMPSUIT)
++			M.equip_if_possible(new /obj/item/weapon/clothing/shoes/black(M), M.SLOT_SHOES)
++			M.equip_if_possible(new /obj/item/weapon/clothing/gloves/latex(M), M.SLOT_GLOVES)
+ 		if("Research Assistant")
+ 			M.equip_if_possible(new /obj/item/weapon/clothing/under/white(M), M.SLOT_JUMPSUIT)
+ 			M.equip_if_possible(new /obj/item/weapon/clothing/shoes/white(M), M.SLOT_SHOES)

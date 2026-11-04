@@ -1,0 +1,530 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 426)
++++ code/atoms.dm	(working copy)
+@@ -458,7 +458,7 @@
+ /obj/item/weapon/assembly/shock_kit
+ 	name = "Shock Kit"
+ 	icon_state = "shock_kit"
+-	var/obj/item/weapon/clothing/head/helmet/part1 = null
++	var/obj/item/weapon/clothing/head/part1 = null
+ 	var/obj/item/weapon/radio/electropack/part2 = null
+ 	status = 0.0
+ 	w_class = 5.0
+@@ -573,6 +573,7 @@
+ 	w_class = 2.0
+ /obj/item/weapon/clothing
+ 	name = "clothing"
++	var/clothing_name = "clothing"
+ 	var/a_filter = 0.0
+ 	var/fb_filter = 0.0
+ 	var/h_filter = 0.0
+@@ -583,6 +584,7 @@
+ 	var/fire_protect = 0.0
+ /obj/item/weapon/clothing/glasses
+ 	name = "glasses"
++	clothing_name = "eyes"
+ 	w_class = 2.0
+ 	flags = GLASSESCOVERSEYES
+ 	s_fire = 7.5E7
+@@ -609,6 +611,7 @@
+ 	s_istate = "glasses"
+ /obj/item/weapon/clothing/gloves
+ 	name = "gloves"
++	clothing_name = "gloves"
+ 	w_class = 2.0
+ 	s_fire = 1.875E7
+ 	var/elec_protect = 1
+@@ -657,6 +660,7 @@
+ 
+ /obj/item/weapon/clothing/head
+ 	name = "head"
++	clothing_name = "head"
+ /obj/item/weapon/clothing/head/bio_hood
+ 	name = "bio hood"
+ 	icon_state = "bio_hood"
+@@ -690,6 +694,7 @@
+ 	name = "wig"
+ /obj/item/weapon/clothing/mask
+ 	name = "mask"
++	clothing_name = "mask"
+ /obj/item/weapon/clothing/mask/gasmask
+ 	name = "gasmask"
+ 	desc = "A close-fitting mask that can filter some environmental toxins or be connected to an air supply."
+@@ -745,6 +750,7 @@
+ 	s_fire = 1.875E7
+ /obj/item/weapon/clothing/shoes
+ 	name = "shoes"
++	clothing_name = "shoes"
+ 	var/chained = 0.0
+ 	fb_filter = 1.0
+ 	s_fire = 3.75E7
+@@ -771,6 +777,7 @@
+ 	fb_filter = 5.0
+ /obj/item/weapon/clothing/suit
+ 	name = "suit"
++	clothing_name = "o_clothing"
+ /obj/item/weapon/clothing/suit/armor
+ 	name = "armor"
+ 	icon_state = "armor"
+@@ -847,6 +854,7 @@
+ 	fire_protect = 126.0
+ /obj/item/weapon/clothing/under
+ 	name = "under"
++	clothing_name = "jumpsuit"
+ 	s_fire = 1.875E7
+ 	fb_filter = 1.0
+ 	fire_protect = 46.0
+Index: code/game/items.dm
+===================================================================
+--- code/game/items.dm	(revision 426)
++++ code/game/items.dm	(working copy)
+@@ -230,6 +230,23 @@
+ 
+ 	return
+ 
++/obj/item/weapon/attackby(obj/item/weapon/W as obj, mob/user)
++	// handle putting things into pockets/belt
++	var/mob/carbon/MC = user
++	if(src.loc == MC && MC.equipped() == W)
++		// so the user's holding the target and the attacker
++		var/loc = null
++		if(MC.belt == src) loc = "belt"
++		if(MC.l_store == src) loc = "storage1"
++		if(MC.r_store == src) loc = "storage2"
++
++		if(loc)
++			. = null
++			. = MC.db_click(loc, null)
++			if(.)
++				return
++	return ..()
++
+ /obj/item/weapon/ex_act(severity)
+ 
+ 	switch(severity)
+@@ -3735,6 +3752,16 @@
+ 		sleep(10)
+ 	processing = 0	//we're done
+ 
++/obj/item/weapon/card/id/attackby(obj/item/weapon/W as obj, mob/user)
++	. = null
++	if (W.loc == user && src.loc == user && istype(src, /obj/item/weapon/card/id) && istype(W, /obj/item/weapon/card/id) && istype(user, /mob/carbon))
++		var/mob/carbon/MC = user
++		. = MC.db_click("id", null)
++		if (.)
++			return
++	return ..()
++
++
+ /obj/manifest/New()
+ 
+ 	src.invisibility = 100
+Index: code/game/mob/carbon/var.dm
+===================================================================
+--- code/game/mob/carbon/var.dm	(revision 426)
++++ code/game/mob/carbon/var.dm	(working copy)
+@@ -42,6 +42,7 @@
+ 
+ 	var/obj/item/weapon/clothing/under/jumpsuit = null
+ 	var/can_wear_jumpsuit = 0
++	var/changingjumpsuit = 0
+ 
+ 	var/obj/item/weapon/radio/headset/headset = null
+ 	var/can_wear_headset = 0
+@@ -120,4 +121,4 @@
+ 	curr_language = LANGUAGE_MONKEY
+ 
+ 	icon = 'monkey.dmi'
+-	icon_state = "monkey1"
+\ No newline at end of file
++	icon_state = "monkey1"
+Index: code/game/mob/carbon/equipment.dm
+===================================================================
+--- code/game/mob/carbon/equipment.dm	(revision 426)
++++ code/game/mob/carbon/equipment.dm	(working copy)
+@@ -22,7 +22,7 @@
+ /mob/carbon/u_equip(obj/item/weapon/W as obj)
+ 	if (W == src.suit)
+ 		src.suit = null
+-	else if (W == src.jumpsuit)
++	else if (W == src.jumpsuit && !src.changingjumpsuit)
+ 		for(var/x in list(SLOT_R_STORE, SLOT_L_STORE, SLOT_ID, SLOT_BELT))
+ 			src.drop(x)
+ 		src.jumpsuit = null
+@@ -129,150 +129,234 @@
+ 		W.layer = initial(W.layer)
+ 		src.update_clothing()
+ 
++/mob/carbon/proc/reset_db_click()
++	usr.next_move = usr.prev_move
++	usr:lastDblClick -= 3
++
+ /mob/carbon/proc/db_click(text, t1)
+ 	var/obj/item/weapon/W = src.equipped()
+ 	var/emptyHand = (W == null)
+-	if ((!emptyHand) && (!istype(W, /obj/item/weapon)))
+-		return
++
+ 	if (emptyHand)
+-		usr.next_move = usr.prev_move
+-		usr:lastDblClick -= 3	//permit the double-click redirection to proceed.
++		reset_db_click()
++
+ 	if(text == "mask" && src.can_wear_mask)
++		if (W && !( istype(W, /obj/item/weapon/clothing/mask) ))
++			return 0
+ 		if (src.mask)
+ 			if (emptyHand)
+ 				src.mask.DblClick()
+-			src.update_clothing()
+-			return
+-		if (!( istype(W, /obj/item/weapon/clothing/mask) ))
+-			return
+-		src.u_equip(W)
+-		src.mask = W
++			else
++				src.u_equip(W)
++				reset_db_click()
++				src.mask.DblClick()
++				src.mask = W
++		else
++			src.u_equip(W)
++			src.mask = W
++		src.update_clothing()
++		return 1
+ 	if(text == "back" && src.can_wear_back)
+ 		if (src.back)
+ 			if (emptyHand)
+ 				src.back.DblClick()
+ 			src.update_clothing()
+-			return
++			return 1
+ 		if (!istype(W, /obj/item/weapon))
+-			return
++			return 0
+ 		if (!( W.flags & 1 ))
+-			return
++			return 0
+ 		src.u_equip(W)
+ 		src.back = W
++		src.update_clothing()
++		return 1
+ 	if(text == "headset" && src.can_wear_headset)
++		if (W && !( istype(W, /obj/item/weapon/radio/headset) ))
++			return 0
+ 		if (src.headset)
+ 			if (emptyHand)
+ 				src.headset.DblClick()
+-			src.update_clothing()
+-			return
+-		if (!( istype(W, /obj/item/weapon/radio/headset) ))
+-			return
+-		src.u_equip(W)
+-		src.headset = W
++			else
++				src.u_equip(W)
++				reset_db_click()
++				src.headset.DblClick()
++				src.headset = W
++		else
++			src.u_equip(W)
++			src.headset = W
++		src.update_clothing()
++		return 1
+ 	if(text == "o_clothing" && src.can_wear_suit)
++		if (W && !( istype(W, /obj/item/weapon/clothing/suit) ))
++			return 0
+ 		if (src.suit)
+ 			if (emptyHand)
+ 				src.suit.DblClick()
+-			src.update_clothing()
+-			return
+-		if (!( istype(W, /obj/item/weapon/clothing/suit) ))
+-			return
+-		src.u_equip(W)
+-		src.suit = W
++			else
++				src.u_equip(W)
++				reset_db_click()
++				src.suit.DblClick()
++				src.suit = W
++		else
++			src.u_equip(W)
++			src.suit = W
++		src.update_clothing()
++		return 1
+ 	if(text == "gloves" && src.can_wear_gloves)
++		if (W && !( istype(W, /obj/item/weapon/clothing/gloves) ))
++			return 0
+ 		if (src.gloves)
+ 			if (emptyHand)
+ 				src.gloves.DblClick()
+-			src.update_clothing()
+-			return
+-		if (!( istype(W, /obj/item/weapon/clothing/gloves) ))
+-			return
+-		src.u_equip(W)
+-		src.gloves = W
++			else
++				src.u_equip(W)
++				reset_db_click()
++				src.gloves.DblClick()
++				src.gloves = W
++		else
++			src.u_equip(W)
++			src.gloves = W
++		src.update_clothing()
++		return 1
+ 	if(text == "shoes" && src.can_wear_shoes)
++		if (W && !( istype(W, /obj/item/weapon/clothing/shoes) ))
++			return 0
+ 		if (src.shoes)
+ 			if (emptyHand)
+ 				src.shoes.DblClick()
+-			src.update_clothing()
+-			return
+-		if (!( istype(W, /obj/item/weapon/clothing/shoes) ))
+-			return
+-		src.u_equip(W)
+-		src.shoes = W
++			else
++				src.u_equip(W)
++				reset_db_click()
++				src.shoes.DblClick()
++				src.shoes = W
++		else
++			src.u_equip(W)
++			src.shoes = W
++		src.update_clothing()
++		return 1
+ 	if(text == "belt" && src.can_wear_belt)
+ 		if (src.belt)
+ 			if (emptyHand)
+ 				src.belt.DblClick()
+-			src.update_clothing()
+-			return
+-		if (!W || !W.flags || !( W.flags & ONBELT ))
+-			return
+-		src.u_equip(W)
+-		src.belt = W
++			else
++				if (!W || !W.flags || !( W.flags & ONBELT ) || !( src.jumpsuit ))
++					return 0
++				src.u_equip(W)
++				reset_db_click()
++				src.belt.DblClick()
++				src.belt = W
++		else if (!W || !W.flags || !( W.flags & ONBELT ) || !( src.jumpsuit ))
++			return 0
++		else
++			src.u_equip(W)
++			src.belt = W
++		src.update_clothing()
++		return 1
+ 	if(text == "eyes" && src.can_wear_glasses)
++		if (W && !( istype(W, /obj/item/weapon/clothing/glasses) ))
++			return 0
+ 		if (src.glasses)
+ 			if (emptyHand)
+ 				src.glasses.DblClick()
+-			src.update_clothing()
+-			return
+-		if (!( istype(W, /obj/item/weapon/clothing/glasses) ))
+-			return
+-		src.u_equip(W)
+-		src.glasses = W
++			else
++				src.u_equip(W)
++				reset_db_click()
++				src.glasses.DblClick()
++				src.glasses = W
++		else
++			src.u_equip(W)
++			src.glasses = W
++		src.update_clothing()
++		return 1
+ 	if(text == "head" && src.can_wear_helmet)
++		if (W && !( istype(W, /obj/item/weapon/clothing/head) ))
++			return 0
+ 		if (src.helmet)
+ 			if (emptyHand)
+ 				src.helmet.DblClick()
+-			src.update_clothing()
+-			return
+-		if (!( istype(W, /obj/item/weapon/clothing/head) ))
+-			return
+-		src.u_equip(W)
+-		src.helmet = W
++			else
++				src.u_equip(W)
++				reset_db_click()
++				src.helmet.DblClick()
++				src.helmet = W
++		else
++			src.u_equip(W)
++			src.helmet = W
++		src.update_clothing()
++		return 1
+ 	if(text == "jumpsuit" && src.can_wear_jumpsuit)
++		if (W && !( istype(W, /obj/item/weapon/clothing/under) ))
++			return 0
+ 		if (src.jumpsuit)
+ 			if (emptyHand)
+ 				src.jumpsuit.DblClick()
+-			src.update_clothing()
+-			return
+-		if (!( istype(W, /obj/item/weapon/clothing/under) ))
+-			return
+-		src.u_equip(W)
+-		src.jumpsuit = W
++			else
++				src.u_equip(W)
++				reset_db_click()
++				src.changingjumpsuit = 1
++				src.jumpsuit.DblClick()
++				src.changingjumpsuit = 0
++				src.jumpsuit = W
++		else
++			src.u_equip(W)
++			src.jumpsuit = W
++		src.update_clothing()
++		return 1
+ 	if(text == "id" && src.can_wear_id)
++		if (W && !( istype(W, /obj/item/weapon/card/id) ))
++			return 0
++		if (!src.jumpsuit)
++			return 0
+ 		if (src.id)
+ 			if (emptyHand)
+ 				src.id.DblClick()
+-			src.update_clothing()
+-			return
+-		if (!src.jumpsuit)
+-			return
+-		if (!( istype(W, /obj/item/weapon/card/id) ))
+-			return
+-		src.u_equip(W)
+-		src.id = W
++			else
++				src.u_equip(W)
++				reset_db_click()
++				src.id.DblClick()
++				src.id = W
++		else
++			src.u_equip(W)
++			src.id = W
++		src.update_clothing()
++		return 1
+ 	if(text == "storage1" && src.can_wear_l_store)
+ 		if (src.l_store)
+ 			if (emptyHand)
+ 				src.l_store.DblClick()
+-			src.update_clothing()
+-			return
+-		if ((!( istype(W, /obj/item/weapon) ) || W.w_class >= 3 || !( src.jumpsuit )))
+-			return
+-		src.u_equip(W)
+-		src.l_store = W
++			else
++				if ((!( istype(W, /obj/item/weapon) ) || W.w_class >= 3 || !( src.jumpsuit )))
++					return 0
++				src.u_equip(W)
++				reset_db_click()
++				src.l_store.DblClick()
++				src.l_store = W
++		else if ((!( istype(W, /obj/item/weapon) ) || W.w_class >= 3 || !( src.jumpsuit )))
++			return 0
++		else
++			src.u_equip(W)
++			src.l_store = W
++		src.update_clothing()
++		return 1
+ 	if(text == "storage2" && src.can_wear_r_store)
+ 		if (src.r_store)
+ 			if (emptyHand)
+ 				src.r_store.DblClick()
+-			src.update_clothing()
+-			return
+-		if ((!( istype(W, /obj/item/weapon) ) || W.w_class >= 3 || !( src.jumpsuit )))
+-			return
+-		src.u_equip(W)
+-		src.r_store = W
+-	src.update_clothing()
+-	return
++			else
++				if ((!( istype(W, /obj/item/weapon) ) || W.w_class >= 3 || !( src.jumpsuit )))
++					return 0
++				src.u_equip(W)
++				reset_db_click()
++				src.r_store.DblClick()
++				src.r_store = W
++		else if ((!( istype(W, /obj/item/weapon) ) || W.w_class >= 3 || !( src.jumpsuit )))
++			return 0
++		else
++			src.u_equip(W)
++			src.r_store = W
++		src.update_clothing()
++		return 1
++	return 0
+ 
+ /mob/carbon/proc/update_clothing()
+ 	src.update_clothing_functions()
+@@ -540,4 +624,4 @@
+ 	else
+ 		del(W)
+ 
+-	src.update_clothing()
+\ No newline at end of file
++	src.update_clothing()
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 426)
++++ code/game/demo.dm	(working copy)
+@@ -519,6 +519,18 @@
+ 		return
+ 	return
+ 
++/obj/item/weapon/clothing/attackby(obj/item/weapon/W as obj, mob/user)
++
++	if (istype(W, /obj/item/weapon/clothing) && istype(user, /mob/carbon))
++		var/obj/item/weapon/clothing/WC = W
++		. = null
++		if (W.loc == user && src.loc == user && src.clothing_name == WC.clothing_name && src.clothing_name != "clothing")
++			var/mob/carbon/MC = user
++			. = MC.db_click(src.clothing_name, null)
++			if (.)
++				return
++	return ..()
++
+ /obj/item/weapon/clothing/burn(fi_amount)
+ 
+ 	if (fi_amount > src.s_fire)
+@@ -552,6 +564,7 @@
+ 	return
+ 
+ /obj/item/weapon/clothing/shoes/orange/attackby(H as obj, loc)
++	..()
+ 
+ 	if ((istype(H, /obj/item/weapon/handcuffs) && !( src.chained )))
+ 		//H = null
+Index: code/game/item/weapon/radio.dm
+===================================================================
+--- code/game/item/weapon/radio.dm	(revision 426)
++++ code/game/item/weapon/radio.dm	(working copy)
+@@ -200,6 +200,15 @@
+ /obj/item/weapon/radio/beacon/attackby()
+ 	return
+ 
++/obj/item/weapon/radio/headset/attackby(obj/item/weapon/W as obj, mob/user)
++	. = null
++	if (W.loc == user && src.loc == user && src.type == W.type && istype(user, /mob/carbon))
++		var/mob/carbon/MC = user
++		. = MC.db_click("headset", null)
++		if (.)
++			return
++	return ..()
++
+ /obj/item/weapon/radio/signaler/receive(datum/message/M, freq)
+ 	//Sending a code is actually just sending a message in COMPUTER_LANG to the specified frequency, with text of the code number.
+ 	if (freq != src.freq || !M || !(src.wires & WIRE_RECEIVE))

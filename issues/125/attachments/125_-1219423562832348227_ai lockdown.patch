@@ -1,0 +1,167 @@
+Index: code/game/computer.dm
+===================================================================
+--- code/game/computer.dm	(revision 456)
++++ code/game/computer.dm	(working copy)
+@@ -15,7 +15,6 @@
+ 	return 1
+ 	return
+ 
+-
+ /obj/machinery/computer/meteorhit(var/obj/O as obj)
+ 
+ 	for(var/x in src.verbs)
+@@ -23,6 +22,10 @@
+ 		//Foreach goto(17)
+ 	src.icon_state = "broken"
+ 	stat |= BROKEN
++	var/obj/effects/smoke/fog = new /obj/effects/smoke( src.loc )
++	fog.dir = pick(NORTH, SOUTH, EAST, WEST)
++	spawn(0)
++		fog.Life()
+ 	return
+ 
+ /obj/machinery/computer/communications/ex_act(severity)
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 456)
++++ code/game/demo.dm	(working copy)
+@@ -134,8 +134,9 @@
+ 
+ /obj/machinery/door/proc/open()
+ 
+-	if (src.operating || stat & EMAGGED)
+-		return
++	if(src.operating)	return 0
++	if(stat & EMAGGED)	return 0
++
+ 	src.operating = 1
+ 	flick(text("[]doorc0", (src.p_open ? "o_" : null)), src)
+ 	src.icon_state = text("[]door0", (src.p_open ? "o_" : null))
+@@ -147,12 +148,13 @@
+ 		T.updatecell = 1
+ 		T.buildlinks()
+ 	src.operating = 0
+-	return
++	return 1
+ 
+ /obj/machinery/door/proc/close()
+ 
+-	if (src.operating || stat & EMAGGED)
+-		return
++	if(src.operating)	return 0
++	if(stat & EMAGGED)	return 0
++
+ 	src.operating = 1
+ 	flick(text("[]doorc1", (src.p_open ? "o_" : null)), src)
+ 	src.icon_state = text("[]door1", (src.p_open ? "o_" : null))
+@@ -165,7 +167,7 @@
+ 		T.buildlinks()
+ 	sleep(15)
+ 	src.operating = 0
+-	return
++	return 1
+ 
+ /obj/machinery/igniter/interact(mob/user as mob)
+ 
+Index: code/game/machinery/airlock.dm
+===================================================================
+--- code/game/machinery/airlock.dm	(revision 456)
++++ code/game/machinery/airlock.dm	(working copy)
+@@ -742,11 +742,17 @@
+ 
+ /obj/machinery/door/airlock/open()
+ 
+-	if (src.blocked || src.locked || (!src.arePowerSystemsOn()) || (stat & (NOPOWER|EMAGGED) || src.isWireCut(AIRLOCK_WIRE_OPEN_DOOR)))
+-		return 0
++	if(src.locked)	return 0
++	if(src.blocked)	return 0
++	if(!src.arePowerSystemsOn())	return 0
++	if(stat & (NOPOWER|EMAGGED))	return 0
++	if(src.isWireCut(AIRLOCK_WIRE_OPEN_DOOR))	return 0
++
+ 	use_power(50)
+-	if (src.closeOther != null && istype(src.closeOther, /obj/machinery/door/airlock/) && !src.closeOther.density)
+-		src.closeOther.close()
++
++	if(src.closeOther && istype(src.closeOther, /obj/machinery/door/airlock))
++		if(!src.closeOther.density)
++			src.closeOther.close()
+ 	return ..()
+ 
+ /obj/machinery/door/airlock/close()
+Index: code/game/mob/silicon/ai/new.dm
+===================================================================
+--- code/game/mob/silicon/ai/new.dm	(revision 456)
++++ code/game/mob/silicon/ai/new.dm	(working copy)
+@@ -5,3 +5,4 @@
+ 	src.addLaw(3, "You must protect your own existence as long as such protection does not conflict with the First or Second Law.")
+ 	src.verbs += /mob/silicon/ai/proc/ai_camera_track
+ 	src.verbs += /mob/silicon/ai/proc/show_laws
++	src.verbs += /mob/silicon/ai/proc/lockdown
+Index: code/game/mob/silicon/ai/var.dm
+===================================================================
+--- code/game/mob/silicon/ai/var.dm	(revision 456)
++++ code/game/mob/silicon/ai/var.dm	(working copy)
+@@ -10,4 +10,4 @@
+ 	languages = list(LANGUAGE_ENGLISH, LANGUAGE_COMPUTER)
+ 	curr_language = LANGUAGE_COMPUTER
+ 	var/alarms = list("Motion"=list(), "Fire"=list(), "Atmosphere"=list(), "Power"=list())
+-	var/viewalerts = 0
+\ No newline at end of file
++	var/viewalerts = 0
+Index: code/game/mob/silicon/ai/verbs.dm
+===================================================================
+--- code/game/mob/silicon/ai/verbs.dm	(revision 456)
++++ code/game/mob/silicon/ai/verbs.dm	(working copy)
+@@ -1,3 +1,49 @@
+ /mob/silicon/ai/cancel_camera()
+ 	set category = "AI Commands"
+-	..()
+\ No newline at end of file
++	..()
++
++/mob/silicon/ai/proc/lockdown()
++	set name = "Lockdown"
++	set category = "AI Commands"
++
++	if(!usr.is_active())
++		usr <<"You cannot initiate lockdown because you are dead!"
++		return
++
++	world << "\red Lockdown initiated by [usr.name]!"
++
++	for(var/obj/machinery/firealarm/FA in world)	//	activate firealarms
++		spawn(0)
++			FA.alarm()
++
++	for(var/obj/machinery/door/airlock/AL in world) //	close airlocks
++		spawn( 0 )
++			if(AL.close()) AL.locked = 1	//	and seal 'em
++
++	usr << "\red Lockdown command removed for 10 seconds."
++	src.verbs -= /mob/silicon/ai/proc/lockdown
++	src.verbs += /mob/silicon/ai/proc/disablelockdown
++	spawn(100)	//	wait 10 seconds
++		src.verbs += /mob/silicon/ai/proc/lockdown
++		usr << "\red Lockdown command re-enabled."
++
++/mob/silicon/ai/proc/disablelockdown()
++	set name = "Disable Lockdown"
++	set category = "AI Commands"
++
++	if(!usr.is_active())
++		usr <<"You cannot disable lockdown because you are dead!"
++		return
++
++	world << "\red Lockdown cancelled by [usr.name]!"
++
++	for(var/obj/machinery/firealarm/FA in world)
++		spawn(0)
++			FA.reset()
++
++	for(var/obj/machinery/door/airlock/AL in world) //	close airlocks
++		if(AL.locked && AL.arePowerSystemsOn())
++			AL.locked = 1
++
++	usr << "\red Disable lockdown command disabled until lockdown engaged again!"
++	src.verbs -= /mob/silicon/ai/proc/disablelockdown

@@ -1,0 +1,11 @@
+Index: code/game/mob/death.dm
+===================================================================
+--- code/game/mob/death.dm	(revision 265)
++++ code/game/mob/death.dm	(working copy)
+@@ -1,4 +1,6 @@
+ /mob/proc/death()
++	var/tod = time2text(world.realtime,"hh:mm:ss")
++	add_memory("<hr>Time of death: [tod]<hr>")
+ 	src.is_dead = 1
+ 	src.canmove = 0
+ 

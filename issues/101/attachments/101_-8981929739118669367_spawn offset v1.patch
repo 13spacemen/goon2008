@@ -1,0 +1,26 @@
+Index: code/game/admin/admin_powers/make_object.dm
+===================================================================
+--- code/game/admin/admin_powers/make_object.dm	(revision 537)
++++ code/game/admin/admin_powers/make_object.dm	(working copy)
+@@ -6,12 +6,14 @@
+ 			del(src)
+ 
+ 	Topic(href, href_list)
+-		var/X = typesof(/obj/)
+-		var/Q = input("What object?", null, null, null)  as null|anything in X
+-		if (!( Q ))
+-			return
+-		new Q( usr.loc )
+-		world.log_admin("[usr.key] created a [Q]")
++		var/Q = input("What object?", null, null, null) as null|anything in typesof(/obj/)
++		if(!Q) return
++		var/loc = usr.loc
++		if(!loc) loc = locate(0,0,0)
++		var/X = input("What is the offset in X?","Spawn Offset",0)+usr.loc.x
++		var/Y = input("What is the offset in Y?","Spawn Offset",0)+usr.loc.y
++		loc = locate(X,Y,usr.loc.z)
++		new Q(loc)
+ 
+ 	get_desc()
+ 		return "<a href='?src=\ref[src]'>Make object</a>"
+\ No newline at end of file

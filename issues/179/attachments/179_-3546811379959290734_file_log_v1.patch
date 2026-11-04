@@ -1,0 +1,244 @@
+Index: code/atoms/configuration.dm
+===================================================================
+--- code/atoms/configuration.dm	(revision 285)
++++ code/atoms/configuration.dm	(working copy)
+@@ -5,6 +5,7 @@
+ 	var/log_admin = 0					// log admin actions
+ 	var/log_game = 0					// log game events
+ 	var/log_vote = 0					// log voting
++	var/log_file = 0					// saves logfile to disk
+ 	var/allow_vote_restart = 0 			// allow votes to restart
+ 	var/allow_vote_mode = 0				// allow votes to change mode
+ 	var/vote_delay = 600				// minimum time between voting sessions (seconds, 10 minute default)
+@@ -12,7 +13,7 @@
+ 	var/vote_no_default = 0				// vote does not default to nochange/norestart (tbi)
+ 	var/vote_no_dead = 0				// dead people can't vote (tbi)
+ 	var/enable_authentication = 0		// goon authentication
+-	
++
+ 	var/list/mode_names = list()
+ 	var/list/modes = list()				// allowed modes
+ 	var/list/votable_modes = list()		// votable modes
+Index: code/configuration.dm
+===================================================================
+--- code/configuration.dm	(revision 285)
++++ code/configuration.dm	(working copy)
+@@ -4,102 +4,74 @@
+ 		// I wish I didn't have to instance the game modes in order to look up
+ 		// their information, but it is the only way (at least that I know of).
+ 		var/datum/game_mode/M = new T()
+-		if (M.config_tag)
++		if(M.config_tag)
+ 			world.log << "Adding game mode [M.name] ([M.config_tag]) to configuration."
+ 			src.modes += M.config_tag
+ 			src.mode_names[M.config_tag] = M.name
+ 			src.probabilities[M.config_tag] = M.probability
+-			if (M.votable)
++			if(M.votable)
+ 				src.votable_modes += M.config_tag
+ 		del(M)
+ 
+ /datum/configuration/proc/load(filename)
+ 	var/text = file2text(filename)
+-	
+-	if (!text)
++
++	if(!text)
+ 		world.log << "No config.txt file found, setting defaults"
+ 		src = new /datum/configuration()
+ 		return
+-	
++
+ 	world.log << "Reading configuration file [filename]"
+-	
++
+ 	var/list/CL = dd_text2list(text, "\n")
+-	
++
+ 	for (var/t in CL)
+-		if (!t)
++		if(!t)
+ 			continue
+-		
++
+ 		t = trim(t)
+-		if (length(t) == 0)
++		if(length(t) == 0)
+ 			continue
+-		else if (copytext(t, 1, 2) == "#")
++		else if(copytext(t, 1, 2) == "#")
+ 			continue
+-		
++
+ 		var/pos = findtext(t, " ")
+ 		var/name = null
+ 		var/value = null
+-		
+-		if (pos)
++
++		if(pos)
+ 			name = lowertext(copytext(t, 1, pos))
+ 			value = copytext(t, pos + 1)
+ 		else
+ 			name = lowertext(t)
+-		
+-		if (!name)
+-			continue
+-		
++
++		if(!name)	continue
++
+ 		switch (name)
+-			if ("log_ooc")
+-				config.log_ooc = 1
+-				
+-			if ("log_access")
+-				config.log_access = 1
+-				
+-			if ("log_say")
+-				config.log_say = 1
+-				
+-			if ("log_admin")
+-				config.log_admin = 1
+-				
+-			if ("log_game")
+-				config.log_game = 1
+-				
+-			if ("log_vote")
+-				config.log_vote = 1
+-				
+-			if ("allow_vote_restart")
+-				config.allow_vote_restart = 1
+-				
+-			if ("allow_vote_mode")
+-				config.allow_vote_mode = 1
+-				
+-			if ("no_dead_vote")
+-				config.vote_no_dead = 1
+-				
+-			if ("default_no_vote")
+-				config.vote_no_default = 1
+-				
+-			if ("vote_delay")
+-				config.vote_delay = text2num(value)
+-				
+-			if ("vote_period")
+-				config.vote_period = text2num(value)
+-				
+-			if ("allow_ai")
+-				config.allow_ai = 1
+-			
+-			if ("authentication")
+-				config.enable_authentication = 1
+-			
+-			if ("probability")
++			if("log_ooc")				config.log_ooc = 1
++			if("log_access")			config.log_access = 1
++			if("log_say")				config.log_say = 1
++			if("log_admin")				config.log_admin = 1
++			if("log_game")				config.log_game = 1
++			if("log_vote")				config.log_vote = 1
++			if("log_file")				config.log_file = value
++			if("allow_vote_restart")	config.allow_vote_restart = 1
++			if("allow_vote_mode")		config.allow_vote_mode = 1
++			if("no_dead_vote")			config.vote_no_dead = 1
++			if("default_no_vote")		config.vote_no_default = 1
++			if("vote_delay")			config.vote_delay = text2num(value)
++			if("vote_period")			config.vote_period = text2num(value)
++			if("allow_ai")				config.allow_ai = 1
++			if("authentication")		config.enable_authentication = 1
++			if("probability")
+ 				var/prob_pos = findtext(value, " ")
+ 				var/prob_name = null
+ 				var/prob_value = null
+-				
+-				if (prob_pos)
++
++				if(prob_pos)
+ 					prob_name = lowertext(copytext(value, 1, prob_pos))
+ 					prob_value = copytext(value, prob_pos + 1)
+-					if (prob_name in config.modes)
++					if(prob_name in config.modes)
+ 						config.probabilities[prob_name] = text2num(prob_value)
+ 					else
+ 						world.log << "Unknown game mode probability configuration definition: [prob_name]."
+@@ -113,7 +85,7 @@
+ 	// their information, but it is the only way (at least that I know of).
+ 	for (var/T in (typesof(/datum/game_mode) - /datum/game_mode))
+ 		var/datum/game_mode/M = new T()
+-		if (M.config_tag && M.config_tag == mode_name)
++		if(M.config_tag && M.config_tag == mode_name)
+ 			return M
+ 		del(M)
+ 
+@@ -131,11 +103,11 @@
+ 
+ 	var/mode_name = null
+ 	for (var/M in modes)
+-		if (src.probabilities[M] > 0 && accum[M] >= r)
++		if(src.probabilities[M] > 0 && accum[M] >= r)
+ 			mode_name = M
+ 			break
+ 
+-	if (!mode_name)
++	if(!mode_name)
+ 		world << "Failed to pick a random game mode."
+ 		return null
+ 
+Index: code/logging.dm
+===================================================================
+--- code/logging.dm	(revision 285)
++++ code/logging.dm	(working copy)
+@@ -1,23 +1,32 @@
+ /world/proc/log_admin(text)
+-	if (config.log_admin)
++	if(config.log_admin)
++		if(config.log_file) world.log_file("ADMIN: [text]")
+ 		world.log << "ADMIN: [text]"
+ 
+ /world/proc/log_game(text)
+-	if (config.log_game)
++	if(config.log_game)
++		if(config.log_file) world.log_file("GAME: [text]")
+ 		world.log << "GAME: [text]"
+ 
+ /world/proc/log_vote(text)
+-	if (config.log_vote)
++	if(config.log_vote)
++		if(config.log_file) world.log_file("VOTE: [text]")
+ 		world.log << "VOTE: [text]"
+ 
+ /world/proc/log_access(text)
+-	if (config.log_access)
++	if(config.log_access)
++		if(config.log_file) world.log_file("ACCESS: [text]")
+ 		world.log << "ACCESS: [text]"
+ 
+ /world/proc/log_say(text)
+-	if (config.log_say)
++	if(config.log_say)
++		if(config.log_file) world.log_file("SAY: [text]")
+ 		world.log << "SAY: [text]"
+ 
+ /world/proc/log_ooc(text)
+-	if (config.log_ooc)
++	if(config.log_ooc)
++		if(config.log_file) world.log_file("OOC: [text]")
+ 		world.log << "OOC: [text]"
++
++/world/proc/log_file(text)
++	if(config.log_file)		text2file(text,config.log_file)
+Index: config.txt
+===================================================================
+--- config.txt	(revision 285)
++++ config.txt	(working copy)
+@@ -16,6 +16,9 @@
+ # log player votes
+ LOG_VOTE
+ 
++# saves logs to disk
++LOG_FILE ss13.log
++
+ # probablities for game modes chosen in "secret" and "random" modes
+ # 
+ # default probablity is 1, increase to make that mode more likely to be picked

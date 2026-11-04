@@ -1,0 +1,392 @@
+Index: maps/Space Station 13 areas.dm
+===================================================================
+--- maps/Space Station 13 areas.dm	(revision 178)
++++ maps/Space Station 13 areas.dm	(working copy)
+@@ -183,6 +183,18 @@
+ 	name = "Emergency Storage"
+ 	icon_state = "storage"
+ 
++/area/ai_monitored/storage/eva
++	name = "EVA Storage"
++	icon_state = "storage"
++
++/area/ai_monitored/storage/secure
++	name = "Secure Storage"
++	icon_state = "storage"
++
++/area/ai_monitored/storage/emergency
++	name = "Emergency Storage"
++	icon_state = "storage"
++
+ /area/turret_protected/ai_upload
+ 	name = "AI Upload Chamber"
+ 	icon_state = "ai_upload"
+Index: InSpace.dme
+===================================================================
+--- InSpace.dme	(revision 178)
++++ InSpace.dme	(working copy)
+@@ -90,6 +90,7 @@
+ #include "code\game\vote.dm"
+ #include "code\game\weap_sat.dm"
+ #include "code\game\weapons.dm"
++#include "code\game\area\ai_monitored.dm"
+ #include "code\game\item\weapon\aimodules.dm"
+ #include "code\game\item\weapon\flashlight.dm"
+ #include "code\game\item\weapon\game_kit.dm"
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 178)
++++ code/atoms.dm	(working copy)
+@@ -304,6 +304,7 @@
+ 	var/list/laws = list()
+ 	flags = 258.0
+ 	var/cameraFollow = null
++	var/alarms = list("Motion"=list(), "Fire"=list(), "Atmosphere"=list(), "Power"=list())
+ 
+ /mob/megamonkey
+ 		name = "mutant monkey"
+Index: code/game/camera.dm
+===================================================================
+--- code/game/camera.dm	(revision 178)
++++ code/game/camera.dm	(working copy)
+@@ -76,26 +76,12 @@
+ 
+ 	var/t = input(user, "Which camera should you change to?") as null|anything in D
+ 
+-	if (!t)
+-		user.machine = null
+-		user.reset_view(null)
++	if (!t || t == "Cancel")
++		switchCamera(null)
+ 		return 0
+ 
+ 	var/obj/machinery/camera/C = D[t]
+ 
+-	if (t == "Cancel")
+-		user.machine = null
+-		user.reset_view(null)
+-		return 0
++	switchCamera(C)
+ 
+-	//if (user.machine != src || !( C.status ))
+-	if (!( C.status ))
+-
+-		return 0
+-	else
+-		src.current = C
+-		//use_power(50)
+-		spawn( 5 )
+-			attack_ai(user)
+-			return
+ 	return
+Index: code/game/power.dm
+===================================================================
+--- code/game/power.dm	(revision 178)
++++ code/game/power.dm	(working copy)
+@@ -575,23 +575,27 @@
+ 
+ 		// set channels depending on how much charge we have left
+ 
+-
+ 		if(cell.charge <= 0)					// zero charge, turn all off
+ 			equipment = autoset(equipment, 2)
+ 			lighting = autoset(lighting, 2)
+ 			environ = autoset(environ, 2)
++			area.poweralert(0)
+ 		else if(cell.percent() < 15)				// <15%, turn off lighting & equipment
+ 			equipment = autoset(equipment, 2)
+ 			lighting = autoset(lighting, 2)
+ 			environ = autoset(environ, 1)
++			area.poweralert(0)
+ 		else if(cell.percent() < 30)			// <30%, turn off equipment
+ 			equipment = autoset(equipment, 2)
+ 			lighting = autoset(lighting, 1)
+ 			environ = autoset(environ, 1)
++			area.poweralert(0)
+ 		else									// otherwise all can be on
+ 			equipment = autoset(equipment, 1)
+ 			lighting = autoset(lighting, 1)
+ 			environ = autoset(environ, 1)
++			if(cell.percent() > 75)
++				area.poweralert(1)
+ 
+ 
+ 		if(excess > 0 || perapc > lastused_total)		// if power excess, or enough anyway, recharge the cell
+@@ -677,6 +681,7 @@
+ 		equipment = autoset(equipment, 0)
+ 		lighting = autoset(lighting, 0)
+ 		environ = autoset(environ, 0)
++		area.poweralert(0)
+ 
+ 
+ 
+Index: code/game/computer.dm
+===================================================================
+--- code/game/computer.dm	(revision 178)
++++ code/game/computer.dm	(working copy)
+@@ -89,6 +89,42 @@
+ 	if(stat & NOPOWER) return
+ 	call_shuttle_proc(usr)
+ 
++/mob/ai/proc/ai_alerts()
++	set category = "AI Commands"
++	set name = "Show Alerts"
++
++	var/dat = "<HEAD><TITLE>Current Station Alerts</TITLE><META HTTP-EQUIV='Refresh' CONTENT='10'></HEAD><BODY>\n"
++	dat += "( <A HREF='?src=\ref[src];showalerts=1'>Refresh</A> | <A HREF='?src=\ref[src];mach_close=aialerts'>Close</A> )<BR><BR>"
++	for (var/cat in src.alarms)
++		dat += text("<B>[]</B><BR>\n", cat)
++		var/list/L = src.alarms[cat]
++		if (L.len)
++			for (var/alarm in L)
++				var/list/alm = L[alarm]
++				var/area/A = alm[1]
++				var/C = alm[2]
++				if (C && istype(C, /list))
++					var/dat2 = ""
++					for (var/obj/machinery/camera/I in C)
++						dat2 += text("[]<A HREF=?src=\ref[];switchcamera=\ref[]>[]</A>", (dat2=="") ? "" : " | ", src, I, I.c_tag)
++					dat += text("<NOBR>-- [] ([])</NOBR><BR>\n", A.name, (dat2!="") ? dat2 : "No Camera")
++				else if (C && istype(C, /obj/machinery/camera))
++					var/obj/machinery/camera/Ctmp = C
++					dat += text("-- [] (<A HREF=?src=\ref[];switchcamera=\ref[]>[]</A>)<BR>\n", A.name, src, C, Ctmp.c_tag)
++				else
++					dat += text("-- [] (No Camera)<BR>\n", A.name)
++		else
++			dat += "-- All Systems Nominal<BR>\n"
++		dat += "<BR>\n"
++
++	usr << browse(dat, "window=aialerts")
++
++/mob/ai/proc/ai_camera_list()
++	set category = "AI Commands"
++	set name = "Show Camera List"
++
++	attack_ai(src)
++
+ /mob/ai/proc/ai_camera_track()
+ 	set category = "AI Commands"
+ 	set name = "Track With Camera"
+Index: code/game/airtunnel.dm
+===================================================================
+--- code/game/airtunnel.dm	(revision 178)
++++ code/game/airtunnel.dm	(working copy)
+@@ -622,6 +622,8 @@
+ 	return
+ 
+ /obj/machinery/alarm/process()
++	var/turf/T = src.loc
++	var/area/A = T.loc
+ 
+ 	if(stat & NOPOWER)
+ 		icon_state = "alarm-p"
+@@ -630,7 +632,6 @@
+ 	use_power(5, ENVIRON)
+ 
+ 	var/safe = 1
+-	var/turf/T = src.loc
+ 	if (!( istype(T, /turf) ))
+ 		return
+ 	if (locate(/obj/move, T))
+@@ -638,12 +639,15 @@
+ 	var/turf_total = T.co2 + T.oxygen + T.poison + T.sl_gas + T.n2
+ 	turf_total = max(turf_total, 1)
+ 	var/t1 = turf_total / CELLSTANDARD * 100
+-	if (!( (90 < t1 && t1 < 110) ))
++	if (!( (75 < t1 && t1 < 125) ))
+ 		safe = 0
+-	t1 = T.oxygen / turf_total * 100
+-	if (!( (20 < t1 && t1 < 30) ))
++	var/t2 = T.oxygen / turf_total * 100
++	if (!( (20 < t2 && t2 < 30) ))
+ 		safe = 0
+ 	src.icon_state = text("alarm:[]", !( safe ))
++	
++	A.atmosalert(safe)
++
+ 	return
+ 
+ /obj/machinery/alarm/power_change()
+Index: code/game/mob.dm
+===================================================================
+--- code/game/mob.dm	(revision 178)
++++ code/game/mob.dm	(working copy)
+@@ -1959,6 +1959,8 @@
+ 	O.verbs += /mob/ai/proc/ai_call_shuttle
+ 	O.verbs += /mob/ai/proc/show_laws
+ 	O.verbs += /mob/ai/proc/ai_camera_track
++	O.verbs += /mob/ai/proc/ai_alerts
++	O.verbs += /mob/ai/proc/ai_camera_list
+ 	O.verbs -= /mob/verb/switch_hud
+ 	//O.verbs += /mob/ai/proc/ai_cancel_call
+ 	del(src)
+@@ -5958,6 +5960,11 @@
+ 			O.process()
+ 			return
+ 		*/
++	if (href_list["switchcamera"])
++		switchCamera(locate(href_list["switchcamera"]))
++	if (href_list["showalerts"])
++		ai_alerts()
++
+ 	..()
+ 	return
+ 
+@@ -6916,6 +6923,60 @@
+ 	return total
+ 	return
+ 
++/mob/ai/proc/switchCamera(var/obj/machinery/camera/C)
++	usr:cameraFollow = null
++	if (!C)
++		src.machine = null
++		src.reset_view(null)
++		return 0
++	if (stat == 2 || !C.status || C.network != src.network) return 0
++
++	// ok, we're alive, camera is good and in our network...
++
++	src.machine = src
++	src:current = C
++	src.reset_view(C)
++	return 1
++
++/mob/ai/proc/triggerAlarm(var/class, area/A, var/O=null)
++	if (stat == 2)
++		return
++	var/list/L = src.alarms[class]
++	for (var/I in L)
++		if (I == A.name) return 1
++	var/obj/machinery/camera/C = null
++	var/list/CL = null
++	if (O && istype(O, /list))
++		CL = O
++		if (CL.len == 1)
++			C = CL[1]
++	else if (O && istype(O, /obj/machinery/camera))
++		C = O
++	L[A.name] = list(A, (C) ? C : O)
++	if (O)
++		if (C && C.status)
++			src << text("--- [] alarm detected in []! (<A HREF=?src=\ref[];switchcamera=\ref[]>[]</A>)", class, A.name, src, C, C.c_tag)
++		else if (CL && CL.len)
++			var/foo = 0
++			var/dat2 = ""
++			for (var/obj/machinery/camera/I in CL)
++				dat2 += text("[]<A HREF=?src=\ref[];switchcamera=\ref[]>[]</A>", (!foo) ? "" : " | ", src, I, I.c_tag)
++				foo = 1
++			src << text ("--- [] alarm detected in []! ([])", class, A.name, dat2)
++		else
++			src << text("--- [] alarm detected in []! (No Camera)", class, A.name)
++	else
++		src << text("--- [] alarm detected in []! (No Camera)", class, A.name)
++	return 0
++
++/mob/ai/proc/cancelAlarm(var/class, area/A as area)
++	var/list/L = src.alarms[class]
++	for (var/I in L)
++		if (I == A.name)
++			L -= I
++	src << text("--- [] alarm in [] has been cleared.", class, A.name)
++	return 0
++
+ /mob/monkey/proc/emote(act)
+ 
+ 	var/param = null
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 178)
++++ code/game/demo.dm	(working copy)
+@@ -426,16 +426,7 @@
+ 	A = A.loc
+ 	if (!( istype(A, /area) ))
+ 		return
+-	A.fire = 0
+-	A.mouse_opacity = 0
+-	A.updateicon()
+-
+-	for(var/obj/machinery/door/firedoor/D in A)
+-		if (D.density)
+-			spawn( 0 )
+-				D.openfire()
+-				return
+-		//Foreach goto(93)
++	A.firereset()
+ 	return
+ 
+ /obj/machinery/firealarm/proc/alarm()
+Index: code/game/areas.dm
+===================================================================
+--- code/game/areas.dm	(revision 178)
++++ code/game/areas.dm	(working copy)
+@@ -1,5 +1,7 @@
+ /area
+ 	var/fire = null
++	var/atmos = 1
++	var/poweralm = 1
+ 	level = null
+ 	name = "Space"
+ 	icon = 'areas.dmi'
+@@ -91,6 +93,34 @@
+ 		//Foreach goto(42)
+ 	return */
+ 
++/area/proc/atmosalert(var/state)
++	if (state != atmos)
++		// change in atmos state
++		atmos = state
++		var/list/cameras = list()
++		for (var/obj/machinery/camera/C in src)
++			cameras += C
++		for (var/mob/ai/aiPlayer in world)
++			if (state == 1)
++				aiPlayer.cancelAlarm("Atmosphere", src, null)
++			else
++				aiPlayer.triggerAlarm("Atmosphere", src, cameras)
++	return
++
++/area/proc/poweralert(var/state)
++	if (state != poweralm)
++		poweralm = state
++		var/list/cameras = list()
++		for (var/obj/machinery/camera/C in src)
++			cameras += C
++		for (var/mob/ai/aiPlayer in world)
++			if (state == 1)
++				aiPlayer.cancelAlarm("Power", src, null)
++			else
++				aiPlayer.triggerAlarm("Power", src, cameras)
++	return
++
++
+ /area/proc/firealert()
+ 
+ 	if (!( src.fire ))
+@@ -102,9 +132,26 @@
+ 				spawn( 0 )
+ 					D.closefire()
+ 					return
+-			//Foreach goto(74)
++		var/list/cameras = list()
++		for (var/obj/machinery/camera/C in src)
++			cameras += C
++		for (var/mob/ai/aiPlayer in world)
++			aiPlayer.triggerAlarm("Fire", src, cameras)
+ 	return
+ 
++/area/proc/firereset()
++	if (src.fire)
++		src.fire = 0
++		src.mouse_opacity = 0
++		src.updateicon()
++		for(var/obj/machinery/door/firedoor/D in src)
++			if (D.density)
++				spawn( 0 )
++					D.openfire()
++					return
++		for (var/mob/ai/aiPlayer in world)
++			aiPlayer.cancelAlarm("Fire", src, null)
++	return
+ 
+ /area/proc/updateicon()
+ 	if ((fire || eject) && power_environ)

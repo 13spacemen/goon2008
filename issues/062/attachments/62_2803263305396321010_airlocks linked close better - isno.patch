@@ -1,0 +1,13 @@
+Index: code/game/machinery/airlock.dm
+===================================================================
+--- code/game/machinery/airlock.dm	(revision 67)
++++ code/game/machinery/airlock.dm	(working copy)
+@@ -730,7 +730,7 @@
+ 	if (src.blocked || src.locked || (!src.arePowerSystemsOn()) || (stat & NOPOWER))
+ 		return
+ 	use_power(50)
+-	if (src.closeOther != null && istype(src.closeOther, /obj/machinery/door/airlock/))
++	if (src.closeOther != null && istype(src.closeOther, /obj/machinery/door/airlock/) && !src.closeOther.density)
+ 		src.closeOther.close()
+ 	..()
+ 	return

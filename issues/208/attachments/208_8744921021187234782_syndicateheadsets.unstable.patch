@@ -1,0 +1,173 @@
+Index: code/atoms/message.dm
+===================================================================
+--- code/atoms/message.dm	(revision 476)
++++ code/atoms/message.dm	(working copy)
+@@ -2,7 +2,12 @@
+ 	var/voice = null
+ 	var/text = null
+ 	var/language = null
++	var/origlanguage = null
++	var/origvoice = null
+ 	New(voice, text, language)
+ 		src.voice = voice
+ 		src.text = text
+-		src.language = language
+\ No newline at end of file
++		src.language = language
++		// orig variables for encrypted transmissions
++		src.origlanguage = language
++		src.origvoice = voice
+Index: code/data/languages.dm
+===================================================================
+--- code/data/languages.dm	(revision 476)
++++ code/data/languages.dm	(working copy)
+@@ -48,10 +48,21 @@
+ 		"1111"
+ 	)
+ 
++/mob/proc/get_encrypted_words()
++	return list(
++		"hiss",
++		"crackle",
++		"pop",
++		"snap",
++		"bleep",
++		"boing",
++		"crack"
++	)
++
+ /mob/proc/get_none_words()
+ 	return list(
+ 		"ugh",
+ 		"eurgh",
+ 		"augh",
+ 		"gruh"
+-	)
+\ No newline at end of file
++	)
+Index: code/game/modes/nuclear.dm
+===================================================================
+--- code/game/modes/nuclear.dm	(revision 476)
++++ code/game/modes/nuclear.dm	(working copy)
+@@ -10,7 +10,7 @@
+ /datum/game_mode/nuclear/pre_setup()
+ 	var/list/mobs = list(  )
+ 	var/list/synd_list = list ()
+-	for(var/mob/carbon/M in world)
++	for(var/mob/prespawn/M in world)
+ 		if (M.client)
+ 			mobs += M
+ 			if(M.be_syndicate)
+@@ -23,26 +23,32 @@
+ 	amount = min(5, amount)
+ 	while(amount > 0)
+ 		amount--
+-		var/mob/carbon/human/H = null
++		var/mob/prespawn/M = null
+ 		if(synd_list.len < 1)
+-			H = pick(mobs)
++			M = pick(mobs)
+ 		else
+-			H = pick(synd_list)
+-			synd_list -= H
+-		mobs -= H
+-		if (istype(H, /mob/carbon))
+-			H.loc = O.loc
++			M = pick(synd_list)
++			synd_list -= M
++		mobs -= M
++
++		if (istype(M, /mob/prespawn))
++			var/mob/carbon/human/H = null
+ 			if (ticker.killer)
+-				H.spawn_name = text("Syndicate Operative #[]", amount + 1)
++				M.spawn_name = text("Syndicate Operative #[]", amount + 1)
+ 			else
+-				H.spawn_name = "Syndicate Leader"
+-				ticker.killer = H
++				M.spawn_name = "Syndicate Leader"
++				ticker.killer = M
++			H = new(O.loc, M.spawn_name, M.client.prefs.hair_color, M.client.prefs.hair_style, M.client.prefs.skin_color, M.client.prefs.gender)
++			H.client = M.client
++			del(M)
++			
++			H.loc = O.loc
++			H.name = H.spawn_name
+ 			H.already_placed = 1
+-			//H.jumpsuit = null
++
+ 			del(H.jumpsuit)
+ 			H.jumpsuit = new /obj/item/weapon/clothing/under/black( H )
+ 			H.jumpsuit.layer = 20
+-			//H.shoes = null
+ 			del(H.shoes)
+ 			H.shoes = new /obj/item/weapon/clothing/shoes/black( H )
+ 			H.shoes.layer = 20
+@@ -64,8 +70,8 @@
+ 			G.bullets = 7
+ 			G.layer = 20
+ 			H.belt = G
+-			var/obj/item/weapon/radio/R = new /obj/item/weapon/radio/headset( H )
+-			R.freq = 146.5
++			var/obj/item/weapon/radio/R = new /obj/item/weapon/radio/headset/syndicate( H )
++			R.freq = 1465
+ 			R.layer = 20
+ 			H.headset = R
+ 
+Index: code/game/mob/hear.dm
+===================================================================
+--- code/game/mob/hear.dm	(revision 476)
++++ code/game/mob/hear.dm	(working copy)
+@@ -2,6 +2,7 @@
+ /var/const/LANGUAGE_MONKEY = "Monkey"
+ /var/const/LANGUAGE_ENGLISH = "English"
+ /var/const/LANGUAGE_COMPUTER = "Computer"
++/var/const/LANGUAGE_ENCRYPTED = "Encrypted"
+ 
+ /var/const/MAX_MESSAGE_LEN = 1024
+ 
+@@ -35,6 +36,8 @@
+ 			language_words = get_english_words()
+ 		if(LANGUAGE_COMPUTER)
+ 			language_words = get_computer_words()
++		if(LANGUAGE_ENCRYPTED)
++			language_words = get_encrypted_words()
+ 		if(LANGUAGE_NONE)
+ 			language_words = get_none_words()
+ 	for(var/word in words)
+@@ -44,4 +47,4 @@
+ 	return dd_list2text(replaced_words, " ")
+ 
+ /mob/verb/switch_language(language in src.languages)
+-	src.curr_language = language
+\ No newline at end of file
++	src.curr_language = language
+Index: code/game/item/weapon/radio.dm
+===================================================================
+--- code/game/item/weapon/radio.dm	(revision 476)
++++ code/game/item/weapon/radio.dm	(working copy)
+@@ -39,6 +39,8 @@
+ 	icon_state = "headset"
+ 	listenrange = 1
+ 	s_istate = "headset"
++/obj/item/weapon/radio/headset/syndicate
++	name = "Syndicate Encrypted Headset"
+ /obj/item/weapon/radio/intercom
+ 	name = "Station Intercom (Radio)"
+ 	icon_state = "intercom"
+@@ -405,3 +407,15 @@
+ 	var/dat = text("<TT><A href='?src=\ref[];power=1'>[]</A><BR>\n<B>Frequency/Code</B> for electropack:<BR>\nFrequency: <A href='?src=\ref[];freq=-10'>-</A><A href='?src=\ref[];freq=-2'>-</A> [] <A href='?src=\ref[];freq=2'>+</A><A href='?src=\ref[];freq=10'>+</A><BR>\nCode: <A href='?src=\ref[];code=-5'>-</A><A href='?src=\ref[];code=-1'>-</A> [] <A href='?src=\ref[];code=1'>+</A><A href='?src=\ref[];code=5'>+</A><BR>\n</TT>", src, (src.on ? "Turn Off" : "Turn On"), src, src, src.get_freq_text(), src, src, src, src, src.code, src, src)
+ 	user << browse(dat, "window=radio")
+ 	return
++
++/obj/item/weapon/radio/headset/syndicate/receive(datum/message/M, freq)
++	if(M.language == LANGUAGE_ENCRYPTED)
++		M.voice = M.origvoice
++		M.language = M.origlanguage
++		M.text += "&nbsp;&nbsp;&nbsp;(encrypted)"
++	return ..(M, freq)
++
++/obj/item/weapon/radio/headset/syndicate/transmit(datum/message/M, freq)
++	M.language = LANGUAGE_ENCRYPTED
++	M.voice = "Unknown"
++	return ..(M, freq)

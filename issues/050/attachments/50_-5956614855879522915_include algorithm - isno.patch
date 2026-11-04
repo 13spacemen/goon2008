@@ -1,0 +1,20 @@
+Index: InSpace.dme
+===================================================================
+--- InSpace.dme	(revision 67)
++++ InSpace.dme	(working copy)
+@@ -58,6 +58,7 @@
+ #include "code\data\jobs.dm"
+ #include "code\data\stylesheet.dm"
+ #include "code\game\airtunnel.dm"
++#include "code\game\algorithm.dm"
+ #include "code\game\areas.dm"
+ #include "code\game\atmo_control.dm"
+ #include "code\game\begin.dm"
+@@ -87,7 +88,6 @@
+ #include "code\game\overview.dm"
+ #include "code\game\power.dm"
+ #include "code\game\shuttle.dm"
+-#include "code\game\ss13_algorithm2.dm"
+ #include "code\game\sun.dm"
+ #include "code\game\vehicle.dm"
+ #include "code\game\vote.dm"

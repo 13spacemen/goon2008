@@ -1,0 +1,71 @@
+Index: code/data/changelog.dm
+===================================================================
+--- code/data/changelog.dm	(revision 249)
++++ code/data/changelog.dm	(working copy)
+@@ -3,6 +3,18 @@
+ <P>This version is a fork of Rick's currently running server,
+ and is a testbed of proposed fixes, changes, and features.</p>
+ <HR>
++<P><B>Persh's Notes:</b><BR>
++<ul>
++<li>Engineers are required if you want to have power beyond the first 10 minutes. Serious business.</li>
++<li>By default the station requires approximately 215,000 watts of power, be sure to set the batteries to the correct inputs and outputs.</li>
++<li>The AI also requires an additional 25,00 watts on top of whatever the station load shows, so account for that unless you want the AI's battery to slowly die.</li>
++<li>Adding CO2 to the hot loop once it is being circulated is a bad idea. CO2 cools it down. Try adding it to the cold loop for a better effect</li>
++<li>A good way to start the engine is to simply set both loops to 100% until the engine is at full blast (Should be getting 200,000 worth at this time) and then slowly tamper the cold loop down</li>
++<li>The O2 indicators on the walls can be cut. Should probably do this if you don't want the AI to be notified of your explosive schemes</li>
++<li>EVA storage has a motion camera. Stay around too long and the AI is gonna know. Disable that bitch</li>
++<li>MVirus mode :]</li>
++</ul>
++</p
+ 
+ <P><B>Modified Tuesday, June 24th 2008 (Revision 233):</b><BR>
+ <ul>
+Index: code/game/mob.dm
+===================================================================
+--- code/game/mob.dm	(revision 249)
++++ code/game/mob.dm	(working copy)
+@@ -4964,7 +4964,7 @@
+ 	return
+ 
+ // loads the savefile corresponding to the mob's ckey
+-// if silent=true, report incompatible savefiles
++// if  silent=true, report incompatible savefiles
+ // returns 1 if loaded (or file was incompatible)
+ // returns 0 if savefile did not exist
+ 
+Index: code/game/modes/virus.dm
+===================================================================
+--- code/game/modes/virus.dm	(revision 249)
++++ code/game/modes/virus.dm	(working copy)
+@@ -20,6 +20,14 @@
+ 			while(amount > 0)
+ 				var/mob/human/H = pick(mobs)
+ 				H.virus = 1
++				//This makes DNA researchers able to identify the infected
++				//todo: make people who get T31 put into their dna be notified they are infected?
++				// --
++				// Pershs system. People who are infected can not punch, instead they bite.
++				// Bites advance the infection which increases their health regeneration.
++				// Makes the gamemode have MORE DEATH
++				H << "\red <B>You are infected! Don't let anyone find out! Escape the station!</B>"
++				world.log_admin("[H] is infected", H)
+ 				mobs -= H
+ 				amount--
+ 	spawn (0)
+@@ -40,7 +48,7 @@
+ 	var/dead = list(  )
+ 	var/alive = list(  )
+ 	var/escapees = list(  )
+-	for(var/mob/M in world)
++	for(var/mob/human/M in world)
+ 		if (M.stat == 2)
+ 			if (M.client)
+ 				if (M.virus > 0)
+@@ -68,4 +76,5 @@
+ 		world << text("<FONT size = 2>[]</FONT>", I)
+ 	for(var/I in dead)
+ 		world << text("<FONT size = 1>[]</FONT>", I)
++
+ 	return 1
+\ No newline at end of file

@@ -1,0 +1,84 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 571)
++++ code/atoms.dm	(working copy)
+@@ -1191,6 +1191,14 @@
+ 	flags = 322.0
+ 	s_istate = "electronic"
+ 
++/obj/item/weapon/jammer
++	name = "Camera Jammer"
++	desc = "Creates an EM field that blocks camera tracking."
++	icon_state = "jammer0"
++	var/on = 0
++	flags = FPRINT|ONBELT
++	s_istate = "electronic"
++
+ /obj/item/weapon/t_scanner
+ 	name = "T-ray scanner"
+ 	desc = "A terahertz-ray emitter and scanner used to detect underfloor objects such as cables and pipes."
+Index: code/game/mob/carbon/equipment.dm
+===================================================================
+--- code/game/mob/carbon/equipment.dm	(revision 571)
++++ code/game/mob/carbon/equipment.dm	(working copy)
+@@ -497,6 +497,12 @@
+ 			src.invisibility = 2
+ 			return
+ 
++/mob/carbon/proc/CameraInvisible()
++	for(var/obj/item/weapon/jammer/S in src)
++		if(S.on)
++			return 1
++		return 0
++
+ /mob/carbon/proc/drop_item_v()
+ 	if (src.is_active())
+ 		drop_item()
+Index: code/game/mob/silicon/ai/verbs.dm
+===================================================================
+--- code/game/mob/silicon/ai/verbs.dm	(revision 571)
++++ code/game/mob/silicon/ai/verbs.dm	(working copy)
+@@ -66,6 +66,8 @@
+ 			continue
+ 		if(M.invisibility) //cloaked
+ 			continue
++		if(M.CameraInvisible())
++			continue
+ 
+ 		var/name = M.name
+ 		if (name in names)
+@@ -95,7 +97,7 @@
+ 			if (usr:cameraFollow == null)
+ 				return
+ 			else if (istype(target.id, /obj/item/weapon/card/id/syndicate))
+-				usr << "Follow camera mode ended."
++				usr << "Tracking error."
+ 				usr:cameraFollow = null
+ 				return
+ 			else if (!target || !istype(target.loc, /turf)) //in a closet
+Index: code/game/newitems.dm
+===================================================================
+--- code/game/newitems.dm	(revision 571)
++++ code/game/newitems.dm	(working copy)
+@@ -37,3 +37,17 @@
+ 
+ 
+ 		sleep(10)
++
++/obj/item/weapon/jammer/attack_self(mob/user)
++	src.add_fingerprint(user)
++	on = !on
++	icon_state = "jammer[on]"
++	for(var/mob/silicon/ai/AI in world)
++		if(AI.cameraFollow == user)
++			AI << "Tracking error!"
++			AI.cancel_camera()
++			return
++	if(on)
++		src.process()
++
++/obj/item/weapon/jammer/proc/process()
+Index: icons/ss13/items.dmi
+===================================================================
+Cannot display: file marked as a binary type.
+svn:mime-type = application/octet-stream

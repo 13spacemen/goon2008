@@ -1,0 +1,128 @@
+Index: code/game/items.dm
+===================================================================
+--- code/game/items.dm	(revision 414)
++++ code/game/items.dm	(working copy)
+@@ -3473,7 +3473,7 @@
+ 	for(var/mob/O in hearers(user, null))
+ 		O.hear("\blue Locked In")
+ 	var/obj/portal/P = new /obj/portal( get_turf(src) )
+-	P.target = find_loc(T)
++	P.target = T
+ 	src.add_fingerprint(user)
+ 	return
+ 
+@@ -4073,19 +4073,15 @@
+ 				M.ex_act(2)
+ 			else
+ 				M.ex_act(1)
+-
++			var/obj/effects/sparks/O = new /obj/effects/sparks(M)
++			O.dir = pick(NORTH, SOUTH, EAST, WEST)
++			spawn( 0 )
++				O.Life()
+ 		if (prob(1)) //teleport gone VERY bad
+ 			M << "\red You see a fainting blue light."
+ 			M.loc = null
+-			return
+ 		else
+-			var/tx = src.target.x + rand(-5, 5)
+-			var/ty = src.y + rand(-5, 5)
+-			M.loc = locate(tx, ty, src.target.z)
+-		var/obj/effects/sparks/O = new /obj/effects/sparks(M)
+-		O.dir = pick(NORTH, SOUTH, EAST, WEST)
+-		spawn( 0 )
+-			O.Life()
++			do_teleport(M, src.target, 5)
+ 
+ /obj/effects/water/New()
+ 
+Index: code/game/weap_sat.dm
+===================================================================
+--- code/game/weap_sat.dm	(revision 414)
++++ code/game/weap_sat.dm	(working copy)
+@@ -35,11 +35,17 @@
+ 		return
+ 
+ 	var/list/L = list()
++	var/list/areaindex = list()
+ 	for(var/obj/item/weapon/radio/beacon/R in world)
+ 		var/turf/T = find_loc(R)
+ 		if (!T)
+ 			continue
+-		L[T.loc.name] = R
++		var/tmpname = T.loc.name
++		if(areaindex[tmpname])
++			tmpname = "[tmpname] ([++areaindex[tmpname]])"
++		else
++			areaindex[tmpname] = 1
++		L[tmpname] = R
+ 	var/desc = input("Please select a location to lock in.", "Locking Computer") in L
+ 	var/R = L[desc]
+ 	if (prob(50))
+@@ -66,24 +72,14 @@
+ 	return
+ 
+ /proc/find_loc(obj/R as obj)
+-
+ 	if (!( R ))
+ 		return null
+-
+ 	var/turf/T = R.loc
+-
+ 	while(!( istype(T, /turf) ))
+ 		T = T.loc
+-
+-		if(!T)
++		if(!T || istype(T, /area))
+ 			return null
+-
+-		if (istype(T, /area))
+-			return null
+-
+-
+ 	return T
+-	return
+ 
+ /obj/machinery/computer/data/ex_act(severity)
+ 
+@@ -200,15 +196,7 @@
+ 			O.hear("\red Failure: Cannot authenticate locked on coordinates. Please reinstantiate coordinate matrix.")
+ 		return
+ 	if (istype(M, /atom/movable))
+-		var/tx = com.locked.x + rand(-2.0, 2)
+-		var/ty = com.locked.y + rand(-2.0, 2)
+-		tx = max(min(tx, world.maxx), 1)
+-		ty = max(min(ty, world.maxy), 1)
+-		M.loc = locate(tx, ty, com.locked.z)
+-		var/obj/effects/sparks/O = new /obj/effects/sparks(M)
+-		O.dir = pick(NORTH, SOUTH, EAST, WEST)
+-		spawn( 0 )
+-			O.Life()
++		do_teleport(M, com.locked, 2)
+ 	else
+ 		var/obj/effects/sparks/O = new /obj/effects/sparks(com.locked)
+ 		O.dir = pick(NORTH, SOUTH, EAST, WEST)
+@@ -218,6 +206,23 @@
+ 			B.hear("\blue Test fire completed.")
+ 	return
+ 
++/proc/do_teleport(atom/movable/M as mob|obj, atom/destination, precision)
++	var/turf/destturf = find_loc(destination)
++
++	var/tx = destturf.x + rand(precision * -1, precision)
++	var/ty = destturf.y + rand(precision * -1, precision)
++
++	var/tmploc = locate(tx, ty, destination.z)
++	if(tx == destturf.x && ty == destturf.y && (istype(destination.loc, /obj/closet) || istype(destination.loc, /obj/secloset)))
++		tmploc = destination.loc
++
++	M.loc = tmploc
++
++	var/obj/effects/sparks/O = new /obj/effects/sparks(M)
++	O.dir = pick(NORTH, SOUTH, EAST, WEST)
++	spawn( 0 )
++		O.Life()
++
+ /obj/machinery/teleport/station/attackby(obj/item/weapon/W)
+ 	src.interact()
+ 

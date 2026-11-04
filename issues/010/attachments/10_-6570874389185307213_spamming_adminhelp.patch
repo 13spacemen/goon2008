@@ -1,0 +1,84 @@
+Index: mob.dm
+===================================================================
+--- mob.dm	(revision 55)
++++ mob.dm	(working copy)
+@@ -5561,10 +5561,10 @@
+ 			continue
+ 
+ 		var/name = M.name
+-		
++
+ 		if (M.rname && M.rname != M.name)
+ 			name += " \[[M.rname]\]"
+-		
++
+ 		if (name in names)
+ 			namecounts[name]++
+ 			name = "[name] ([namecounts[name]])"
+@@ -5631,42 +5631,46 @@
+ 	if (!src.client.authenticated)
+ 		src << "You are not authorized to communicate over these channels."
+ 		return
+-	
++
+ 	if (config.logooc)
+ 		world.log << "OOC: [src.name]/[src.key] : [msg]"
+-	
++
+ 	msg = cleanstring(msg)
+ 	msg = html_encode(copytext(msg, 1, 128))
+-	
++
+ 	if (!msg)
+ 		return
+-	
++
+ 	if (ooc_allowed && !src.muted)
+ 		for (var/mob/M in world)
+ 			if (M.client && M.client.listen_ooc)
+ 				M << "<B>OOC: [src.key]</B>: [msg]"
+ 
+ /mob/verb/adminhelp(msg as text)
++	if (!usr.client.authenticated)
++		src << "Please authorize before sending these messages."
++		return
++
+ 	if (config.logooc)
+ 		world.log << "HELP: [src.name]/[src.key] : [msg]"
+-	
++
+ 	msg = cleanstring(msg)
+ 	msg = html_encode(copytext(msg, 1, 128))
+-	
++
+ 	if (!msg)
+ 		return
+-	
++
+ 	var/yep = 0
+ 	if (!src.muted)
+ 		for(var/mob/M in world)
+ 			if (M.client && M.client.holder)
+-				M << "<B>HELP: [src.key]</B>: [msg]"
++				M << "\blue <B>HELP: <A href='?src=\ref[usr];priv_msg=\ref[usr]'>[src.name]</A>/([src.key]):</B> [msg]"
+ 				yep = 1
+-	
++
+ 	if (yep)
+-		src << "Your message has been broadcast to administrators."
++		src << "\blue <B>Your message has been broadcast to administrators.</B>"
+ 	else
+-		src << "Sorry, no administrators are on to hear your plea for help."
++		src << "\blue <B>Sorry, no administrators are on to hear your plea for help.</B>"
+ 
+ /mob/verb/switch_hud()
+ 	set name = "Switch HUD"
+@@ -7486,7 +7490,7 @@
+ 
+ 	if (src.authenticating)
+ 		return
+-	
++
+ 	if (!config.enable_authentication)
+ 		src.authenticated = 1
+ 		return

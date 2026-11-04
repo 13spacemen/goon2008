@@ -1,0 +1,82 @@
+Add to atoms.dm:
+
+/obj/item/weapon/flamethrower
+	name = "flamethrower"
+	icon_state = "flamethrower"
+	s_istate = "welder"
+	desc = "It throws flames."
+	var/obj/item/weapon/tank/plasmatank/attached = null
+	flags = 322.0
+	force = 3.0
+	throwforce = 5.0
+	throw_speed = 1
+	throw_range = 5
+	w_class = 3.0
+	value = 25
+	var throw_amount = 1000
+
+/obj/item/weapon/flamethrower/attackby(obj/item/weapon/tank/plasmatank/W as obj, mob/user as mob)
+	if (!istype(W,/obj/item/weapon/tank/plasmatank))
+		..()
+		return
+	attached = W
+	src.icon_state = "flamethrower_loaded"
+
+/obj/item/weapon/flamethrower/Topic(href,href_list[])
+	if (href_list["close"])
+		usr << browse(null, "window=tank")
+		return
+	var/obj/item/weapon/flamethrower/F = locate(href_list["src"])
+	F.throw_amount = F.throw_amount + text2num(href_list["amount"])
+	if (F.throw_amount > 25000)
+		F.throw_amount = 25000
+	if (F.throw_amount < 1)
+		F.throw_amount = 1
+	for(var/mob/M in viewers(1, F.loc))
+		if ((M.client && M.machine == F))
+			F.attack_self(M)
+	return
+
+/obj/item/weapon/flamethrower/attack_self(mob/user as mob)
+	user.machine = src
+	if (!( src.attached ))
+		return
+	var
+	var/dat = text("<TT><B>Flamethrower</B><BR>\nAmount in tank / Capacity of tank: [src.attached.gas.tot_gas()] / [src.attached.maximum]<BR>\nAmount to throw: <A HREF='?src=\ref[src];amount=-100'>-</A> <A HREF='?src=\ref[src];amount=-10'>-</A> <A HREF='?src=\ref[src];amount=-1'>-</A> [src.throw_amount] <A HREF='?src=\ref[src];amount=1'>+</A> <A HREF='?src=\ref[src];amount=10'>+</A> <A HREF='?src=\ref[src];amount=100'>+</A><BR>\n<A HREF='?src=\ref[src];close=1'>Close</A></TT>")
+	user << browse(dat, "window=tank;size=600x300")
+	return
+
+/obj/item/weapon/flamethrower/proc/flame_turf(turf/T as turf, obj/item/weapon/flamethrower/F as obj)
+	if (F.attached)
+		if ((F.attached.gas.plasma - F.throw_amount) > 0)
+			T.poison += F.attached.gas.plasma * F.attached.gas.temperature / 25.0
+			F.attached.gas.plasma = F.attached.gas.plasma - F.throw_amount
+			T.res_vars()
+			T.firelevel = T.firelevel + (F.throw_amount * 100)
+			T.res_vars()
+//			F.attached = null
+		else
+			usr << "You don't have enough plasma!"
+
+--------------------
+
+In demo.dm, under /turf/station/floor/attackby:
+
+/turf/station/floor/attackby(obj/item/weapon/C as obj, mob/user as mob)
+	if(!C)
+		return
+	if(!user)
+		return
++	if(istype(C, /obj/item/weapon/flamethrower))
++		C:flame_turf(src,C)
+	if(istype(C, /obj/item/weapon/crowbar))
+		if (src.health <= 100) return
+		src.health	= 100
+
+--------------------
+
+And add the icons "flamethrower" (for the flamethrower without plasma tank attached) and "flamethrower_loaded" (flamethrower with tank atttached). Icons not included.
+
+Then place flamethrowers on the map (or don't, spawn-only works). I recommend putting one or two in Engineering (I think they could be used to start the engine), and possibly one in the syndicate closets (flamethrowers are useful for syndicates, they can distract the crew and kill people that don't have firesuits).
+
+Also, right now the flamethrowers only have a range of one tile. I don't know how to make it have more. If you do, I'd appreciate if you added it.

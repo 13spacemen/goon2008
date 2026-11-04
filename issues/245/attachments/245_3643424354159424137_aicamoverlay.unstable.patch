@@ -1,0 +1,101 @@
+Index: code/datumvars.dm
+===================================================================
+--- code/datumvars.dm	(revision 532)
++++ code/datumvars.dm	(working copy)
+@@ -41,6 +41,9 @@
+ 	else if(istype(val, /datum))				// if this is a datum object
+ 		var/datum/dval = val					// add a link to the object to the HTML
+ 		t+= " ([dval.type]) <A href='?src=\ref[val];Vars=1'><FONT SIZE=-2>\ref[val]</FONT></A>"
++	else if(istype(val, /client))
++		var/client/cval = val
++		t+= " ([cval.type]) <A href='?src=\ref[val];Vars=1'><FONT SIZE=-2>\ref[val]</FONT></A>"
+ 	if("[val]" == "/list")						// if this is a list object
+ 		t += " (length [length(val)])</FONT><BR>"
+ 		if( (vname!="vars") && (vname!="verbs") && length(val)<500)	// and it's not vars or verbs, or too long
+@@ -59,6 +62,10 @@
+ 	if(href_list["Vars"])		// if this link came from the vars window
+ 		variables(src)				// invoke a new window for this object
+ 
++/client/Topic(href, href_list)
++	if(href_list["Vars"]) 
++		variables(src)
++	..()
+ 
+ /mob/proc/Delete(atom/A in view())
+ 	set category = "Debug"
+Index: code/game/mob/silicon/ai/verbs.dm
+===================================================================
+--- code/game/mob/silicon/ai/verbs.dm	(revision 532)
++++ code/game/mob/silicon/ai/verbs.dm	(working copy)
+@@ -1,6 +1,6 @@
+ /mob/silicon/ai/cancel_camera()
+ 	set category = "AI Commands"
+-	..()
++	src.switchCamera(null)
+ 
+ /mob/silicon/ai/proc/lockdown()
+ 	set name = "Lockdown"
+Index: code/game/mob/silicon/ai/alerts.dm
+===================================================================
+--- code/game/mob/silicon/ai/alerts.dm	(revision 532)
++++ code/game/mob/silicon/ai/alerts.dm	(working copy)
+@@ -2,18 +2,46 @@
+ 	usr:cameraFollow = null
+ 	if (!C)
+ 		src.machine = null
++		src.client.is_observing = 0
++		src:cameraFollow = null
+ 		src.reset_view(null)
++		// throw up an overlay for what we can't see at our regular pos...
++		var/inview = view(7, src.loc)
++		for(var/turf/T in orange(7, src.loc))
++			if(!(T in inview))
++				var/screenx = (T.x - src.loc.x) + 8
++				var/screeny = (T.y - src.loc.y) + 8
++				var/obj/screen/fog = new /obj/screen(src, "Camera Fog", null, "[screenx],[screeny]", 18, "dither12g", 1)
++				src.client.screen += fog
+ 		return 0
+ 	if (!src.is_active() || !C.status || C.network != src.network)
+ 		return 0
+ 
+ 	// ok, we're alive, camera is good and in our network...
+-
++	src.reset_view(null)
+ 	src.machine = src
+ 	src:current = C
+ 	src.reset_view(C)
++
++	// ok, set a dither mask...
++	var/inview = view(7, C.loc)
++	for(var/turf/T in orange(7, C.loc))
++		if(!(T in inview))
++			var/screenx = (T.x - C.x) + 8
++			var/screeny = (T.y - C.y) + 8
++			// world.log << "switchCamera - can't see [T] \ref[T] @ [screenx]x[screeny]"
++			var/obj/screen/fog = new /obj/screen(src, "Camera Fog", null, "[screenx],[screeny]", 18, "dither12g", 1)
++			src.client.screen += fog
+ 	return 1
+ 
++/mob/silicon/ai/reset_view(atom/A)
++	// world.log << "mob/silicon/ai/reset_view() - [A]"
++	if(!A)
++		// camera reset- clear screen overlay
++		for(var/obj/screen/sf in src.client.screen)
++			del(sf)
++	return ..(A)
++
+ /mob/silicon/ai/proc/triggerAlarm(var/class, area/A, var/O, var/alarmsource)
+ 	if (!src.is_active())
+ 		return 1
+Index: code/game/algorithm.dm
+===================================================================
+--- code/game/algorithm.dm	(revision 532)
++++ code/game/algorithm.dm	(working copy)
+@@ -28,6 +28,7 @@
+ 		var/mob/silicon/ai/A = new()
+ 		A.client = src.client
+ 		A.loc = startloc
++		A.switchCamera(null)
+ 		del(src)
+ 		return
+ 

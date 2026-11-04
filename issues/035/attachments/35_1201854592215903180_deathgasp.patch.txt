@@ -1,0 +1,54 @@
+Index: code/mob.dm
+===================================================================
+--- code/mob.dm (revision 107)
++++ code/mob.dm (working copy)
+@@ -2074,6 +2074,9 @@
+                        else
+                                message = text("<B>[]</B> makes a weak noise.", src)
+                                m_type = 2
++               if("deathgasp")
++                       message = text("<B>[]</B> siezes up and falls limp, \his eyes dead and lifeless...", src)
++                       m_type = 2
+                if("giggle")
+                        if (!( muzzled ))
+                                message = text("<B>[]</B> giggles.", src)
+@@ -2892,16 +2895,21 @@
+                        usr << text("\blue [] is wearing \icon[] [] yet doesn't seem to be that person!!!", src.name, src.wear_id, src.wear_id.name)
+                else
+                        usr << text("\blue [] is wearing \icon[] []!", src.name, src.wear_id, src.wear_id.name)
+-       if (src.bruteloss)
+-               if (src.bruteloss < 30)
+-                       usr << text("\red [] looks slightly bruised!", src.name)
+-               else
+-                       usr << text("\red <B>[] looks severely bruised!</B>", src.name)
+-       if (src.fireloss)
+-               if (src.fireloss < 30)
+-                       usr << text("\red [] looks slightly burnt!", src.name)
+-               else
+-                       usr << text("\red <B>[] looks severely burnt!</B>", src.name)
++       if (src.stat == 2)
++               usr << text("\red [] is limp and unresponsive, a dull lifeless look in \his eyes.", src.name)
++       else
++               if (src.bruteloss)
++                       if (src.bruteloss < 30)
++                               usr << text("\red [] looks slightly bruised!", src.name)
++                       else
++                               usr << text("\red <B>[] looks severely bruised!</B>", src.name)
++               if (src.fireloss)
++                       if (src.fireloss < 30)
++                               usr << text("\red [] looks slightly burnt!", src.name)
++                       else
++                               usr << text("\red <B>[] looks severely burnt!</B>", src.name)
++               if (src.stat == 1)
++                       usr << text("\red [] doesn't seem to be responding to anything around them, \his eyes closed as though asleep.", src.name)
+        usr << "\blue *---------*"
+        return
+ 
+@@ -3123,6 +3131,7 @@
+ 
+        if(src.healths)
+                src.healths.icon_state = "health5"
++       emote("deathgasp")
+        src.stat = 2
+        src.canmove = 0
+        src.blind.layer = 0

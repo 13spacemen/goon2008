@@ -1,0 +1,185 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 558)
++++ code/atoms.dm	(working copy)
+@@ -799,6 +799,7 @@
+ /obj/item/weapon/clothing/suit
+ 	name = "suit"
+ 	clothing_name = "o_clothing"
++	var/fire_resist = T0C+100
+ /obj/item/weapon/clothing/suit/armor
+ 	name = "armor"
+ 	icon_state = "armor"
+@@ -827,6 +828,7 @@
+ 	flags = FPRINT | TABLEPASS
+ 	s_fire = 7.5E7
+ 	fire_protect = 126
++	fire_resist = T0C+1300
+ obj/item/weapon/clothing/suit/labcoat
+ 	name = "labcoat"
+ 	desc = "A suit that protects against minor chemical spills."
+Index: code/game/mob/carbon/breathing.dm
+===================================================================
+--- code/game/mob/carbon/breathing.dm	(revision 558)
++++ code/game/mob/carbon/breathing.dm	(working copy)
+@@ -7,6 +7,7 @@
+ /mob/carbon/var/co2_knockdown_threshold = 100
+ /mob/carbon/var/no2_metabolize_rate = 10
+ /mob/carbon/var/no2_knockdown_threshold = 20
++/mob/carbon/var/temperature_resistance = T0C+75
+ 
+ /mob/carbon/proc/aircheck(datum/substance/gas/G as obj)
+ 	if(!G)
+@@ -32,6 +33,11 @@
+ 		if(plasma_dam > 0)
+ 			src.take_damage(toxin = plasma_dam)
+ 			src.taking_tox_damage = 1
++	if(G.temp > temperature_resistance)
++		var/lung_damage = round((G.temp - temperature_resistance)/20+1)
++		if(src.mask && src.mask.a_filter >= 4) lung_damage /= 5
++		src.take_damage(burn = lung_damage)
++
+ 	src.co2_breathed = max(0, src.co2_breathed - src.co2_metabolize_rate) + G.co2
+ 	if(src.co2_breathed > src.co2_knockdown_threshold)
+ 		src.co2_breathed -= src.co2_knockdown_threshold
+Index: code/game/mob/carbon/life.dm
+===================================================================
+--- code/game/mob/carbon/life.dm	(revision 558)
++++ code/game/mob/carbon/life.dm	(working copy)
+@@ -1,60 +1,46 @@
+ /mob/carbon/Life()
+-	set invisibility = 0
+ 	set background = 1
+ 
+ 	..()
+-	if(src.client && src.hud)
+-		src.hud.update()
++	if(src.client && src.hud)	src.hud.update()
+ 	src.lying = 0
+-	if (src.is_dead)
++	if(src.is_dead)
+ 		src.lying = 1
+-		src.is_blind = 1
+ 		src.canmove = 0
+-		if (src.buckled)
+-			src.lying = (istype(src.buckled, /obj/stool/bed)) ? 1 : 0
+-		if(src.lying)
+-			src.icon = src.lying_icon
+-			src.update_clothing()
+-		else
+-			src.icon = src.stand_icon
+-			src.update_clothing()
++		src.is_blind = 1
++		if(src.buckled)	src.lying = (istype(src.buckled, /obj/stool/bed)) ? 1 : 0
++		if(src.lying)	src.icon = src.lying_icon
++		else			src.icon = src.stand_icon
++		src.update_clothing()
+ 		return
+ 
+ 	src.canmove = 1
+-
+ 	src.is_blind = src.is_perma_blind
+ 
+-	if (!src.m_flag)
+-		src.moved_recently = 0
++	if(!src.m_flag)	src.moved_recently = 0
+ 	src.m_flag = null
+ 
+-	if (src.hud && src.hud.machine)
+-		if (src.machine)
+-			src.hud.machine.icon_state = "mach1"
+-		else
+-			src.hud.machine.icon_state = "blank"
++	if(src.hud && src.hud.machine)
++		src.hud.machine.icon_state = (src.machine ? "mach1" : "blank")
+ 
+ 	src.breathe()
++	src.check_burning()
+ 	src.check_decompression()
+ 
+-	if (src.get_damage() > death_threshold)
+-		src.death()
+-	else if (src.get_damage() > unconsciousness_threshold)
+-		if (prob(1))
+-			src.gasp()
++	if(src.get_damage() > death_threshold)	src.death()
++	else if(src.get_damage() > unconsciousness_threshold)
++		if(prob(1))	src.gasp()
+ 		src.knockout_until(5)
+ 		if(src.rejuv <= 0)
+ 			src.take_damage(suffocation = 2)
+-	else if (src.get_damage() > blackout_threshold)
+-		if (prob(5))
+-			if(prob(1))
+-				src.gasp()
++	else if(src.get_damage() > blackout_threshold)
++		if(prob(5))
++			if(prob(1)) src.gasp()
+ 			src.knockout_until(2)
+-	else if (src.sleeping)
+-		if (prob(1))
+-			src.snore()
++	else if(src.sleeping)
++		if(prob(1))	src.snore()
+ 		src.knockout_until(2)
+-	else if (src.resting)
++	else if(src.resting)
+ 		src.knockdown_until(5)
+ 
+ 	src.rejuv = max(0, src.rejuv - 1)
+@@ -65,36 +51,45 @@
+ 		src.plasma--
+ 		src.take_damage(toxin = 1)
+ 
+-	if (src.drowsyness > 0)
++	if(src.drowsyness > 0)
+ 		src.drowsyness--
+ 		if(prob(5))
+ 			src.sleeping = 1
+ 			src.knockout += 5
+ 
+-
+ 	src.handle_knockout()
+ 	src.handle_knockdown()
+ 
+-	if (src.buckled)
++	if(!src.buckled) src.density = !src.lying
++	else
+ 		src.lying = (istype(src.buckled, /obj/stool/bed)) ? 1 : 0
+ 		src.density = 1
+-	else
+-		src.density = !src.lying
+ 
+ 	src.update_grabs()
+ 
+ 	if(src.lying)
+-		src.icon = src.lying_icon
+-		src.update_clothing()
+ 		src.canmove = 0
++		src.icon = src.lying_icon
+ 	else
+ 		src.icon = src.stand_icon
+-		src.update_clothing()
++	src.update_clothing()
+ 
+ 	if(!src.client)
+-		if (src.is_active() && src.canmove && prob(10) && isturf(src.loc) && !src.resting)
++		if(src.is_active() && src.canmove && prob(10) && isturf(src.loc) && !src.resting)
+ 			step(src, pick(NORTH, SOUTH, EAST, WEST))
+-		if (prob(1) && src.is_conscious())
++		if(prob(1) && src.is_conscious())
+ 			pick(src.shiver(), src.sigh(), src.yawn(), src.cough(), src.tail())
+ 
+ 	return
++
++/mob/carbon/proc/check_burning()
++	if(!src.loc) return
++	var/turf/T = src.loc
++	if(!isturf(T)) return
++	if(T.firelevel < 900000) return
++	if(!T.gas) return
++	var/resist = T0C + 80	//	highest non-burning temperature
++	var/fire_dam = T.gas.temp
++	if(src.suit) resist = src.suit.fire_resist
++	if(fire_dam < resist) return
++	src.take_damage(burn = (fire_dam-resist))

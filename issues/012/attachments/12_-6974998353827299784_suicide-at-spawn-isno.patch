@@ -1,0 +1,15 @@
+Index: code/game/verbs/suicide.dm
+===================================================================
+--- code/game/verbs/suicide.dm	(revision 64)
++++ code/game/verbs/suicide.dm	(working copy)
+@@ -4,10 +4,6 @@
+ 		src << "You can't commit suicide before the game starts!"
+ 		return
+ 	
+-	if (istype(src.loc, /turf) && istype(src.loc.loc, /area/start))
+-		src << "You can't commit suicide before you enter the game!"
+-		return
+-	
+ 	if (suiciding)
+ 		src << "You're already committing suicide! Be patient!"
+ 		return

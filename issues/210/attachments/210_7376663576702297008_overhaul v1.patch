@@ -1,0 +1,486 @@
+Index: code/game/admin/admin.dm
+===================================================================
+--- code/game/admin/admin.dm	(revision 532)
++++ code/game/admin/admin.dm	(working copy)
+@@ -1,48 +1,46 @@
+ /var/const/ADMIN_MOD = "Mod"
+-/var/const/ADMIN_ADMIN = "Admin"
+ /var/const/ADMIN_HOST = "Host"
++/var/const/ADMIN_ADMIN = "Admin"
+ 
+ /world/New()
+-	var/ad_text = file2text("admins.txt")
+-	var/list/L = dd_text2list(ad_text, "\n")
++	var/admin_text = file2text("admins.txt")
++	var/list/L = dd_text2list(admin_text, "\n")
+ 	for(var/t in L)
+-		if (t)
+-			if (copytext(t, 1, 2) == "#")
+-				continue
+-			var/name_loc = findtext(t, " - ")
+-			if (name_loc)
+-				var/key = copytext(t, 1, name_loc)
+-				var/admin_level = copytext(t, name_loc + 3)
+-				admins[key] = admin_level
++		if(!t) continue
++		if(copytext(t, 1, 2) == "#")
++			continue
++		var/name_loc = findtext(t, " - ")
++		if(name_loc)
++			var/key = copytext(t, 1, name_loc)
++			var/level = copytext(t, name_loc + 3)
++			admins[key] = level
+ 	return ..()
+ 
+ /client/proc/is_host()
+-	if (world.address == src.address)
++	if(world.address == src.address)
+ 		return 1
+-	if (src.address == "127.0.0.1")
++	if(src.address == "127.0.0.1")
+ 		return 1
+-	if (!( src.address ))
++	if(!src.address)
+ 		return 1
+ 	return 0
+ 
+ /client/proc/game_panel()
+ 	set name = "Game Panel"
++	if(!src.powers) return
+ 
+-	if (src.powers)
+-		var/dat = "<html><head><title>Game Panel</title></head><body>"
+-		for(var/datum/admin_power/P in src.powers)
+-			if(P.panel_type == PANEL_TYPE_GAME)
+-				var/desc = P.get_desc()
+-				if(desc)
+-					dat += "[desc]<br>"
+-		dat += "</body></html>"
+-		ss13_browse(src, dat, "window=gamepanel")
++	var/dat = "<html><head><title>Game Panel</title></head><body>"
++	for(var/datum/admin_power/P in src.powers)
++		if(P.panel_type == PANEL_TYPE_GAME)
++			var/desc = P.get_desc()
++			if(desc) dat += "[desc]<br>"
++	dat += "</body></html>"
++	ss13_browse(src, dat, "window=gamepanel")
+ 
+ /client/proc/mob_panel()
+ 	set name = "Player Panel"
+ 
+-	if (!src.powers)
+-		return
++	if(!src.powers) return
+ 
+ 	var/list/player_powers = list()
+ 	for(var/datum/admin_power/P in src.powers)
+@@ -57,41 +55,13 @@
+ 		if(!M.last_known_ckey) //they're a monkey
+ 			continue
+ 
+-		dat += "<tr>"
+-		dat += "<td>[M.name]</td>"
+-		dat += "<td>[M.spawn_name]</td>"
+-		dat += "<td>[M.last_known_ckey]</td>"
+-		dat += "<td>[M.last_known_ip]</td>"
++		dat += {"<tr>",
++				"<td>[M.name]</td>",
++				"<td>[M.spawn_name]</td>",
++				"<td>[M.last_known_ckey]</td>",
++				"<td>[M.last_known_ip]</td>"}
+ 		for(var/datum/admin_power/P in player_powers)
+ 			dat += "<td>[P.get_desc(M)]</td>"
+ 		dat += "</tr>"
+ 	dat += "</table></body></html>"
+ 	ss13_browse(src, dat, "window=mobpanel")
+-
+-/client/New()
+-	..()
+-
+-	spawn (50) //TODO: Try removing this spawn, see if it still works
+-		if (src.is_host())
+-			admins[src.ckey] = ADMIN_HOST
+-		if(admins.Find(src.ckey))
+-			src.verbs += /client/proc/adminsay
+-			var/admin_level = admins[src.ckey]
+-			src.powers = list()
+-			for(var/power_type in typesof(/datum/admin_power))
+-				var/datum/admin_power/P = new power_type(admin_level)
+-				if(P) //they delete themselves if they are inapplicable
+-					//shut up it's totally good design
+-					powers += P
+-
+-			src << text("\blue The game ip is byond://[]:[] !", world.address, world.port)
+-
+-			src.verbs += /client/proc/game_panel
+-			src.verbs += /client/proc/mob_panel
+-
+-			src.verbs += /client/proc/adminsay
+-			src.verbs += /proc/variables
+-
+-			if (ticker && master_mode =="sandbox" && admin_level == ADMIN_HOST)
+-				src.verbs += /proc/variables
+-				src.verbs += /mob/proc/Delete
+Index: code/game/admin/admin_powers/abort_vote.dm
+===================================================================
+--- code/game/admin/admin_powers/abort_vote.dm	(revision 532)
++++ code/game/admin/admin_powers/abort_vote.dm	(working copy)
+@@ -12,13 +12,11 @@
+ 			vote.voting = 0
+ 			vote.nextvotetime = world.timeofday + 10*config.vote_delay
+ 
+-			for(var/mob/M in world)		// clear vote window from all clients
+-				if(M.client)
+-					ss13_browse(M, null, "window=vote")
+-					M.client.showvote = 0
++			for(var/client/C in world) // clear vote window from all clients
++				ss13_browse(C, null, "window=vote")
++				C.showvote = 0
+ 
+ 	get_desc()
+ 		if(vote.voting)
+ 			return "<a href='?src=\ref[src]'>Abort vote</a>"
+-		else
+-			return null
++		return null
+Index: code/game/admin/admin_powers/announce.dm
+===================================================================
+--- code/game/admin/admin_powers/announce.dm	(revision 532)
++++ code/game/admin/admin_powers/announce.dm	(working copy)
+@@ -5,10 +5,10 @@
+ 		return
+ 
+ 	Topic(href, href_list)
+-		var/t = input("Global message to send:", "Admin Announce", null, null)  as message
+-		if (t)
+-			world << "\blue <B>[usr.key] Announces:</B>\n \t [t]"
+-			world.log_admin("Announce: [usr.key] : [t]")
++		var/t = input("Announcement:", "Admin Announce", null, null)  as message
++		if(!t) return
++		world << "\blue <B>[usr.key] Announces:</B>\n \t [t]"
++		world.log_admin("Announce: [usr.key] : [t]")
+ 
+ 	get_desc()
+ 		return "<a href='?src=\ref[src]'>Announce</a>"
+Index: code/game/admin/admin_powers/authorize.dm
+===================================================================
+--- code/game/admin/admin_powers/authorize.dm	(revision 532)
++++ code/game/admin/admin_powers/authorize.dm	(working copy)
+@@ -1,4 +1,4 @@
+-/datum/admin_power/ban
++/datum/admin_power/authorize
+ 	name = "Authorize"
+ 	panel_type = PANEL_TYPE_PLAYER
+ 
+Index: code/game/admin/admin_powers/ban.dm
+===================================================================
+--- code/game/admin/admin_powers/ban.dm	(revision 532)
++++ code/game/admin/admin_powers/ban.dm	(working copy)
+@@ -14,6 +14,7 @@
+ 			src.max_hours = INFINITY
+ 			src.can_permaban = 1
+ 		else
++			world.log_admin("Ban power added to Non-Admin! [usr] w/ level ([adminlevel])")
+ 			del(src)
+ 
+ 	Topic(href, href_list)
+@@ -31,10 +32,14 @@
+ 			dat += "<input type='submit' value='Submit'>"
+ 			dat += "</form>"
+ 			ss13_browse(usr, dat, "window=ban")
+-		else if(href_list["mob-ban"])
++			return
++		if(href_list["mob-ban"])
+ 			var/type = href_list["type"]
+ 			var/mob/M = locate(href_list["mob-ban"])
+ 			var/reason = href_list["reason"]
++			if(!reason || !istext(reason) || length(reason)<5)
++				usr << "You need a better reason than that!"
++				return
+ 			if(type == "permanent")
+ 				permaban(M, reason)
+ 			else if(type == "hours")
+@@ -43,8 +48,8 @@
+ 					hourban(M, reason, hours)
+ 			else //roundban
+ 				banned += M.last_known_ckey
+-				M << "You have been banned for the rest of the round."
+-				M << "The reason given for the ban is:"
++				M << "You have been banned for the round."
++				M << "Reason:"
+ 				M << reason
+ 				if(M.client)
+ 					del(M.client)
+Index: code/game/admin/admin_powers/change_mode.dm
+===================================================================
+--- code/game/admin/admin_powers/change_mode.dm	(revision 532)
++++ code/game/admin/admin_powers/change_mode.dm	(working copy)
+@@ -1,58 +1,31 @@
+ /datum/admin_power/change_mode
+ 	panel_type = PANEL_TYPE_GAME
+-
++	var/modes = list("secret","random","traitor","meteor","extended","monkey","nuclear","megamonkey","blob","sandbox")
+ 	New(adminlevel)
+ 		return
+ 
+ 	Topic(href, href_list)
++		if(ticker) return
+ 		if(href_list["action"] == "list")
+-			if (!ticker)
+-				var/dat = "<B>What mode do you wish to play?</B><HR>"
+-				dat += "<A href='?src=\ref[src];c_mode=secret'>Secret</A><br>"
+-				dat += "<A href='?src=\ref[src];c_mode=random'>Random</A><br>"
+-				dat += "<A href='?src=\ref[src];c_modetraitor'>Traitor</A><br>"
+-				dat += "<A href='?src=\ref[src];c_mode=meteor'>Meteor</A><br>"
+-				dat += "<A href='?src=\ref[src];c_mode=extended'>Extended</A><br>"
+-				dat += "<A href='?src=\ref[src];c_mode=monkey'>Monkey</A><br>"
+-				dat += "<A href='?src=\ref[src];c_mode=nuclear'>Nuke</A><br>"
+-				dat += "<A href='?src=\ref[src];c_mode=blob'>Blob</A><br>"
+-				dat += "<A href='?src=\ref[src];c_mode=sandbox'>Sandbox</A><br>"
+-				dat += "Now: [master_mode]"
+-				ss13_browse(usr, dat, "window=c_mode")
+-		else if(href_list["c_mode"])
+-			if(!ticker)
+-				switch(href_list["c_mode"])
+-					if("secret")
+-						master_mode = "secret"
+-					if("random")
+-						master_mode = "random"
+-					if("traitor")
+-						master_mode = "traitor"
+-					if("meteor")
+-						master_mode = "meteor"
+-					if("extended")
+-						master_mode = "extended"
+-					if("monkey")
+-						master_mode = "monkey"
+-					if("nuclear")
+-						master_mode = "nuclear"
+-					if("megamonkey")
+-						master_mode = "megamonkey"
+-					if("blob")
+-						master_mode = "blob"
+-					if("sandbox")
+-						master_mode = "sandbox"
+-					else
+-				world.log_admin("[usr.key] set the mode as [master_mode].")
+-				world << text("\blue <B>The mode is now: []</B>", master_mode)
++			var/dat = "<B>What mode do you wish to play?</B><HR>"
++			for(var/m in modes)
++				dat += "<A href='?src=\ref[src];c_mode=[m]'>[capitalize(m)]</A><br>"
++			dat += "Now: [master_mode]"
++			ss13_browse(usr, dat, "window=c_mode")
++			return
++		if(href_list["c_mode"])
++			if(!(href_list["c_mode"] in modes))
++				return
++			master_mode = href_list["c_mode"]
++			world.log_admin("[usr.key] set the mode as [master_mode].")
++			world << text("\blue <B>The mode is now: []</B>", master_mode)
+ 
+-				var/F = file(persistent_file)
+-				fdel(F)
+-				F << master_mode
++			var/F = file(persistent_file)
++			fdel(F)
++			F << master_mode
+ 
+-
+ 	get_desc()
+-		if(ticker)
++		if(!ticker)
+ 			return "<a href='?src=\ref[src];action=list'>Change mode</a>"
+ 		else
+ 			return null
+Index: code/game/admin/admin_powers/delay.dm
+===================================================================
+--- code/game/admin/admin_powers/delay.dm	(revision 532)
++++ code/game/admin/admin_powers/delay.dm	(working copy)
+@@ -8,7 +8,7 @@
+ 		if(ticker)
+ 			return
+ 		going = !going
+-		if (going)
++		if(going)
+ 			world << text("<B>The game will start soon thanks to [] (Administrator to SS13)</B>", usr.key)
+ 			world.log_admin("[usr.key] removed the delay.")
+ 		else
+Index: code/game/admin/admin_powers/make_object.dm
+===================================================================
+--- code/game/admin/admin_powers/make_object.dm	(revision 532)
++++ code/game/admin/admin_powers/make_object.dm	(working copy)
+@@ -6,11 +6,12 @@
+ 			del(src)
+ 
+ 	Topic(href, href_list)
++		world << "usr ([usr]), href ([href]), list ([href_list])([dd_list2text(href_list)])"
++
+ 		var/X = typesof(/obj/)
+ 		var/Q = input("What object?", null, null, null)  as null|anything in X
+-		if (!( Q ))
+-			return
+-		new Q( usr.loc )
++		if(!Q) return
++		new Q(usr.loc)
+ 		world.log_admin("[usr.key] created a [Q]")
+ 
+ 	get_desc()
+Index: code/game/admin/admin_powers/manage_bans.dm
+===================================================================
+--- code/game/admin/admin_powers/manage_bans.dm	(revision 532)
++++ code/game/admin/admin_powers/manage_bans.dm	(working copy)
+@@ -24,7 +24,8 @@
+ 					dat += "</tr>"
+ 			dat += "</table>"
+ 			ss13_browse(usr, dat, "window=banpanel")
+-		else if(href_list["bannum"] && href_list["ckey"])
++			return
++		if(href_list["bannum"] && href_list["ckey"])
+ 			var/bannum = text2num(href_list["bannum"])
+ 			var/ckey = href_list["ckey"]
+ 			var/list/bans = load_bans("bans/[ckey].ban")
+Index: code/game/admin/admin_powers/power_all.dm
+===================================================================
+--- code/game/admin/admin_powers/power_all.dm	(revision 532)
++++ code/game/admin/admin_powers/power_all.dm	(working copy)
+@@ -8,11 +8,10 @@
+ 	Topic(href, href_list)
+ 		world.log_admin("[usr.key] used power_all.")
+ 		for(var/area/A in world)
+-			A.requires_power = 0
+ 			A.power_light = 1
+ 			A.power_equip = 1
+ 			A.power_environ = 1
+-
++			A.requires_power = 0
+ 			A.power_change()
+ 
+ 	get_desc()
+Index: code/game/admin/banning.dm
+===================================================================
+--- code/game/admin/banning.dm	(revision 532)
++++ code/game/admin/banning.dm	(working copy)
+@@ -1,10 +1,12 @@
+ /datum/ban
+-	var/is_permanent = 0
+-	var/expire_time = 0
+ 	var/reason = ""
+ 	var/banner = null
++	var/expire_time = 0
++	var/is_permanent = 0
+ 
+ /proc/permaban(mob/M, reason, banner)
++	if(!reason || !istext(reason) || length(reason)<5)
++		return
+ 	var/datum/ban/B = new()
+ 	B.is_permanent = 1
+ 	B.reason = reason
+@@ -12,6 +14,8 @@
+ 	ban(M, B)
+ 
+ /proc/hourban(mob/M, reason, hours, banner)
++	if(!reason || !istext(reason) || length(reason)<5)
++		return
+ 	var/datum/ban/B = new()
+ 	B.expire_time = world.realtime + hours*36000 //convert to seconds
+ 	B.reason = reason
+@@ -23,12 +27,19 @@
+ 	//if pubbies are getting in then we're doomed anyways
+ 	if(M.last_known_ckey)
+ 		add_ban("bans/[M.last_known_ckey].ban", B)
++	ban_alert(M,B)
+ 
+-	M << "You have been banned."
++/proc/ban_alert(mob/M, datum/ban/B)
+ 	if(B.is_permanent)
+-		M << "The ban is permanent."
++		M << "You are \red <B>permabanned</B>\black."
+ 	else
+-		M << "You will be unbanned in [round((B.expire_time - world.realtime) / 36000)] hours and [round(((B.expire_time - world.realtime) % 36000) / 60)] minutes."
++		var/message = "You are banned for "
++		var/bantime = B.expire_time - world.realtime
++		if(bantime>86400)		message += "[round(bantime/86400)] days."
++		else if(bantime>3600)	message += "[round(bantime/3600)] hours."
++		else if(bantime>60)		message += "[round(bantime/60)] minutes."
++		else					message += "[bantime] seconds."
++
+ 	M << "The reason given for the ban is:"
+ 	M << B.reason
+ 	if(M.client)
+@@ -40,17 +51,10 @@
+ 	if(bans)
+ 		for(var/datum/ban/B in bans)
+ 			if(B.is_permanent || B.expire_time > world.realtime)
+-				src << "You have been banned."
+-				if(B.is_permanent)
+-					src << "The ban is permanent."
+-				else
+-					src << "You will be unbanned in [round((B.expire_time - world.realtime) / 36000)] hours and [round(((B.expire_time - world.realtime) % 36000) / 600, 1)] minutes."
+-				src << "The reason given for the ban is:"
+-				src << B.reason
+-				del(src)
+-				return
++				return ban_alert(src,B)
++
+ 	if(src.ckey in banned)
+-		src << "You have been roundbanned."
++		src << "You have been banned for the round."
+ 		del(src)
+ 		return
+ 	..()
+Index: code/game/client.dm
+===================================================================
+--- code/game/client.dm	(revision 532)
++++ code/game/client.dm	(working copy)
+@@ -13,17 +13,17 @@
+ 
+ 	src.authorize()
+ 
+-	if (config.log_access)
++	if(config.log_access)
+ 		for (var/mob/M in world)
+ 			if(M.client == src)
+ 				continue
+ 			if(M.client && M.client.address == src.address)
+ 				world.log_access("Notice: [src.key] has same IP address as [M.key]")
+-			else if (M.last_known_ip && M.last_known_ip == src.address && M.ckey != src.ckey)
++			else if(M.last_known_ip && M.last_known_ip == src.address && M.ckey != src.ckey)
+ 				world.log_access("Notice: [src.key] has same IP address as [M.key] did (M.key is no longer logged in).")
+-				if (M.ckey in banned)
++				if(M.ckey in banned)
+ 					world.log_access("Further notice: [M.key] was banned.")
+-	if (((world.address == src.address || !(src.address)) && !(host)))
++	if(!host && src.is_host())
+ 		host = src.key
+ 		world.update_stat()
+ 
+@@ -32,6 +32,29 @@
+ 
+ 	..()
+ 
++	if(src.is_host())
++		admins[src.ckey] = ADMIN_HOST
++	if(admins.Find(src.ckey))
++		var/admin_level = admins[src.ckey]
++		src.powers = list()
++		for(var/power_type in typesof(/datum/admin_power))
++			var/datum/admin_power/P = new power_type(admin_level)
++			if(P) //they delete themselves if they are inapplicable
++				//shut up it's totally good design
++				powers += P
++
++		src << text("\blue The game ip is byond://[]:[] !", world.address, world.port)
++
++		src.verbs += /client/proc/adminsay
++		src.verbs += /client/proc/mob_panel
++		src.verbs += /client/proc/game_panel
++
++		src.verbs += /proc/variables
++
++		if (ticker && master_mode =="sandbox" && admin_level == ADMIN_HOST)
++			src.verbs += /proc/variables
++			src.verbs += /mob/proc/Delete
++
+ /client/proc/reset_view(atom/A)
+ 	if (istype(A, /atom/movable))
+ 		src.perspective = EYE_PERSPECTIVE

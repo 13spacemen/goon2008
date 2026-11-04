@@ -1,0 +1,5197 @@
+Index: _debug.dm
+===================================================================
+--- _debug.dm	(revision 281)
++++ _debug.dm	(working copy)
+@@ -125,7 +125,7 @@
+ 
+ 		O.overlays += numbericon("[temp]C")
+ 
+-		var/pres = round(T.tot_gas() / CELLSTANDARD * 100, 0.1)
++		var/pres = round(T.total() / CELLSTANDARD * 100, 0.1)
+ 
+ 		O.overlays += numbericon("[pres]", -8)
+ 		O.mark = "[temp]/[pres]"
+@@ -157,12 +157,12 @@
+ 					M = P.pl
+ 
+ 
+-				var/obj/substance/gas/G = M.get_gas()
++				var/datum/substance/gas/G = M.get_gas()
+ 
+ 				if(G)
+ 
+-					var/cap = round( 100*(G.tot_gas()/ M.capmult / 6e6), 0.1)
+-					var/temp = round(G.temperature - T0C, 0.1)
++					var/cap = round( 100*(G.total()/ M.capmult / 6e6), 0.1)
++					var/temp = round(G.temp - T0C, 0.1)
+ 					O.overlays += numbericon("[temp]C", 0)
+ 					O.overlays += numbericon("[cap]", -8)
+ 
+@@ -392,22 +392,22 @@
+ 
+ 	var/atot = 0
+ 	for(var/turf/T in A)
+-		atot += T.tot_gas()
++		atot += T.total()
+ 
+ 	var/ptot = 0
+ 	for(var/obj/machinery/pipeline/PL in plines)
+ 		if(PL.suffix == "d")
+-			ptot += PL.ngas.tot_gas()
++			ptot += PL.ngas.total()
+ 
+ 	var/vtot = 0
+ 	for(var/obj/machinery/atmoalter/V in machines)
+ 		if(V.suffix == "d")
+-			vtot += V.gas.tot_gas()
++			vtot += V.gas.total()
+ 
+ 	var/ctot = 0
+ 	for(var/obj/machinery/connector/C in machines)
+ 		if(C.suffix == "d")
+-			ctot += C.ngas.tot_gas()
++			ctot += C.ngas.total()
+ 
+ 
+ 	var/tot = atot + ptot + vtot + ctot
+Index: atoms.dm
+===================================================================
+--- atoms.dm	(revision 281)
++++ atoms.dm	(working copy)
+@@ -157,6 +157,15 @@
+ 	var/grille = 0
+ 	var/mach = 0
+ 
++/datum/substance/gas
++	var/temp	= T20C
++	var/nitrogen= 0.0
++	var/oxygen	= 0.0
++	var/plasma	= 0.0
++	var/no2		= 0.0
++	var/co2		= 0.0
++	var/maximum = -1.0
++
+ /datum/powernet
+ 	var/list/cables = list()	// all cables & junctions
+ 	var/list/nodes = list()		// all APCs & sources
+@@ -1606,7 +1615,7 @@
+ /obj/item/weapon/tank
+ 	name = "tank"
+ 	var/maximum = null
+-	var/obj/substance/gas/gas = null
++	var/datum/substance/gas/gas = null
+ 	var/i_used = 100
+ 	flags = 323.0
+ 	weight = 1000000.0
+@@ -1769,7 +1778,7 @@
+ 	anchored = 1.0
+ /obj/machinery/atmoalter
+ 	name = "atmoalter"
+-	var/obj/substance/gas/gas = null
++	var/datum/substance/gas/gas = null
+ 	var/maximum
+ 	var/t_status
+ 	var/t_per
+@@ -1911,10 +1920,10 @@
+ 	var/side = 1 // 1=left 2=right
+ 	var/status = 0
+ 	var/rate = 1000000
+-	var/obj/substance/gas/gas1 = null
+-	var/obj/substance/gas/ngas1 = null
+-	var/obj/substance/gas/gas2 = null
+-	var/obj/substance/gas/ngas2 = null
++	var/datum/substance/gas/gas1 = null
++	var/datum/substance/gas/ngas1 = null
++	var/datum/substance/gas/gas2 = null
++	var/datum/substance/gas/ngas2 = null
+ 
+ 	var/capacity = 6000000.0
+ 	var/obj/machinery/node1 = null
+@@ -2082,10 +2091,10 @@
+ 
+ 	var/obj/machinery/vnode = null
+ 
+-	var/obj/substance/gas/gas = null
+-	var/obj/substance/gas/ngas = null
++	var/datum/substance/gas/gas = null
++	var/datum/substance/gas/ngas = null
+ 
+-	//var/obj/substance/gas/agas
++	//var/datum/substance/gas/agas
+ 
+ 	var/capacity = 6000000.0
+ 	capmult = 2
+@@ -2100,8 +2109,8 @@
+ 	p_dir = 2
+ 	var/obj/machinery/node
+ 	var/obj/machinery/vnode
+-	var/obj/substance/gas/gas
+-	var/obj/substance/gas/ngas
++	var/datum/substance/gas/gas
++	var/datum/substance/gas/ngas
+ 	var/capacity = 6000000
+ 	capmult = 2
+ 
+@@ -2115,8 +2124,8 @@
+ 	p_dir = 2
+ 	var/obj/machinery/node
+ 	var/obj/machinery/vnode
+-	var/obj/substance/gas/gas
+-	var/obj/substance/gas/ngas
++	var/datum/substance/gas/gas
++	var/datum/substance/gas/ngas
+ 	var/capacity = 6000000
+ 	capmult = 2
+ 
+@@ -2128,8 +2137,8 @@
+ 	density = 1
+ 	var/obj/machinery/line_in = null
+ 	var/mob/carbon/occupant = null
+-	var/obj/substance/gas/gas = null
+-	var/obj/substance/gas/ngas = null
++	var/datum/substance/gas/gas = null
++	var/datum/substance/gas/ngas = null
+ 	anchored = 1.0
+ 	p_dir = 8.0
+ 	capmult = 1
+@@ -2199,10 +2208,10 @@
+ 	var/status = 0.0
+ 	var/t_flags = 3.0
+ 	var/transfer = 0.0
+-	var/temperature = 60.0+T0C
++	var/temp = 60.0+T0C
+ 
+-	var/obj/substance/gas/gas
+-	var/obj/substance/gas/ngas
++	var/datum/substance/gas/gas
++	var/datum/substance/gas/ngas
+ 	p_dir = 4.0
+ 	anchored = 1.0
+ 	capmult = 1
+@@ -2280,10 +2289,10 @@
+ 	var/obj/item/weapon/disk/nuclear/auth = null
+ 	flags = FPRINT
+ /obj/machinery/valve
+-	var/obj/substance/gas/gas1 = null
+-	var/obj/substance/gas/ngas1 = null
+-	var/obj/substance/gas/gas2 = null
+-	var/obj/substance/gas/ngas2 = null
++	var/datum/substance/gas/gas1 = null
++	var/datum/substance/gas/ngas1 = null
++	var/datum/substance/gas/gas2 = null
++	var/datum/substance/gas/ngas2 = null
+ 	var/capacity = 6000000.0
+ 	var/obj/machinery/node1 = null
+ 	var/obj/machinery/node2 = null
+@@ -2314,8 +2323,8 @@
+ 	var/n1dir
+ 	var/n2dir
+ 
+-	var/obj/substance/gas/gas = null
+-	var/obj/substance/gas/ngas = null
++	var/datum/substance/gas/gas = null
++	var/datum/substance/gas/ngas = null
+ 	var/capacity = 6000000.0
+ 	var/obj/machinery/node1 = null
+ 	var/obj/machinery/node2 = null
+@@ -2339,8 +2348,8 @@
+ 	dir = 2
+ 	p_dir = 3
+ 
+-	var/obj/substance/gas/gas = null
+-	var/obj/substance/gas/ngas = null
++	var/datum/substance/gas/gas = null
++	var/datum/substance/gas/ngas = null
+ 	var/obj/machinery/node1 = null
+ 	var/obj/machinery/node2 = null
+ 
+@@ -2370,8 +2379,8 @@
+ 	name = "pipeline"
+ 	var/list/nodes = list()
+ 	var/numnodes = 0
+-	var/obj/substance/gas/gas = null
+-	var/obj/substance/gas/ngas = null
++	var/datum/substance/gas/gas = null
++	var/datum/substance/gas/ngas = null
+ 
+ 	var/obj/machinery/vnode1
+ 	var/obj/machinery/vnode2
+@@ -2647,7 +2656,7 @@
+ 	anchored = 1
+ 	density = 1
+ 	var/obj/machinery/power/turbine/turbine
+-	var/obj/substance/gas/gas
++	var/datum/substance/gas/gas
+ 	var/turf/inturf
+ 	var/starter = 0
+ 	var/rpm = 0
+@@ -2713,29 +2722,13 @@
+ /obj/move
+ 	name = "move"
+ 	icon = 'shuttle.dmi'
++	var/datum/substance/gas/gas		=	new /datum/substance/gas( oxygen = O2STANDARD, n2 = N2STANDARD )
++	var/datum/substance/gas/phase1	=	new /datum/substance/gas	//	old
++	var/datum/substance/gas/phase2	=	new /datum/substance/gas	//	tmp
++
+ 	var/master = null
+ 	var/tx = null
+ 	var/ty = null
+-	var/oxygen = O2STANDARD
+-	var/oldoxy = null
+-	var/tmpoxy = null
+-	var/oldpoison = null
+-	var/tmppoison = null
+-	var/poison = 0.0
+-	var/co2 = 0.0
+-	var/oldco2 = null
+-	var/tmpco2 = null
+-	var/sl_gas = 0.0
+-	var/osl_gas = null
+-	var/tsl_gas = null
+-	var/n2 = N2STANDARD
+-	var/on2 = null
+-	var/tn2 = null
+-
+-	var/temp = T20C
+-	var/otemp
+-	var/ttemp
+-
+ 	var/firelevel = 0.0
+ 	var/airdir = null
+ 	var/airforce = null
+@@ -2879,7 +2872,7 @@
+ /obj/substance
+ 	name = "substance"
+ 	var/maximum
+-	var/temperature
++	var/temp
+ 	var/co2
+ 	var/n2
+ 	var/oxygen
+@@ -2888,19 +2881,8 @@
+ /obj/substance/chemical
+ 	name = "chemical"
+ 	maximum = null
+-
+ 	var/list/chemicals = list(  )		// contains /datum/chemical
+ 
+-
+-/obj/substance/gas
+-	name = "gas"
+-	temperature = T20C
+-	co2 = 0.0
+-	n2 = 0.0
+-	oxygen = 0.0
+-	plasma = 0.0
+-	sl_gas = 0.0
+-	maximum = -1.0
+ /obj/table
+ 	name = "table"
+ 	icon = 'table.dmi'
+Index: atoms/turf.dm
+===================================================================
+--- atoms/turf.dm	(revision 281)
++++ atoms/turf.dm	(working copy)
+@@ -1,66 +1,36 @@
+ /turf
+ 	icon = 'turfs.dmi'
+-	var/intact = 0
+-	var/firelevel = null
+-	var/oxygen = O2STANDARD
+-	var/oldoxy = null
+-	var/tmpoxy = null
+-	var/oldpoison = null
+-	var/tmppoison = null
+-	var/poison = 0.0
+-	var/co2 = 0.0
+-	var/oldco2 = null
+-	var/tmpco2 = null
+-	var/sl_gas = 0.0
+-	var/osl_gas = null
+-	var/tsl_gas = null
+-	var/n2 = N2STANDARD
+-	var/on2 = null
+-	var/tn2 = null
+-	var/temp = T20C
+-	var/otemp
+-	var/ttemp
++	var/datum/substance/gas/gas		=	new /datum/substance/gas
++	var/datum/substance/gas/phase1	=	new /datum/substance/gas	//	old
++	var/datum/substance/gas/phase2	=	new /datum/substance/gas	//	tmp
++	var/oxygen=O2STANDARD; var/poison=0; var/n2=N2STANDARD	//	backwards compatability
+ 
+-	var/airdir = null
+-	var/airforce = null
+-	var/checkfire = 1.0
+-	var/atmoalt = null
+-	var/updatecell = null
+-	level = 1.0
++	var/intact		= 0
++	var/firelevel	= null
++	var/airdir		= null
++	var/airforce	= null
++	var/checkfire	= 1.0
++	var/atmoalt		= null
++	var/updatecell	= null
++	level			= 1.0
+ 
+-
+ 	// the turfs to the N,S,E & W
+-	var/turf/linkN
+-	var/turf/linkS
+-	var/turf/linkE
+-	var/turf/linkW
+-
+ 	// whether those turfs are air-connected
+-	var/airN
+-	var/airS
+-	var/airE
+-	var/airW
++	// whether to use special conduction heat transfer (windows only)
++	var/turf/linkN;	var/turf/linkS;	var/turf/linkE;	var/turf/linkW
++	var/airN;		var/airS;		var/airE;		var/airW
++	var/condN;		var/condS;		var/condE;		var/condW
+ 
+-	// whether to use special conduction heat transfer (through windows only)
+-
+-	var/condN
+-	var/condS
+-	var/condE
+-	var/condW
+-
+ /turf/space
+ 	name = "space"
+ 	icon_state = "space"
+ 	var/previousArea = null
+-	updatecell = 1.0
+-	oxygen = 0.0
+-	n2 = 0.0
++	updatecell	= 1.0
+ 	checkfire = 0
+-	oldoxy = 0.0
+-	oldpoison = 0.0
+-	// CMB radiation temperature+
+-	temp = 2.7
+ 
++	//				Cosmic Microwave Background radiation temperature
++	oxygen = 0;	n2 = 0
++
+ /turf/station
+ 	name = "station"
+ 	intact = 1
+Index: game/airtunnel.dm
+===================================================================
+--- game/airtunnel.dm	(revision 281)
++++ game/airtunnel.dm	(working copy)
+@@ -589,7 +589,7 @@
+ 	return
+ 
+ /obj/machinery/alarm/process()
+-
++{
+ 	if(stat & NOPOWER)
+ 		icon_state = "alarm-p"
+ 		return
+@@ -602,16 +602,14 @@
+ 		return
+ 	if (locate(/obj/move, T))
+ 		T = locate(/obj/move, T)
+-	var/turf_total = T.co2 + T.oxygen + T.poison + T.sl_gas + T.n2
+-	turf_total = max(turf_total, 1)
+-	var/t1 = turf_total / CELLSTANDARD * 100
+-	if (!( (90 < t1 && t1 < 110) ))
+-		safe = 0
+-	t1 = T.oxygen / turf_total * 100
+-	if (!( (20 < t1 && t1 < 30) ))
+-		safe = 0
++	var/turf_total = max(T.gas.total(), 1)
++	var/air_pressure = turf_total / CELLSTANDARD * 100
++	var/oxygen_press = T.gas.oxygen / turf_total * 100
++
++	if(90 > air_pressure || air_pressure > 110)		safe = 0
++	if(20 > oxygen_press || oxygen_press >  30)		safe = 0
+ 	src.icon_state = text("alarm:[]", !( safe ))
+-	return
++}
+ 
+ /obj/machinery/alarm/power_change()
+ 	if( powered(ENVIRON) )
+@@ -631,47 +629,30 @@
+ 	if (!( istype(T, /turf) ))
+ 		return
+ 
+-	var/turf_total = T.co2 + T.oxygen + T.poison + T.sl_gas + T.n2
+-	turf_total = max(turf_total, 1)
++	var/turf_total = max(T.gas.total(), 1) / 100
+ 	usr.see("\blue <B>Results:</B>")
+ 	var/t = ""
+-	var/t1 = turf_total / CELLSTANDARD * 100
+-	if ((90 < t1 && t1 < 110))
+-		usr.see(text("\blue Air Pressure: []%", t1))
+-	else
+-		usr.see(text("\blue Air Pressure:\red []%", t1))
+-	t1 = T.n2 / turf_total * 100
+-	t1 = round(t1, 0.0010)
+-	if ((60 < t1 && t1 < 80))
+-		t += text("<font color=blue>Nitrogen: []</font> ", t1)
+-	else
+-		t += text("<font color=red>Nitrogen: []</font> ", t1)
+-	t1 = T.oxygen / turf_total * 100
+-	t1 = round(t1, 0.0010)
+-	if ((20 < t1 && t1 < 24))
+-		t += text("<font color=blue>Oxygen: []</font> ", t1)
+-	else
+-		t += text("<font color=red>Oxygen: []</font> ", t1)
+-	t1 = T.poison / turf_total * 100
+-	t1 = round(t1, 0.0010)
+-	if (t1 < 0.5)
+-		t += text("<font color=blue>Plasma: []</font> ", t1)
+-	else
+-		t += text("<font color=red>Plasma: []</font> ", t1)
+-	t1 = T.co2 / turf_total * 100
+-	t1 = round(t1, 0.0010)
+-	if (t1 < 1)
+-		t += text("<font color=blue>CO2: []</font> ", t1)
+-	else
+-		t += text("<font color=red>CO2: []</font> ", t1)
+-	t1 = T.sl_gas / turf_total * 100
+-	t1 = round(t1, 0.0010)
+-	if (t1 < 5)
+-		t += text("<font color=blue>NO2: []</font>", t1)
+-	else
+-		t += text("<font color=red>NO2: []</font>", t1)
++	var/t1 = turf_total / CELLSTANDARD * 10000
++	if(90 > t1 || t1 > 110)		t += text("\blue Air Pressure: []%", t1)
++	else						t += text("\blue Air Pressure:\red []%", t1)
++	t1 = round(T.gas.nitrogen / turf_total,0.0010)
++	if(60 > t1 || t1 >  80)		t += text("<font color=blue>Nitrogen: []</font> ", t1)
++	else						t += text("<font color=red>Nitrogen: []</font> ", t1)
++	t1 = round(T.gas.oxygen / turf_total, 0.0010)
++	if(20 > t1 || t1 > 24)		t += text(">font color=blue>Oxygen: []>/font> ", t1)
++	else						t += text(">font color=red>Oxygen: []>/font> ", t1)
++	t1 = round(T.gas.plasma / turf_total, 0.0010)
++	if(t1 > 0.5)				t += text(">font color=blue>Plasma: []>/font> ", t1)
++	else						t += text(">font color=red>Plasma: []>/font> ", t1)
++	t1 = round(T.gas.co2 / turf_total, 0.0010)
++	if(t1 > 1)					t += text(">font color=blue>CO2: []>/font> ", t1)
++	else						t += text(">font color=red>CO2: []>/font> ", t1)
++	t1 = round(T.gas.no2 / turf_total, 0.0010)
++	if(t1 > 5)					t += text(">font color=blue>NO2: []>/font>", t1)
++	else						t += text(">font color=red>NO2: []>/font>", t1)
++
+ 	usr.see(t, 1)
+-	usr.see(text("\blue \t Temperature: []&deg;C", T.temp - T0C))
++	usr.see(text("\blue \t Temperature: []&deg;C", T.gas.temp - T0C))
+ 	src.add_fingerprint(usr)
+ 	return
+ 
+@@ -688,14 +669,11 @@
+ 		return
+ 	if (locate(/obj/move, T))
+ 		T = locate(/obj/move, T)
+-	var/turf_total = T.co2 + T.oxygen + T.poison + T.sl_gas + T.n2
+-	turf_total = max(turf_total, 1)
+-	var/t1 = turf_total / CELLSTANDARD * 100
+-	if (!( (90 < t1 && t1 < 110) ))
+-		safe = 0
+-	t1 = T.oxygen / turf_total * 100
+-	if (!( (20 < t1 && t1 < 30) ))
+-		safe = 0
++	var/turf_total = max(T.gas.total(), 1)
++	var/air_pressure = turf_total / CELLSTANDARD * 100
++	var/oxygen_press = T.gas.oxygen / turf_total * 100
++	if(90 > air_pressure || air_pressure > 110)			safe = 0
++	if(20 > oxygen_press || oxygen_press >  30)			safe = 0
+ 	src.icon_state = text("indicator[]", safe)
+ 	SS13_airtunnel.air_stat = safe
+ 	return
+Index: game/areas.dm
+===================================================================
+--- game/areas.dm	(revision 281)
++++ game/areas.dm	(working copy)
+@@ -71,9 +71,9 @@
+ 		for(var/turf/T in src)		// count the number of turfs (for lighting calc)
+ 			numturfs++				// spawned with a delay so turfs can finish loading
+ 			if(no_air)
+-				T.oxygen = 0		// remove air if so specified for this area
+-				T.n2 = 0
+-				T.res_vars()
++				T.gas.oxygen = 0		// remove air if so specified for this area
++				T.gas.nitrogen = 0
++				T.reset_phases()
+ 
+ 		if(linkarea)
+ 			linked = locate(text2path("/area/[linkarea]"))		// area linked to this for power calcs
+Index: game/atmo_control.dm
+===================================================================
+--- game/atmo_control.dm	(revision 281)
++++ game/atmo_control.dm	(working copy)
+@@ -71,7 +71,7 @@
+ 
+ 	if (get_dist(usr, src) <= 3)
+ 		if (src.target)
+-			usr << text("\blue <B>Results:\nMass flow []%\nTemperature [] K</B>", round(100*abs(average)/6e6, 0.1), round(target.pl.gas.temperature,0.1))
++			usr << text("\blue <B>Results:\nMass flow []%\nTemperature [] K</B>", round(100*abs(average)/6e6, 0.1), round(target.pl.gas.temp,0.1))
+ 		else
+ 			usr << "\blue <B>Results: Connection Error!</B>"
+ 	else
+@@ -82,7 +82,7 @@
+ /obj/machinery/meter/proc/pressure()
+ 
+ 	if(src.target && src.target.gas)
+-		return (average * target.gas.temperature)/100000.0
++		return (average * target.gas.temp)/100000.0
+ 	else
+ 		return 0
+ */
+@@ -90,7 +90,7 @@
+ /obj/machinery/atmoalter/siphs/New()
+ 
+ 	..()
+-	src.gas = new /obj/substance/gas( src )
++	src.gas = new /datum/substance/gas( src )
+ 	src.gas.maximum = src.maximum
+ 
+ 	return
+@@ -168,7 +168,7 @@
+ 	..()
+ 	if(!empty)
+ 		src.gas.oxygen = 2.73E7
+-		src.gas.n2 = 1.027E8
++		src.gas.nitrogen = 1.027E8
+ 	return
+ 
+ /obj/machinery/atmoalter/siphs/fullairsiphon/port/reset(valve, auto)
+@@ -242,7 +242,7 @@
+ 			if(1.0)
+ 				if( !portable() ) use_power(50, ENVIRON)
+ 				if (src.holding)
+-					var/t1 = src.gas.tot_gas()
++					var/t1 = src.gas.total()
+ 					var/t2 = t1
+ 					var/t = src.t_per
+ 					if (src.t_per > t2)
+@@ -250,7 +250,7 @@
+ 					src.holding.gas.transfer_from(src.gas, t)
+ 				else
+ 					if (T)
+-						var/t1 = src.gas.tot_gas()
++						var/t1 = src.gas.total()
+ 						var/t2 = t1
+ 						var/t = src.t_per
+ 						if (src.t_per > t2)
+@@ -259,7 +259,7 @@
+ 			if(2.0)
+ 				if( !portable() ) use_power(50, ENVIRON)
+ 				if (src.holding)
+-					var/t1 = src.gas.tot_gas()
++					var/t1 = src.gas.total()
+ 					var/t2 = src.maximum - t1
+ 					var/t = src.t_per
+ 					if (src.t_per > t2)
+@@ -267,7 +267,7 @@
+ 					src.gas.transfer_from(src.holding.gas, t)
+ 				else
+ 					if (T)
+-						var/t1 = src.gas.tot_gas()
++						var/t1 = src.gas.total()
+ 						var/t2 = src.maximum - t1
+ 						var/t = src.t_per
+ 						if (t > t2)
+@@ -282,14 +282,14 @@
+ 						if (world.time > src.f_time)
+ 							src.gas.extract_toxs(T)
+ 							if( !portable() ) use_power(150, ENVIRON)
+-							var/contain = src.gas.tot_gas()
++							var/contain = src.gas.total()
+ 							if (contain > 1.3E8)
+ 								src.gas.turf_add(T, 1.3E8 - contain)
+ 
+ 	/*if (src.c_status == 1)
+ 		var/obj/machinery/connector/C = locate(/obj/machinery/connector, src.loc)
+ 		if (C)
+-			var/obj/substance/gas/G = new /obj/substance/gas(  )
++			var/datum/substance/gas/G = new /datum/substance/gas(  )
+ 			G.transfer_from(src.gas, src.c_per)
+ 			spawn( 0 )
+ 				C.receive_gas(G, src)
+@@ -405,7 +405,7 @@
+ 			if(1.0)
+ 				if( !portable() ) use_power(50, ENVIRON)
+ 				if (src.holding)
+-					var/t1 = src.gas.tot_gas()
++					var/t1 = src.gas.total()
+ 					var/t2 = t1
+ 					var/t = src.t_per
+ 					if (src.t_per > t2)
+@@ -413,7 +413,7 @@
+ 					src.holding.gas.transfer_from(src.gas, t)
+ 				else
+ 					if (T)
+-						var/t1 = src.gas.tot_gas()
++						var/t1 = src.gas.total()
+ 						var/t2 = t1
+ 						var/t = src.t_per
+ 						if (src.t_per > t2)
+@@ -422,7 +422,7 @@
+ 			if(2.0)
+ 				if( !portable() ) use_power(50, ENVIRON)
+ 				if (src.holding)
+-					var/t1 = src.gas.tot_gas()
++					var/t1 = src.gas.total()
+ 					var/t2 = src.maximum - t1
+ 					var/t = src.t_per
+ 					if (src.t_per > t2)
+@@ -430,19 +430,19 @@
+ 					src.gas.transfer_from(src.holding.gas, t)
+ 				else
+ 					if (T)
+-						var/t1 = src.gas.tot_gas()
++						var/t1 = src.gas.total()
+ 						var/t2 = src.maximum - t1
+ 						var/t = src.t_per
+ 						if (t > t2)
+ 							t = t2
+-						//var/g = gas.tot_gas()
+-						//if(dbg) world.log << "VP0 : [t] from turf: [gas.tot_gas()]"
++						//var/g = gas.total()
++						//if(dbg) world.log << "VP0 : [t] from turf: [gas.total()]"
+ 						//if(dbg) Air()
+ 
+ 						src.gas.turf_take(T, t)
+-						//if(dbg) world.log << "VP1 : now [gas.tot_gas()]"
++						//if(dbg) world.log << "VP1 : now [gas.total()]"
+ 
+-						//if(dbg) world.log << "[gas.tot_gas()-g] ([t]) from turf to siph"
++						//if(dbg) world.log << "[gas.total()-g] ([t]) from turf to siph"
+ 
+ 						//if(dbg) Air()
+ 			if(4.0)
+@@ -454,9 +454,9 @@
+ 						src.f_time = world.time + 300
+ 					else
+ 						if (world.time > src.f_time)
+-							var/difference = CELLSTANDARD - (T.oxygen + T.n2)
++							var/difference = CELLSTANDARD - (T.gas.oxygen + T.gas.nitrogen)
+ 							if (difference > 0)
+-								var/t1 = src.gas.tot_gas()
++								var/t1 = src.gas.total()
+ 								if (difference > t1)
+ 									difference = t1
+ 								src.gas.turf_add(T, difference)
+@@ -509,7 +509,7 @@
+ 	var/at = null
+ 	if (src.t_status == 4)
+ 		at = text("Automatic On <A href='?src=\ref[];t=3'>Stop</A>", src)
+-	var/dat = text("<TT><B>Canister Valves</B> []<BR>\n\t<FONT color = 'blue'><B>Contains/Capacity</B> [] / []</FONT><BR>\n\tUpper Valve Status: [] []<BR>\n\t\t<A href='?src=\ref[];tp=-[]'>M</A> <A href='?src=\ref[];tp=-10000'>-</A> <A href='?src=\ref[];tp=-1000'>-</A> <A href='?src=\ref[];tp=-100'>-</A> <A href='?src=\ref[];tp=-1'>-</A> [] <A href='?src=\ref[];tp=1'>+</A> <A href='?src=\ref[];tp=100'>+</A> <A href='?src=\ref[];tp=1000'>+</A> <A href='?src=\ref[];tp=10000'>+</A> <A href='?src=\ref[];tp=[]'>M</A><BR>\n\tPipe Valve Status: []<BR>\n\t\t<A href='?src=\ref[];cp=-[]'>M</A> <A href='?src=\ref[];cp=-10000'>-</A> <A href='?src=\ref[];cp=-1000'>-</A> <A href='?src=\ref[];cp=-100'>-</A> <A href='?src=\ref[];cp=-1'>-</A> [] <A href='?src=\ref[];cp=1'>+</A> <A href='?src=\ref[];cp=100'>+</A> <A href='?src=\ref[];cp=1000'>+</A> <A href='?src=\ref[];cp=10000'>+</A> <A href='?src=\ref[];cp=[]'>M</A><BR>\n<BR>\n\n<A href='?src=\ref[];mach_close=siphon'>Close</A><BR>\n\t</TT>", (!( src.alterable ) ? "<B>Valves are locked. Unlock with wrench!</B>" : "You can lock this interface with a wrench."), num2text(src.gas.tot_gas(), 10), num2text(src.maximum, 10), (src.t_status == 4 ? text("[]", at) : text("[]", tt)), (src.holding ? text("<BR>(<A href='?src=\ref[];tank=1'>Tank ([]</A>)", src, src.holding.gas.tot_gas()) : null), src, num2text(max_valve, 7), src, src, src, src, src.t_per, src, src, src, src, src, num2text(max_valve, 7), ct, src, num2text(max_valve, 7), src, src, src, src, src.c_per, src, src, src, src, src, num2text(max_valve, 7), user)
++	var/dat = text("<TT><B>Canister Valves</B> []<BR>\n\t<FONT color = 'blue'><B>Contains/Capacity</B> [] / []</FONT><BR>\n\tUpper Valve Status: [] []<BR>\n\t\t<A href='?src=\ref[];tp=-[]'>M</A> <A href='?src=\ref[];tp=-10000'>-</A> <A href='?src=\ref[];tp=-1000'>-</A> <A href='?src=\ref[];tp=-100'>-</A> <A href='?src=\ref[];tp=-1'>-</A> [] <A href='?src=\ref[];tp=1'>+</A> <A href='?src=\ref[];tp=100'>+</A> <A href='?src=\ref[];tp=1000'>+</A> <A href='?src=\ref[];tp=10000'>+</A> <A href='?src=\ref[];tp=[]'>M</A><BR>\n\tPipe Valve Status: []<BR>\n\t\t<A href='?src=\ref[];cp=-[]'>M</A> <A href='?src=\ref[];cp=-10000'>-</A> <A href='?src=\ref[];cp=-1000'>-</A> <A href='?src=\ref[];cp=-100'>-</A> <A href='?src=\ref[];cp=-1'>-</A> [] <A href='?src=\ref[];cp=1'>+</A> <A href='?src=\ref[];cp=100'>+</A> <A href='?src=\ref[];cp=1000'>+</A> <A href='?src=\ref[];cp=10000'>+</A> <A href='?src=\ref[];cp=[]'>M</A><BR>\n<BR>\n\n<A href='?src=\ref[];mach_close=siphon'>Close</A><BR>\n\t</TT>", (!( src.alterable ) ? "<B>Valves are locked. Unlock with wrench!</B>" : "You can lock this interface with a wrench."), num2text(src.gas.total(), 10), num2text(src.maximum, 10), (src.t_status == 4 ? text("[]", at) : text("[]", tt)), (src.holding ? text("<BR>(<A href='?src=\ref[];tank=1'>Tank ([]</A>)", src, src.holding.gas.total()) : null), src, num2text(max_valve, 7), src, src, src, src, src.t_per, src, src, src, src, src, num2text(max_valve, 7), ct, src, num2text(max_valve, 7), src, src, src, src, src.c_per, src, src, src, src, src, num2text(max_valve, 7), user)
+ 	user << browse(dat, "window=siphon;size=600x300")
+ 	return
+ 
+Index: game/blob.dm
+===================================================================
+--- game/blob.dm	(revision 281)
++++ game/blob.dm	(working copy)
+@@ -23,8 +23,8 @@
+ 		if(U.density == 1)
+ 			del(src)
+ 
+-	if(U.poison> 200000)
+-		src.health -= round(U.poison/200000)
++	if(U.gas.plasma> 200000)
++		src.health -= round(U.gas.plasma/200000)
+ 		src.update()
+ 		return
+ 
+@@ -32,7 +32,7 @@
+ 		src.health -= 8
+ 		src.update()
+ 
+-	var/p = health * (U.n2/11376000 + U.oxygen/1008000 + U.co2/200)
++	var/p = health * (U.gas.nitrogen/11376000 + U.gas.oxygen/1008000 + U.gas.co2/200)
+ 
+ 	if(!istype(U, /turf/space))
+ 		p+=3
+Index: game/bomb.dm
+===================================================================
+--- game/bomb.dm	(revision 281)
++++ game/bomb.dm	(working copy)
+@@ -1,6 +1,6 @@
+ /obj/bomb/New()
+ 	..()
+-	
++
+ 	switch (src.btype)
+ 		// radio
+ 		if (0)
+@@ -17,8 +17,8 @@
+ 			R.status = explosive
+ 			p1.b_stat = 0
+ 			p2.status = 1
+-			p3.gas.temperature = btemp + T0C
+-		
++			p3.gas.temp = btemp + T0C
++
+ 		// proximity
+ 		if (1)
+ 			var/obj/item/weapon/assembly/m_i_ptank/R = new /obj/item/weapon/assembly/m_i_ptank(src.loc)
+@@ -32,15 +32,15 @@
+ 			p2.master = R
+ 			p3.master = R
+ 			R.status = explosive
+-			
+-			p3.gas.temperature = btemp +T0C
++
++			p3.gas.temp = btemp +T0C
+ 			p2.status = 1
+-			
++
+ 			if(src.active)
+ 				R.part1.state = 1
+ 				R.part1.icon_state = text("motion[]", 1)
+ 				R.c_state(1, src)
+-		
++
+ 		// timer
+ 		if (2)
+ 			var/obj/item/weapon/assembly/t_i_ptank/R = new /obj/item/weapon/assembly/t_i_ptank(src.loc)
+@@ -54,8 +54,8 @@
+ 			p2.master = R
+ 			p3.master = R
+ 			R.status = explosive
+-			
+-			p3.gas.temperature = btemp +T0C
++
++			p3.gas.temp = btemp +T0C
+ 			p2.status = 1
+-	
++
+ 	del(src)
+Index: game/cell_process.dm
+===================================================================
+--- game/cell_process.dm	(revision 281)
++++ game/cell_process.dm	(working copy)
+@@ -21,28 +21,10 @@
+ 		step(user.pulling, get_dir(user.pulling.loc, src))
+ 	return
+ 
+-/obj/move/proc/res_vars()
++/obj/move/proc/reset_phases()
++	src.phase1.copy_all(src.gas)
++	src.phase2.copy_all(src.gas)
+ 
+-	oldoxy = oxygen
+-	tmpoxy = oxygen
+-
+-	oldpoison = poison
+-	tmppoison = poison
+-
+-	oldco2 = co2
+-	tmpco2 = co2
+-
+-	osl_gas = sl_gas
+-	tsl_gas = sl_gas
+-
+-	on2 = src.n2
+-	tn2 = src.n2
+-
+-	otemp = temp
+-	ttemp = temp
+-
+-	return
+-
+ /obj/move/proc/relocate(T as turf, degree)
+ 
+ 	if (degree)
+@@ -156,10 +138,6 @@
+ 	return L
+ 
+ 
+-/obj/move/proc/tot_gas()
+-	return co2 + oxygen + poison + sl_gas + n2
+-
+-
+ /obj/move/proc/process()
+ 
+ 	if (locate(/obj/shuttle/door, src.loc))
+@@ -171,12 +149,12 @@
+ 	if (src.checkfire)
+ 		if (cellcontrol.var_swap)
+ 			var/divideby = 1
+-			var/total = src.oxygen
+-			var/tpoison = src.poison
+-			var/tco2 = src.co2
+-			var/tosl_gas = src.sl_gas
+-			var/ton2 = src.n2
+-			var/totemp = src.temp
++			var/total = src.gas.oxygen
++			var/tpoison = src.gas.plasma
++			var/tco2 = src.gas.co2
++			var/tsl_gas = src.gas.no2
++			var/tn2 = src.gas.nitrogen
++			var/ttemp = src.gas.temp
+ 			var/space = 0
+ 			var/burn = src.firelevel >= 10
+ 			for(var/atom/S in src.FindTurfs())
+@@ -185,53 +163,53 @@
+ 					space = 1
+ 				else
+ 					divideby++
+-					total += T.oldoxy
+-					tpoison += T.oldpoison
+-					tco2 += T.oldco2
+-					tosl_gas += T.osl_gas
+-					ton2 += T.on2
+-					totemp += T.temp
++					total += T.phase1.oxygen
++					tpoison += T.phase1.plasma
++					tco2 += T.phase1.co2
++					tsl_gas += T.phase1.no2
++					tn2 += T.phase1.nitrogen
++					ttemp += T.phase1.temp
+ 					if (T.firelevel >= 900000.0)
+ 						burn = 1
+ 					//Foreach continue //goto(158)
+ 			if (space)
+-				src.oxygen = 0
+-				src.poison = 0
+-				src.co2 = 0
+-				src.sl_gas = 0
+-				src.n2 = 0
+-				src.temp = 0
++				src.gas.oxygen = 0
++				src.gas.plasma = 0
++				src.gas.co2 = 0
++				src.gas.no2 = 0
++				src.gas.nitrogen = 0
++				src.gas.temp = 0
+ 			else
+-				src.oxygen = total / divideby
+-				src.poison = tpoison / divideby
+-				src.co2 = tco2 / divideby
+-				src.sl_gas = tosl_gas / divideby
+-				src.n2 = ton2 / divideby
+-				src.temp = totemp / divideby
+-			if (src.sl_gas > 0)
+-				src.sl_gas--
+-			if (src.poison > 100000.0)
++				src.gas.oxygen = total / divideby
++				src.gas.plasma = tpoison / divideby
++				src.gas.co2 = tco2 / divideby
++				src.gas.no2 = tsl_gas / divideby
++				src.gas.nitrogen = tn2 / divideby
++				src.gas.temp = ttemp / divideby
++			if (src.gas.no2 > 0)
++				src.gas.no2--
++			if (src.gas.plasma > 100000.0)
+ 				src.overlays = list( plmaster )
+ 			else
+-				if (src.sl_gas > 101000.0)
++				if (src.gas.no2 > 101000.0)
+ 					src.overlays = list( slmaster )
+ 				else
+ 					src.overlays = null
+ 			if (burn)
+-				src.firelevel = src.oxygen + src.poison
++				src.firelevel = src.gas.oxygen + src.gas.plasma
+ 			if (src.firelevel >= 900000.0)
+ 				src.icon_state = "burning"
+ 				src.luminosity = 2
+-				if (src.oxygen > 5000)
+-					src.co2 += 2500
+-					src.oxygen -= 5000
++				if (src.gas.oxygen > 5000)
++					src.gas.co2 += 2500
++					src.gas.oxygen -= 5000
+ 				else
+-					src.oxygen = 0
++					src.gas.oxygen = 0
+ 
+ 				// heating from fire
+-				temp += (firelevel/FIREQUOT+FIREOFFSET - temp) / FIRERATE
++				src.gas.temp += (firelevel/FIREQUOT+FIREOFFSET - src.gas.temp) / FIRERATE
+ 
+-				src.poison = max(0, src.poison - 1000)
++				src.gas.plasma = max(0, src.gas.plasma - 1000)
+ 				if (locate(/obj/effects/water, src))
+ 					src.firelevel = 0
+ 				for(var/atom/movable/A in src)
+@@ -241,20 +219,20 @@
+ 				src.firelevel = 0
+ 				if (src.icon_state == "burning")
+ 					unburn()
+-			src.tmpoxy = src.oxygen
+-			src.tmppoison = src.poison
+-			src.tmpco2 = src.co2
+-			src.tsl_gas = src.sl_gas
+-			src.tn2 = src.n2
+-			src.ttemp = src.temp
++			src.phase2.oxygen = src.gas.oxygen
++			src.phase2.plasma = src.gas.plasma
++			src.phase2.co2 = src.gas.co2
++			src.phase2.no2 = src.gas.no2
++			src.phase2.nitrogen = src.gas.nitrogen
++			src.phase2.temp = src.gas.temp
+ 		else
+ 			var/divideby = 1
+-			var/total = src.oxygen
+-			var/tpoison = src.poison
+-			var/tco2 = src.co2
+-			var/tosl_gas = src.sl_gas
+-			var/ton2 = src.n2
+-			var/totemp = src.temp
++			var/total = src.gas.oxygen
++			var/tpoison = src.gas.plasma
++			var/tco2 = src.gas.co2
++			var/tsl_gas = src.gas.no2
++			var/tn2 = src.gas.nitrogen
++			var/ttemp = src.gas.temp
+ 			var/space = 0
+ 			var/burn = src.firelevel >= 10
+ 			for(var/atom/S in src.FindTurfs())
+@@ -263,55 +241,55 @@
+ 					space = 1
+ 				else
+ 					divideby++
+-					total += T.tmpoxy
+-					tpoison += T.tmppoison
+-					tco2 += T.tmpco2
+-					tosl_gas += T.tsl_gas
+-					ton2 += T.tn2
+-					totemp += T.ttemp
++					total += T.phase2.oxygen
++					tpoison += T.phase2.plasma
++					tco2 += T.phase2.co2
++					tsl_gas += T.phase2.no2
++					tn2 += T.phase2.nitrogen
++					ttemp += T.phase2.temp
+ 					if (T.firelevel >= 900000.0)
+ 						burn = 1
+ 					//Foreach continue //goto(744)
+ 			if (space)
+-				src.oxygen = 0
+-				src.poison = 0
+-				src.co2 = 0
+-				src.sl_gas = 0
+-				src.n2 = 0
+-				src.temp = 0
++				src.gas.oxygen = 0
++				src.gas.plasma = 0
++				src.gas.co2 = 0
++				src.gas.no2 = 0
++				src.gas.nitrogen = 0
++				src.gas.temp = 0
+ 			else
+-				src.oxygen = total / divideby
+-				src.poison = tpoison / divideby
+-				src.co2 = tco2 / divideby
+-				src.sl_gas = tosl_gas / divideby
+-				src.n2 = ton2 / divideby
+-				src.temp = totemp / divideby
+-			if (src.sl_gas > 0)
+-				src.sl_gas--
+-			if (src.poison > 100000.0)
++				src.gas.oxygen = total / divideby
++				src.gas.plasma = tpoison / divideby
++				src.gas.co2 = tco2 / divideby
++				src.gas.no2 = tsl_gas / divideby
++				src.gas.nitrogen = tn2 / divideby
++				src.gas.temp = ttemp / divideby
++			if (src.gas.no2 > 0)
++				src.gas.no2--
++			if (src.gas.plasma > 100000.0)
+ 				src.overlays = list( plmaster )
+ 			else
+-				if (src.sl_gas > 101000.0)
++				if (src.gas.no2 > 101000.0)
+ 					src.overlays = list( slmaster )
+ 				else
+ 					src.overlays = null
+ 			if (burn)
+-				src.firelevel = src.oxygen + src.poison
++				src.firelevel = src.gas.oxygen + src.gas.plasma
+ 			if (src.firelevel >= 900000.0)
+ 				src.icon_state = "burning"
+ 				src.luminosity = 2
+-				if (src.oxygen > 5000)
+-					src.co2 += 2500
+-					src.oxygen -= 5000
++				if (src.gas.oxygen > 5000)
++					src.gas.co2 += 2500
++					src.gas.oxygen -= 5000
+ 				else
+-					src.oxygen = 0
++					src.gas.oxygen = 0
+ 
+ 				// heating from fire
+-				temp += (firelevel/FIREQUOT+FIREOFFSET - temp) / FIRERATE
++				src.gas.temp += (firelevel/FIREQUOT+FIREOFFSET - src.gas.temp) / FIRERATE
+ 
+ 
+-				src.poison = max(0, src.poison - 1000)
+-				src.co2 += 2500
++				src.gas.plasma = max(0, src.gas.plasma - 1000)
++				src.gas.co2 += 2500
+ 				if (locate(/obj/effects/water, src))
+ 					src.firelevel = 0
+ 				for(var/atom/movable/A as mob|obj in src)
+@@ -321,21 +299,21 @@
+ 				if (src.icon_state == "burning")
+ 					src.firelevel = 0
+ 					unburn()
+-			src.oldoxy = src.oxygen
+-			src.oldpoison = src.poison
+-			src.oldco2 = src.co2
+-			src.osl_gas = src.sl_gas
+-			src.on2 = src.n2
+-			src.otemp = src.temp
++			src.phase1.oxygen = src.gas.oxygen
++			src.phase1.plasma = src.gas.plasma
++			src.phase1.co2 = src.gas.co2
++			src.phase1.no2 = src.gas.no2
++			src.phase1.nitrogen = src.gas.nitrogen
++			src.phase1.temp = src.gas.temp
+ 	else
+ 		if (cellcontrol.var_swap)
+ 			var/divideby = 1
+-			var/total = src.oxygen
+-			var/tpoison = src.poison
+-			var/tco2 = src.co2
+-			var/tosl_gas = src.sl_gas
+-			var/ton2 = src.n2
+-			var/totemp = src.temp
++			var/total = src.gas.oxygen
++			var/tpoison = src.gas.plasma
++			var/tco2 = src.gas.co2
++			var/tsl_gas = src.gas.no2
++			var/tn2 = src.gas.nitrogen
++			var/ttemp = src.gas.temp
+ 			var/space = 0
+ 			src.airdir = null
+ 			src.airforce = 0
+@@ -344,17 +322,17 @@
+ 				var/obj/move/T = S
+ 				if (istype(T, /turf/space))
+ 					space = 1
+-					src.airforce = src.oxygen + src.n2 + src.poison + src.co2 + 25000
++					src.airforce = src.gas.oxygen + src.gas.nitrogen + src.gas.plasma + src.gas.co2 + 25000
+ 					src.airdir = get_dir(src, T)
+ 				else
+ 					divideby++
+-					total += T.oldoxy
+-					tpoison += T.oldpoison
+-					tco2 += T.oldco2
+-					tosl_gas += T.osl_gas
+-					ton2 += T.on2
+-					totemp += T.otemp
+-					adiff = src.oldoxy + src.oldco2 + src.on2 - (T.oldoxy + T.oldco2 + T.on2)
++					total += T.phase1.oxygen
++					tpoison += T.phase1.plasma
++					tco2 += T.phase1.co2
++					tsl_gas += T.phase1.no2
++					tn2 += T.phase1.nitrogen
++					ttemp += T.phase1.temp
++					adiff = src.phase1.oxygen + src.phase1.co2 + src.phase1.nitrogen - (T.phase1.oxygen + T.phase1.co2 + T.phase1.nitrogen)
+ 					if (adiff > src.airforce)
+ 						src.airforce = adiff
+ 						src.airdir = get_dir(src, T)
+@@ -367,43 +345,43 @@
+ 							return
+ 					//Foreach goto(1559)
+ 			if (space)
+-				src.oxygen = 0
+-				src.poison = 0
+-				src.co2 = 0
+-				src.sl_gas = 0
+-				src.n2 = 0
+-				src.temp = 0
++				src.gas.oxygen = 0
++				src.gas.plasma = 0
++				src.gas.co2 = 0
++				src.gas.no2 = 0
++				src.gas.nitrogen = 0
++				src.gas.temp = 0
+ 			else
+-				src.oxygen = total / divideby
+-				src.poison = tpoison / divideby
+-				src.co2 = tco2 / divideby
+-				src.sl_gas = tosl_gas / divideby
+-				src.n2 = ton2 / divideby
+-				src.temp = totemp / divideby
+-			if (src.sl_gas > 0)
+-				src.sl_gas--
+-			if (src.co2 >= src.poison)
+-				src.co2 -= src.poison
+-				src.oxygen += src.poison
+-				src.poison = 0
++				src.gas.oxygen = total / divideby
++				src.gas.plasma = tpoison / divideby
++				src.gas.co2 = tco2 / divideby
++				src.gas.no2 = tsl_gas / divideby
++				src.gas.nitrogen = tn2 / divideby
++				src.gas.temp = ttemp / divideby
++			if (src.gas.no2 > 0)
++				src.gas.no2--
++			if (src.gas.co2 >= src.gas.plasma)
++				src.gas.co2 -= src.gas.plasma
++				src.gas.oxygen += src.gas.plasma
++				src.gas.plasma = 0
+ 			else
+-				src.poison -= src.co2
+-				src.oxygen += src.co2
+-				src.co2 = 0
+-			src.tmpoxy = src.oxygen
+-			src.tmppoison = src.poison
+-			src.tmpco2 = src.co2
+-			src.tsl_gas = src.sl_gas
+-			src.tn2 = src.n2
+-			src.ttemp = src.temp
++				src.gas.plasma -= src.gas.co2
++				src.gas.oxygen += src.gas.co2
++				src.gas.co2 = 0
++			src.phase2.oxygen = src.gas.oxygen
++			src.phase2.plasma = src.gas.plasma
++			src.phase2.co2 = src.gas.co2
++			src.phase2.no2 = src.gas.no2
++			src.phase2.nitrogen = src.gas.nitrogen
++			src.phase2.temp = src.gas.temp
+ 		else
+ 			var/divideby = 1
+-			var/total = src.oxygen
+-			var/tpoison = src.poison
+-			var/tco2 = src.co2
+-			var/tosl_gas = src.sl_gas
+-			var/ton2 = src.n2
+-			var/totemp = src.temp
++			var/total = src.gas.oxygen
++			var/tpoison = src.gas.plasma
++			var/tco2 = src.gas.co2
++			var/tsl_gas = src.gas.no2
++			var/tn2 = src.gas.nitrogen
++			var/ttemp = src.gas.temp
+ 			var/space = 0
+ 			src.airdir = null
+ 			src.airforce = 0
+@@ -412,17 +390,17 @@
+ 				var/obj/move/T = S
+ 				if (istype(T, /turf/space))
+ 					space = 1
+-					src.airforce = src.oxygen + src.poison + src.n2 + src.co2 + 25000
++					src.airforce = src.gas.oxygen + src.gas.plasma + src.gas.nitrogen + src.gas.co2 + 25000
+ 					src.airdir = get_dir(src, T)
+ 				else
+ 					divideby++
+-					total += T.tmpoxy
+-					tpoison += T.tmppoison
+-					tco2 += T.tmpco2
+-					tosl_gas += T.tsl_gas
+-					ton2 += T.tn2
+-					totemp += T.ttemp
+-					adiff = src.tmpoxy + src.tmpco2 + src.tn2 - (T.tmpoxy + T.tmpco2 + T.tn2)
++					total += T.phase2.oxygen
++					tpoison += T.phase2.plasma
++					tco2 += T.phase2.co2
++					tsl_gas += T.phase2.no2
++					tn2 += T.phase2.nitrogen
++					ttemp += T.phase2.temp
++					adiff = src.phase2.oxygen + src.phase2.co2 + src.phase2.nitrogen - (T.phase2.oxygen + T.phase2.co2 + T.phase2.nitrogen)
+ 					if (adiff > src.airforce)
+ 						src.airforce = adiff
+ 						src.airdir = get_dir(src, T)
+@@ -435,39 +413,39 @@
+ 							return
+ 					//Foreach goto(2130)
+ 			if (space)
+-				src.oxygen = 0
+-				src.poison = 0
+-				src.co2 = 0
+-				src.sl_gas = 0
+-				src.n2 = 0
+-				src.temp = 0
++				src.gas.oxygen = 0
++				src.gas.plasma = 0
++				src.gas.co2 = 0
++				src.gas.no2 = 0
++				src.gas.nitrogen = 0
++				src.gas.temp = 0
+ 			else
+-				src.oxygen = total / divideby
+-				src.poison = tpoison / divideby
+-				src.co2 = tco2 / divideby
+-				src.sl_gas = tosl_gas / divideby
+-				src.n2 = ton2 / divideby
+-				src.temp = totemp / divideby
+-			if (src.sl_gas > 0)
+-				src.sl_gas--
+-			if (src.co2 >= src.poison)
+-				src.co2 -= src.poison
+-				src.oxygen += src.poison
+-				src.poison = 0
++				src.gas.oxygen = total / divideby
++				src.gas.plasma = tpoison / divideby
++				src.gas.co2 = tco2 / divideby
++				src.gas.no2 = tsl_gas / divideby
++				src.gas.nitrogen = tn2 / divideby
++				src.gas.temp = ttemp / divideby
++			if (src.gas.no2 > 0)
++				src.gas.no2--
++			if (src.gas.co2 >= src.gas.plasma)
++				src.gas.co2 -= src.gas.plasma
++				src.gas.oxygen += src.gas.plasma
++				src.gas.plasma = 0
+ 			else
+-				src.poison -= src.co2
+-				src.oxygen += src.co2
+-				src.co2 = 0
+-			src.oldoxy = src.oxygen
+-			src.oldpoison = src.poison
+-			src.oldco2 = src.co2
+-			src.osl_gas = src.sl_gas
+-			src.on2 = src.n2
+-			src.otemp = src.temp
++				src.gas.plasma -= src.gas.co2
++				src.gas.oxygen += src.gas.co2
++				src.gas.co2 = 0
++			src.phase1.oxygen = src.gas.oxygen
++			src.phase1.plasma = src.gas.plasma
++			src.phase1.co2 = src.gas.co2
++			src.phase1.no2 = src.gas.no2
++			src.phase1.nitrogen = src.gas.nitrogen
++			src.phase1.temp = src.gas.temp
+ 	if ((locate(/obj/effects/water, src.loc) || src.firelevel < 900000.0))
+ 		src.firelevel = 0
+ 		//cool due to water
+-		temp += (T20C - temp) / FIRERATE
++		src.gas.temp += (T20C - src.gas.temp) / FIRERATE
+ 
+ 
+ 
+@@ -492,1071 +470,399 @@
+ 
+ /obj/move/New()
+ 
+-	if ( (src.x & 1) == (src.y & 1) )
+-		src.checkfire = 0
+-	src.tmpoxy = src.oxygen
+-	src.oldoxy = src.oxygen
+-	src.tmppoison = src.poison
+-	src.oldpoison = src.poison
+-	src.tmpco2 = src.co2
+-	src.oldco2 = src.co2
+-	src.tn2 = src.n2
+-	src.on2 = src.n2
+-
+-	otemp = temp
+-	ttemp = temp
++	if((src.x & 1) == (src.y & 1))	src.checkfire = 0
++	reset_phases()
+ 	..()
+ 	return
+ 
+-/turf/proc/res_vars()
++///----------------------------------------------------------------------------
++//--	Turf Processing - reorganized by Kelson
++//----------------------------------------------------------------------------
++/turf/proc/tot_gas()		{	return src.gas.total()			}
++/turf/proc/report()			{	return "[src.type] [x] [y] [z]"		}
++//----------------------------------------------------------------------------
++/turf/New()				//	intitalizes turf with checkfire/reset_variables
++{
++	gas.oxygen	= src.oxygen;
++	gas.plasma	= src.poison;
++	gas.nitrogen= src.n2
+ 
+-	src.oldoxy = src.oxygen
+-	src.tmpoxy = src.oxygen
+-	src.oldpoison = src.poison
+-	src.tmppoison = src.poison
+-	src.oldco2 = src.co2
+-	src.tmpco2 = src.co2
+-	src.osl_gas = src.sl_gas
+-	src.tsl_gas = src.sl_gas
+-	src.on2 = src.n2
+-	src.tn2 = src.n2
+-	otemp = temp
+-	ttemp = temp
+-	return
++	if((src.x & 1) == (src.y & 1))	src.checkfire = 0
++	for(var/atom/movable/AM as mob|obj in src)	src.Entered(AM)
++	reset_phases()
++	return ..()
++}
+ 
+-/turf/proc/unburn()
++/turf/proc/isempty()	// 0 if turf is dense or contains a dense object  (else 1)
++{
++	if(src.density)							return 0
++	for(var/atom/A in src)	if(A.density)	return 0
++	return 1
++}
+ 
+-	src.luminosity = 0
+-	src.icon_state = initial(src.icon_state)
+-	return
++/turf/proc/setlink(dir, var/turf/T)	//	sets link[dir] = [T] (linkN = floor)
++{
++	switch(dir)
++		if(1)	linkN = T
++		if(2)	linkS = T
++		if(4)	linkE = T
++		if(8)	linkW = T
++}
+ 
++/turf/proc/setairlink(dir, val)		//	sets air[dir] = [val] (airN = val)
++{
++	switch(dir)
++		if(1)	airN = val
++		if(2)	airS = val
++		if(4)	airE = val
++		if(8)	airW = val
++}
+ 
+-//*****
++/turf/proc/setcondlink(dir, val)	//	sets cond[dir] = [val] (condN = val)
++{
++	switch(dir)
++		if(1)	condN += val
++		if(2)	condS += val
++		if(4)	condE += val
++		if(8)	condW += val
++}
+ 
++/turf/proc/reset_phases()	//	reset old/tmp vars to current values
++{
++	phase1.copy_all(gas)
++	phase2.copy_all(gas)
++}
+ 
+-// returns 0 if turf is dense or contains a dense object
+-// returns 1 otherwise
+-/turf/proc/isempty()
+-	if(src.density)
+-		return 0
+-	for(var/atom/A in src)
+-		if(A.density)
+-			return 0
+-	return 1
++/turf/proc/unburn()			//	removes luminosity and resets icon_state
++{
++	src.luminosity = 0
++	src.icon_state = initial(src.icon_state)
++}
+ 
++/turf/buildlinks()			// updates cell and all neighbors (on cell state change)
++{
++	updatelinks()
++	for(var/dir in cardinal)
++		var/turf/T = get_step(src,dir)
++		if(T) T.updatelinks()
++}
+ 
+-/turf/proc/Neighbors()
+-
++/turf/proc/Neighbors()		//	Creates a list of directions leading to neighbors
++{
+ 	var/list/L = cardinal.Copy()
+ 	for(var/obj/machinery/door/window/D in src)
+-		if(!( D.density ))
+-			goto Label_96 //continue
+-		//+++++
+-		//L -= D.dir
+-
+-		if (D.dir & 12)
+-			L -= SOUTH
+-		else
+-			L -= EAST
+-
+-		Label_96
+-		//Foreach goto(34)
++	{
++		if(!D.density)	continue
++		if(D.dir & 12)	L -= SOUTH
++		else			L -= EAST
++	}
+ 	for(var/obj/window/D in src)
+-		if(!( D.density ))
+-			goto Label_178 //continue
++	{
++		if(!D.density)	continue
+ 		L -= D.dir
+-		if (D.dir == SOUTHWEST)
++		if(D.dir == SOUTHWEST)
++		{
+ 			L.len = null
+ 			return L
+-		Label_178
+-		//Foreach goto(111)
++		}
++	}
+ 	return L
++}
+ 
+-
+-/*
+-/proc/flipdir(dir)
+-
+-	switch(dir)
+-		if(1)
+-			return 2
+-		if(2)
+-			return 1
+-		if(4)
+-			return 8
+-		if(8)
+-			return 4
+-		if(5)
+-			return 10
+-		if(6)
+-			return 9
+-		if(9)
+-			return 10
+-		if(10)
+-			return 9
+-		else
+-			return 0
+-
+-*/
+-
+-
+ /turf/proc/FindTurfs()
+-
++{
+ 	var/list/L = list(  )
+-	if (locate(/obj/move, src))
+-		return list(  )
++	if(locate(/obj/move, src))	return list()
+ 	for(var/dir in src.Neighbors())
++	{
+ 		var/turf/T = get_step(src, dir)
+-		//*****RM
++		if(!T || !T.updatecell)	continue
+ 
+-		//
+-		if((!( T ) || !( T.updatecell )))
+-			goto Label_317
+-
+ 		L += T
+ 		var/direct = turn(dir, 180)
+-		//*****RM as 4.1beta
+ 
+ 		for(var/obj/machinery/door/window/D in T)
+-			if(!( D.density ))
+-				goto Label_201
++		{
++			if(!D.density)	continue
++
+ 			//var/direct = get_dir(src, T)
+-			if (D.dir & 12)
+-				if((dir & 1))		// was (direct & 1)
++			if(D.dir & 12)
++			{
++				if(dir & 1)		// was (direct & 1)
+ 					L -= T
+-					goto Label_201
+-			else
+-				if(dir & 8)			//was (direct&8)
+-					L -= T
+-
+-			Label_201:
+-			//Foreach goto(101)
+-
++					continue
++			}
++			else if(dir & 8)	// was (direct&8)
++				L -= T
++		}
+ 		for(var/obj/window/D in T)
+-			if(!( D.density ))
+-				goto Label_312
++		{
++			if(!D.density)	continue
++
+ 			//var/direct = get_dir(T, src)
+ 			if (D.dir == SOUTHWEST)
+ 				L -= T
+-				goto Label_312
+-			else
+-				if(direct == D.dir)
+-					L -= T
++				continue
+ 
+-			Label_312:
++			else if(direct == D.dir)
++				L -= T
++		}
++	}
+ 
+-			//Foreach goto(219)
+-
+-		//*****
+-
+-		Label_317:
+-		//Foreach goto(40)
+-
+ 	for(var/turf/T in L)
+-		if (locate(/obj/move, T))
+-			L -= T
+-			var/obj/move/O = locate(/obj/move, T)
+-			if (O.updatecell)
+-				L += O
+-		//Foreach goto(333)
++	{
++		if(!locate(/obj/move, T)) continue
++		L -= T
++		var/obj/move/O = locate(/obj/move, T)
++		if(O.updatecell) L += O
++	}
+ 	return L
++}
+ 
+-/turf/New()
++/turf/proc/updatelinks()		// updates single cell
++{
++	airN  = null;	airS  = null;	airE  = null;	airW  = null
++	condN = 0;		condS = 0;		condE = 0;		condW = 0
+ 
+-	if ((src.x & 1) == (src.y & 1))
+-		src.checkfire = 0
+-	src.tmpoxy = src.oxygen
+-	src.oldoxy = src.oxygen
+-	src.tmppoison = src.poison
+-	src.oldpoison = src.poison
+-	src.tmpco2 = src.co2
+-	src.oldco2 = src.co2
+-	src.osl_gas = src.sl_gas
+-	src.tsl_gas = src.sl_gas
+-	src.on2 = src.n2
+-	src.tn2 = src.n2
+-
+-	otemp = temp
+-	ttemp = temp
+-
+-	..()
+-	return
+-
+-
+-/turf/proc/setlink(dir, var/turf/T)
+-
+-	switch(dir)
+-		if(1)
+-			linkN = T
+-		if(2)
+-			linkS = T
+-		if(4)
+-			linkE = T
+-		if(8)
+-			linkW = T
+-
+-/turf/proc/setairlink(dir, val)
+-
+-	switch(dir)
+-		if(1)
+-			airN = val
+-		if(2)
+-			airS = val
+-		if(4)
+-			airE = val
+-		if(8)
+-			airW = val
+-
+-/turf/proc/setcondlink(dir, val)
+-
+-	switch(dir)
+-		if(1)
+-			condN += val
+-		if(2)
+-			condS += val
+-		if(4)
+-			condE += val
+-		if(8)
+-			condW += val
+-
+-/turf/buildlinks()				// call this one to update a cell and neighbours (on cell state change)
+-	updatelinks()
+-
+-	for(var/dir in cardinal)
+-		var/turf/T = get_step(src,dir)
+-		if(T)
+-			T.updatelinks()
+-
+-/turf/proc/updatelinks()			// this does updating for a single cell
+-
+-	airN = null
+-	airS = null
+-	airE = null
+-	airW = null
+-
+-	condN = 0
+-	condS = 0
+-	condE = 0
+-	condW = 0
+-
+ 	// originally in turf/Neighbors()
+ 
+ 	var/list/NL = cardinal.Copy()
+ 
+ 	for(var/obj/machinery/door/window/D in src)
+-		if(!( D.density ))
+-			continue
+-
+-		if (D.dir & 12)
+-			NL -= SOUTH
+-			condS = 1
+-		else
+-			NL -= EAST
+-			condE = 1
+-
+-
++	{
++		if(!D.density)	continue
++		if(D.dir & 12)	{	NL -= SOUTH;	condS = 1	}
++		else			{	NL -= EAST;		condE = 1	}
++	}
+ 	for(var/obj/window/D in src)
+-		if(!( D.density ))
+-			continue
++	{
++		if(!D.density)	continue
+ 		NL -= D.dir
+ 		setcondlink(D.dir, 1+D.reinf)
+ 
+-		if (D.dir == SOUTHWEST)
++		if(D.dir == SOUTHWEST)
+ 			NL.len = null
+ 			break
+-
+-
+-
++	}
+ 	for(var/dir in cardinal)
++	{
+ 		var/turf/T = get_step(src, dir)
+ 		setlink(dir,T)
+ 
+-
+ 		var/obj/move/O = locate(/obj/move, T)
+-		if (O)
++		if(O)
++		{
+ 			setlink(dir, O)
+-			if (!O.updatecell)
+-				goto Label_317
++			if(!O.updatecell)	continue
++		}
++		if(!T)					continue
++		if(!T.updatecell)		continue
++		if(!(dir in NL))		continue
+ 
+-
+-		if((!( T ) || !( T.updatecell )) || !(dir in NL))
+-			goto Label_317
+-
+ 		//L += T
+ 		setairlink(dir, 1)
+ 
+ 		var/direct = turn(dir, 180)
+ 
+ 		for(var/obj/machinery/door/window/D in T)
+-			if(!( D.density ))
+-				goto Label_201
++		{
++			if(!D.density)	continue
+ 
+-			if (D.dir & 12)
++			if(D.dir & 12)
+ 				if((dir & 1))
+ 					//L -= T
+ 					setairlink(dir, null)
+ 					setcondlink(dir, 1)
+-					goto Label_201
+-			else
+-				if(dir & 8)			//was (direct&8)
+-					setairlink(dir, null)
+-					setcondlink(dir, 1)
+-			Label_201:
+-			//Foreach goto(101)
++					continue
++			else if(dir & 8)			//was (direct&8)
++				setairlink(dir, null)
++				setcondlink(dir, 1)
++		}
+ 
+ 		for(var/obj/window/D in T)
+-			if(!( D.density ))
+-				goto Label_312
++		{
++			if(!D.density)	continue
++
+ 			//var/direct = get_dir(T, src)
+ 			if (D.dir == SOUTHWEST)
+ 				//L -= T
+ 				setairlink(dir, null)
+ 				setcondlink(dir, 1+D.reinf)
+-				goto Label_312
+-			else
+-				if(direct == D.dir)
+-					//L -= T
+-					setairlink(dir, null)
+-					setcondlink(dir,1+D.reinf)
++			else if(direct == D.dir)
++				//L -= T
++				setairlink(dir, null)
++				setcondlink(dir,1+D.reinf)
++		}
++	}
++}
+ 
+-			Label_312:
+-
+-			//Foreach goto(219)
+-
+-		//*****
+-
+-		Label_317:
+-		//Foreach goto(40)
+-
+-
+-
+-
+-/turf/proc/FindLinkedTurfs()
+-
+-
+-	//if (locate(/obj/move, src))
+-	//	return list(  )
+-
++/turf/proc/FindLinkedTurfs()	//	tests all air[dir], returns link[dir] if true
++{
+ 	var/list/L = list(  )
+-	if(airN)
+-		L += linkN
+-	if(airS)
+-		L += linkS
+-	if(airE)
+-		L += linkE
+-	if(airW)
+-		L += linkW
+ 
+-/*
+-	for(var/turf/T in L)
+-		var/obj/move/O = locate(/obj/move, T)
+-		if (O)
+-			L -= T
+-			if (O.updatecell)
+-				L += O
+-		//Foreach goto(333)
+-*/
++	if(airN)	L += linkN
++	if(airS)	L += linkS
++	if(airE)	L += linkE
++	if(airW)	L += linkW
++
+ 	return L
++}
+ 
+-
+-/turf/proc/report()
+-	return "[src.type] [x] [y] [z]"
+-
+-
+-// return the total gas contents of a turf
+-
+-/turf/proc/tot_gas()
+-	return co2 + oxygen + poison + sl_gas + n2
+-
+-turf/proc/tot_old_gas()
+-	return oldco2 + oldoxy + oldpoison + osl_gas + on2
+-
+-/turf/proc/tot_tmp_gas()
+-	return tmpco2 + tmpoxy + tmppoison + tsl_gas + tn2
+-
+-
+-// return the gas contents of a turf as a gas obj
+-
+-/turf/proc/get_gas()
+-
+-	var/obj/substance/gas/tgas = new()
+-
+-	tgas.oxygen = src.oxygen
+-	tgas.n2 = src.n2
+-	tgas.plasma = src.poison
+-	tgas.co2 = src.co2
+-	tgas.sl_gas = src.sl_gas
+-	tgas.temperature = src.temp
+-	tgas.maximum = CELLSTANDARD		// not actually a maximum
+-
+-	return tgas
+-
+-
+-
+-
+ /turf/updatecell()
+-
+-
+-	/*var/list/FT = FindTurfs()
+-	var/list/FLT = FindLinkedTurfs()
+-	if(FT.len != FLT.len)
+-		world << "TLM: [src.report()] FT:[FT.len] != FLT:[FLT.len]"
+-		for(var/turf/T1 in FT)
+-			world << "FT: [T1.report()]"
+-		for(var/turf/T2 in FLT)
+-			world << "FLT: [T2.report()]"
+-*/
+-
++{
+ 	//if(tag && Debug)
+-	//	world.log << "T[tag]=[tot_gas()] Old=[tot_old_gas()] Tmp=[tot_tmp_gas()]"
++	//	world.log << "T[tag]=[gas.total()] Old=[phase1.total()] Tmp=[phase2.total()]"
+ 
++	src.checkfire = !src.checkfire
+ 
+-	src.checkfire = !( src.checkfire )
+-	if (src.checkfire)
+-		if (cellcontrol.var_swap)
+-			var/divideby = 1
+-			var/total = src.oxygen
+-			var/tpoison = src.poison
+-			var/tco2 = src.co2
+-			var/tosl_gas = src.sl_gas
+-			var/ton2 = src.n2
+-			var/totemp = src.temp
+-			var/space = 0
+-			var/burn = src.firelevel >= 10
++	var/divideby	= 1
++	var/datum/substance/gas/tmp = new /datum/substance/gas
++	tmp.copy_all(src.gas)
+ 
++	var/space		= 0
++	var/burn		= src.firelevel >= 10
++	src.airdir		= null
++	src.airforce	= 0
++	var/adiff		= null
+ 
++	for(var/turf/T in src.FindLinkedTurfs())
++	{
++		if(istype(T, /turf/space))
++		{
++			if(!src.checkfire)
++				src.airforce = T.gas.total() + 25000	//	didn't include sl_gas before
++				src.airdir = get_dir(src, T)
++			space = 1;	break
++		}
++		divideby++
++		if(T.firelevel >= 900000.0)			burn = 1
++		if(cellcontrol.var_swap)
++		{
++			tmp.gain_gas(T.phase1)
++			tmp.temp += T.phase1.temp
+ 
+-			/*
+-			for(var/turf/T in src.FindLinkedTurfs())
+-				if (istype(T, /turf/space))
+-					space = 1
+-					break // *****RM
+-				else
+-					divideby++
+-					total += T.oldoxy
+-					tpoison += T.oldpoison
+-					tco2 += T.oldco2
+-					tosl_gas += T.osl_gas
+-					ton2 += T.on2
+-					totemp += T.otemp
+-					if (T.firelevel >= 900000.0)
+-						burn = 1
+-					//Foreach continue //goto(113)
+-			*/
+-
+-
+-			if(airN)
+-				if(istype(linkN, /turf/space))
+-					space = 1
+-					goto Enddir1
+-				else
+-					divideby++
+-					total   += linkN.oldoxy
+-					tpoison += linkN.oldpoison
+-					tco2    += linkN.oldco2
+-					tosl_gas+= linkN.osl_gas
+-					ton2    += linkN.on2
+-					totemp  += linkN.otemp
+-					if (linkN.firelevel >= 900000.0)
+-						burn = 1
+-			if(airS)
+-				if(istype(linkS, /turf/space))
+-					space = 1
+-					goto Enddir1
+-				else
+-					divideby++
+-					total   += linkS.oldoxy
+-					tpoison += linkS.oldpoison
+-					tco2    += linkS.oldco2
+-					tosl_gas+= linkS.osl_gas
+-					ton2    += linkS.on2
+-					totemp  += linkS.otemp
+-					if (linkS.firelevel >= 900000.0)
+-						burn = 1
+-			if(airE)
+-				if(istype(linkE, /turf/space))
+-					space = 1
+-					goto Enddir1
+-				else
+-					divideby++
+-					total   += linkE.oldoxy
+-					tpoison += linkE.oldpoison
+-					tco2    += linkE.oldco2
+-					tosl_gas+= linkE.osl_gas
+-					ton2    += linkE.on2
+-					totemp  += linkE.otemp
+-					if (linkE.firelevel >= 900000.0)
+-						burn = 1
+-			if(airW)
+-				if(istype(linkW, /turf/space))
+-					space = 1
+-					goto Enddir1
+-				else
+-					divideby++
+-					total   += linkW.oldoxy
+-					tpoison += linkW.oldpoison
+-					tco2    += linkW.oldco2
+-					tosl_gas+= linkW.osl_gas
+-					ton2    += linkW.on2
+-					totemp  += linkW.otemp
+-					if (linkW.firelevel >= 900000.0)
+-						burn = 1
+-
+-			Enddir1:
+-
+-			if (space)
+-				src.oxygen = 0
+-				src.poison = 0
+-				src.co2 = 0
+-				src.sl_gas = 0
+-				src.n2 = 0
+-				src.temp = 0
+-			else
+-				src.oxygen = total / divideby
+-				src.poison = tpoison / divideby
+-				src.co2 = tco2 / divideby
+-				src.sl_gas = tosl_gas / divideby
+-				src.n2 = ton2 / divideby
+-				src.temp = totemp / divideby
+-			if (src.sl_gas > 0)
+-				src.sl_gas--
+-			if (src.poison > 100000.0)
+-				src.overlays = list( plmaster )
+-			else
+-				if (src.sl_gas > 101000.0)
+-					src.overlays = list( slmaster )
+-				else
+-					src.overlays = null
+-			if (burn)
+-				src.firelevel = src.oxygen + src.poison
+-			if (src.firelevel >= 900000.0)
+-				src.icon_state = "burning"
+-				src.luminosity = 2
+-				if (src.oxygen > 5000)
+-					src.co2 += 2500
+-					src.oxygen -= 5000
+-				else
+-					src.oxygen = 0
+-
+-				// heating from fire
+-				temp += (firelevel/FIREQUOT+FIREOFFSET - temp) / FIRERATE
+-
+-
+-				src.poison = max(0, src.poison - 1000)
+-				src.co2 += 2500
+-				if (locate(/obj/effects/water, src))
+-					src.firelevel = 0
+-				for(var/atom/movable/A in src)
+-					A.burn(src.firelevel)
+-					//Foreach goto(522)
+-			else
+-				src.firelevel = 0
+-				if (src.icon_state == "burning")
+-					unburn()
+-			src.tmpoxy = src.oxygen
+-			src.tmppoison = src.poison
+-			src.tmpco2 = src.co2
+-			src.tsl_gas = src.sl_gas
+-			src.tn2 = src.n2
+-			src.ttemp = src.temp
+-			//if(tag && Debug)
+-			//	world.log << "Tot[tag]=[total+tpoison+tco2+tosl_gas+ton2]  /  [divideby]"
+-			//	world.log << "T[tag]=[tot_gas()] .Tmp=[tot_tmp_gas()]"
+-
++			if(!src.checkfire)
++				adiff  = src.phase1.oxygen + src.phase1.co2 + src.phase1.nitrogen;
++				adiff -= T.phase1.oxygen + T.phase1.co2 + T.phase1.nitrogen;
++		}
+ 		else
+-			var/divideby = 1
+-			var/total = src.oxygen
+-			var/tpoison = src.poison
+-			var/tco2 = src.co2
+-			var/tosl_gas = src.sl_gas
+-			var/ton2 = src.n2
+-			var/totemp = src.temp
+-			var/space = 0
+-			var/burn = src.firelevel >= 10
++		{
++			tmp.gain_gas(T.phase2)
++			tmp.temp += T.phase2.temp
+ 
+-			/*
+-			for(var/turf/T in src.FindLinkedTurfs())
+-				if (istype(T, /turf/space))
+-					space = 1
+-					break // *****RM
+-				else
+-					divideby++
+-					total += T.tmpoxy
+-					tpoison += T.tmppoison
+-					tco2 += T.tmpco2
+-					tosl_gas += T.tsl_gas
+-					ton2 += T.tn2
+-					totemp += T.ttemp
+-					if (T.firelevel >= 900000.0)
+-						burn = 1
+-					//Foreach continue //goto(705)
+-			*/
++			if(!src.checkfire)
++				adiff  = src.phase2.oxygen + src.phase2.co2 + src.phase2.nitrogen;
++				adiff -= T.phase2.oxygen + T.phase2.co2 + T.phase2.nitrogen;
++		}
++		if(!src.checkfire)
++			if(adiff > src.airforce)
++				src.airforce = adiff;
++				src.airdir = get_dir(src,T)
++	}
+ 
+-			if(airN)
+-				if(istype(linkN, /turf/space))
+-					space = 1
+-					goto Enddir2
+-				else
+-					divideby++
+-					total   += linkN.tmpoxy
+-					tpoison += linkN.tmppoison
+-					tco2    += linkN.tmpco2
+-					tosl_gas+= linkN.tsl_gas
+-					ton2    += linkN.tn2
+-					totemp  += linkN.ttemp
+-					if (linkN.firelevel >= 900000.0)
+-						burn = 1
+-			if(airS)
+-				if(istype(linkS, /turf/space))
+-					space = 1
+-					goto Enddir2
+-				else
+-					divideby++
+-					total   += linkS.tmpoxy
+-					tpoison += linkS.tmppoison
+-					tco2    += linkS.tmpco2
+-					tosl_gas+= linkS.tsl_gas
+-					ton2    += linkS.tn2
+-					totemp  += linkS.ttemp
+-					if (linkS.firelevel >= 900000.0)
+-						burn = 1
+-			if(airE)
+-				if(istype(linkE, /turf/space))
+-					space = 1
+-					goto Enddir2
+-				else
+-					divideby++
+-					total   += linkE.tmpoxy
+-					tpoison += linkE.tmppoison
+-					tco2    += linkE.tmpco2
+-					tosl_gas+= linkE.tsl_gas
+-					ton2    += linkE.tn2
+-					totemp  += linkE.ttemp
+-					if (linkE.firelevel >= 900000.0)
+-						burn = 1
+-			if(airW)
+-				if(istype(linkW, /turf/space))
+-					space = 1
+-					goto Enddir2
+-				else
+-					divideby++
+-					total   += linkW.tmpoxy
+-					tpoison += linkW.tmppoison
+-					tco2    += linkW.tmpco2
+-					tosl_gas+= linkW.tsl_gas
+-					ton2    += linkW.tn2
+-					totemp  += linkW.ttemp
+-					if (linkW.firelevel >= 900000.0)
+-						burn = 1
++	if(!src.checkfire)
++		if(src.airforce > 25000)
++			for(var/atom/movable/AM in src)
++				if(!AM.anchored && AM.weight <= src.airforce)
++					step(AM, src.airdir)
++	if (space)	src.gas.clear()
++	else
++	{
++		tmp.multiply_gas(1/divideby)
++		src.gas = tmp
++	}
+ 
+-			Enddir2:
+-
+-
+-			if (space)
+-				src.oxygen = 0
+-				src.poison = 0
+-				src.co2 = 0
+-				src.sl_gas = 0
+-				src.n2 = 0
+-				src.temp = 0
+-			else
+-				src.oxygen = total / divideby
+-				src.poison = tpoison / divideby
+-				src.co2 = tco2 / divideby
+-				src.sl_gas = tosl_gas / divideby
+-				src.n2 = ton2 / divideby
+-				src.temp = totemp / divideby
+-			if (src.sl_gas > 0)
+-				src.sl_gas--
+-			if (src.poison > 100000.0)
+-				src.overlays = list( plmaster )
+-			else
+-				if (src.sl_gas > 101000.0)
+-					src.overlays = list( slmaster )
+-				else
+-					src.overlays = null
+-			if (burn)
+-				src.firelevel = src.oxygen + src.poison
+-			if (src.firelevel >= 900000.0)
+-				src.icon_state = "burning"
+-				src.luminosity = 2
+-				if (src.oxygen > 5000)
+-					src.co2 += 2500
+-					src.oxygen -= 5000
+-				else
+-					src.oxygen = 0
+-
+-					// heating from fire
+-				temp += (firelevel/FIREQUOT+FIREOFFSET - temp) / FIRERATE
+-
+-
+-
+-				src.poison = max(0, src.poison - 1000)
+-				src.co2 += 2500
+-				if (locate(/obj/effects/water, src))
+-					src.firelevel = 0
+-				for(var/atom/movable/A as mob|obj in src)
+-					A.burn(src.firelevel)
+-					//Foreach goto(1114)
+-			else
+-				if (src.icon_state == "burning")
+-					src.firelevel = 0
+-					unburn()
+-			src.oldoxy = src.oxygen
+-			src.oldpoison = src.poison
+-			src.oldco2 = src.co2
+-			src.osl_gas = src.sl_gas
+-			src.on2 = src.n2
+-			src.otemp = src.temp
+-			//if(tag && Debug)
+-			//	world.log << "Tot[tag]=[total+tpoison+tco2+tosl_gas+ton2]  /  [divideby]"
+-			//	world.log << "T[tag]=[tot_gas()] .Old=[tot_old_gas()]"
+-
++	if(!src.checkfire)
++	{
++		if (src.gas.co2 >= src.gas.plasma)
++		{
++			src.gas.co2 -= src.gas.plasma
++			src.gas.oxygen += src.gas.plasma
++			src.gas.plasma = 0
++		}
++		else
++		{
++			src.gas.plasma -= src.gas.co2
++			src.gas.oxygen += src.gas.co2
++			src.gas.co2 = 0
++		}
++	}
+ 	else
+-		if (cellcontrol.var_swap)
+-			var/divideby = 1
+-			var/total = src.oxygen
+-			var/tpoison = src.poison
+-			var/tco2 = src.co2
+-			var/tosl_gas = src.sl_gas
+-			var/ton2 = src.n2
+-			var/totemp = src.temp
+-			var/space = 0
+-			src.airdir = null
+-			src.airforce = 0
+-			var/adiff = null
+-			/*
+-			for(var/turf/T in src.FindLinkedTurfs())
+-				if (istype(T, /turf/space))
+-					space = 1
+-					src.airforce = src.oxygen + src.poison + src.n2 + src.co2 + 25000
+-					src.airdir = get_dir(src, T)
+-					break // *****RM
+-				else
+-					divideby++
+-					total += T.oldoxy
+-					tpoison += T.oldpoison
+-					tco2 += T.oldco2
+-					tosl_gas += T.osl_gas
+-					ton2 += T.on2
+-					totemp += T.otemp
+-					adiff = src.oldoxy + src.oldco2 + src.on2 - (T.oldoxy + T.oldco2 + T.on2)
+-					if (adiff > src.airforce)
+-						src.airforce = adiff
+-						src.airdir = get_dir(src, T)
+-					//Foreach continue //goto(1317)
++	{
++		if(src.gas.no2 > 0)				src.gas.no2--
++		if(src.gas.plasma > 100000.0)		src.overlays = list( plmaster )
++		else
++		{
++			if (src.gas.no2 > 101000.0)	src.overlays = list( slmaster )
++			else							src.overlays = null
++		}
++		if(burn)						src.firelevel = src.gas.oxygen + src.gas.plasma
++		if(src.firelevel >= 900000.0)
++		{
++			src.luminosity = 2
++			src.icon_state = "burning"
++			var/burned = max(src.gas.oxygen,5000)
++			src.gas.oxygen	-= burned
++			src.gas.co2	-= burned/2
+ 
+-			*/
+-			if(airN)
+-				if(istype(linkN, /turf/space))
+-					space = 1
+-					src.airforce = src.oxygen + src.poison + src.n2 + src.co2 + 25000
+-					src.airdir = NORTH
+-					goto Enddir3
+-				else
+-					divideby++
+-					total   += linkN.oldoxy
+-					tpoison += linkN.oldpoison
+-					tco2    += linkN.oldco2
+-					tosl_gas+= linkN.osl_gas
+-					ton2    += linkN.on2
+-					totemp  += linkN.otemp
+-					adiff = src.oldoxy + src.oldco2 + src.on2 - (linkN.oldoxy + linkN.oldco2 + linkN.on2)
+-					if (adiff > src.airforce)
+-						src.airforce = adiff
+-						src.airdir = NORTH
+-			if(airS)
+-				if(istype(linkS, /turf/space))
+-					space = 1
+-					src.airforce = src.oxygen + src.poison + src.n2 + src.co2 + 25000
+-					src.airdir = get_dir(src, SOUTH)
+-					goto Enddir3
+-				else
+-					divideby++
+-					total   += linkS.oldoxy
+-					tpoison += linkS.oldpoison
+-					tco2    += linkS.oldco2
+-					tosl_gas+= linkS.osl_gas
+-					ton2    += linkS.on2
+-					totemp  += linkS.otemp
+-					adiff = src.oldoxy + src.oldco2 + src.on2 - (linkS.oldoxy + linkS.oldco2 + linkS.on2)
+-					if (adiff > src.airforce)
+-						src.airforce = adiff
+-						src.airdir = SOUTH
+-			if(airE)
+-				if(istype(linkE, /turf/space))
+-					space = 1
+-					src.airforce = src.oxygen + src.poison + src.n2 + src.co2 + 25000
+-					src.airdir = EAST
+-					goto Enddir3
+-				else
+-					divideby++
+-					total   += linkE.oldoxy
+-					tpoison += linkE.oldpoison
+-					tco2    += linkE.oldco2
+-					tosl_gas+= linkE.osl_gas
+-					ton2    += linkE.on2
+-					totemp  += linkE.otemp
+-					adiff = src.oldoxy + src.oldco2 + src.on2 - (linkE.oldoxy + linkE.oldco2 + linkE.on2)
+-					if (adiff > src.airforce)
+-						src.airforce = adiff
+-						src.airdir = EAST
+-			if(airW)
+-				if(istype(linkW, /turf/space))
+-					space = 1
+-					src.airforce = src.oxygen + src.poison + src.n2 + src.co2 + 25000
+-					src.airdir = get_dir(src, WEST)
+-					goto Enddir3
+-				else
+-					divideby++
+-					total   += linkW.oldoxy
+-					tpoison += linkW.oldpoison
+-					tco2    += linkW.oldco2
+-					tosl_gas+= linkW.osl_gas
+-					ton2    += linkW.on2
+-					totemp  += linkW.otemp
+-					adiff = src.oldoxy + src.oldco2 + src.on2 - (linkW.oldoxy + linkW.oldco2 + linkW.on2)
+-					if (adiff > src.airforce)
+-						src.airforce = adiff
+-						src.airdir = WEST
++			// heating from fire
++			src.gas.temp += (firelevel/FIREQUOT+FIREOFFSET - src.gas.temp) / FIRERATE
+ 
+-			Enddir3:
+-
+-			if (src.airforce > 25000)
+-				for(var/atom/movable/AM in src)
+-					if ((!( AM.anchored ) && AM.weight <= src.airforce))
+-						spawn( 0 )
+-							step(AM, src.airdir)
+-							return
+-					//Foreach goto(1518)
+-
+-			if (space)
+-				src.oxygen = 0
+-				src.poison = 0
+-				src.co2 = 0
+-				src.sl_gas = 0
+-				src.n2 = 0
+-				src.temp = 0
+-			else
+-				src.oxygen = total / divideby
+-				src.poison = tpoison / divideby
+-				src.co2 = tco2 / divideby
+-				src.sl_gas = tosl_gas / divideby
+-				src.n2 = ton2 / divideby
+-				src.temp = totemp / divideby
+-
+-
+-
+-			if (src.co2 >= src.poison)
+-				src.co2 -= src.poison
+-				src.oxygen += src.poison
+-				src.poison = 0
+-			else
+-				src.poison -= src.co2
+-				src.oxygen += src.co2
+-				src.co2 = 0
+-			src.tmpoxy = src.oxygen
+-			src.tmppoison = src.poison
+-			src.tmpco2 = src.co2
+-			src.tsl_gas = src.sl_gas
+-			src.tn2 = src.n2
+-			src.ttemp = src.temp
+-			//if(tag && Debug)
+-			//	world.log << "Tot[tag]=[total+tpoison+tco2+tosl_gas+ton2]  /  [divideby]"
+-			//	world.log << "T[tag]=[tot_gas()] .Tmp=[tot_tmp_gas()]"
++			src.gas.plasma = max(0, src.gas.plasma - 1000)
++			src.gas.co2 += 2500
++			if(locate(/obj/effects/water, src))		src.firelevel = 0
++			for(var/atom/movable/A in src)			A.burn(src.firelevel)
++		}
+ 		else
+-			var/divideby = 1
+-			var/total = src.oxygen
+-			var/tpoison = src.poison
+-			var/tco2 = src.co2
+-			var/tosl_gas = src.sl_gas
+-			var/ton2 = src.n2
+-			var/totemp = src.temp
+-			var/space = 0
+-			src.airdir = null
+-			src.airforce = 0
+-			var/adiff = null
+-			/*for(var/turf/T in src.FindLinkedTurfs())
+-				if (istype(T, /turf/space))
+-					space = 1
+-					src.airforce = src.oxygen + src.poison + src.n2 + src.co2 + 25000
+-					src.airdir = get_dir(src, T)
+-					break // *****RM
+-				else
+-					divideby++
+-					total += T.tmpoxy
+-					tpoison += T.tmppoison
+-					tco2 += T.tmpco2
+-					tosl_gas += T.tsl_gas
+-					ton2 += T.tn2
+-					totemp += T.ttemp
+-					adiff = src.tmpoxy + src.tmpco2 + src.tn2 - (T.tmpoxy + T.tmpco2 + T.tn2)
+-					if (adiff > src.airforce)
+-						src.airforce = adiff
+-						src.airdir = get_dir(src, T)
+-					//Foreach continue //goto(1872)
++		{
++			src.firelevel = 0
++			if(src.icon_state == "burning")
++				unburn()
++		}
++	}
+ 
+-			*/
++	if(cellcontrol.var_swap)	src.phase2.copy_all(src.gas);
++	else						src.phase1.copy_all(src.gas);
+ 
+-			if(airN)
+-				if(istype(linkN, /turf/space))
+-					space = 1
+-					src.airforce = src.oxygen + src.poison + src.n2 + src.co2 + 25000
+-					src.airdir = NORTH
+-					goto Enddir4
+-				else
+-					divideby++
+-					total   += linkN.tmpoxy
+-					tpoison += linkN.tmppoison
+-					tco2    += linkN.tmpco2
+-					tosl_gas+= linkN.tsl_gas
+-					ton2    += linkN.tn2
+-					totemp  += linkN.ttemp
+-					adiff = src.tmpoxy + src.tmpco2 + src.tn2 - (linkN.tmpoxy + linkN.tmpco2 + linkN.tn2)
+-					if (adiff > src.airforce)
+-						src.airforce = adiff
+-						src.airdir = NORTH
+-			if(airS)
+-				if(istype(linkS, /turf/space))
+-					space = 1
+-					src.airforce = src.oxygen + src.poison + src.n2 + src.co2 + 25000
+-					src.airdir = get_dir(src, SOUTH)
+-					goto Enddir4
+-				else
+-					divideby++
+-					total   += linkS.tmpoxy
+-					tpoison += linkS.tmppoison
+-					tco2    += linkS.tmpco2
+-					tosl_gas+= linkS.tsl_gas
+-					ton2    += linkS.tn2
+-					totemp  += linkS.ttemp
+-					adiff = src.tmpoxy + src.tmpco2 + src.tn2 - (linkS.tmpoxy + linkS.tmpco2 + linkS.tn2)
+-					if (adiff > src.airforce)
+-						src.airforce = adiff
+-						src.airdir = SOUTH
+-			if(airE)
+-				if(istype(linkE, /turf/space))
+-					space = 1
+-					src.airforce = src.oxygen + src.poison + src.n2 + src.co2 + 25000
+-					src.airdir = EAST
+-					goto Enddir4
+-				else
+-					divideby++
+-					total   += linkE.tmpoxy
+-					tpoison += linkE.tmppoison
+-					tco2    += linkE.tmpco2
+-					tosl_gas+= linkE.tsl_gas
+-					ton2    += linkE.tn2
+-					totemp  += linkE.ttemp
+-					adiff = src.tmpoxy + src.tmpco2 + src.tn2 - (linkE.tmpoxy + linkE.tmpco2 + linkE.tn2)
+-					if (adiff > src.airforce)
+-						src.airforce = adiff
+-						src.airdir = EAST
+-			if(airW)
+-				if(istype(linkW, /turf/space))
+-					space = 1
+-					src.airforce = src.oxygen + src.poison + src.n2 + src.co2 + 25000
+-					src.airdir = get_dir(src, WEST)
+-					goto Enddir4
+-				else
+-					divideby++
+-					total   += linkW.tmpoxy
+-					tpoison += linkW.tmppoison
+-					tco2    += linkW.tmpco2
+-					tosl_gas+= linkW.tsl_gas
+-					ton2    += linkW.tn2
+-					totemp  += linkW.ttemp
+-					adiff = src.tmpoxy + src.tmpco2 + src.tn2 - (linkW.tmpoxy + linkW.tmpco2 + linkW.tn2)
+-					if (adiff > src.airforce)
+-						src.airforce = adiff
+-						src.airdir = WEST
++	//if(tag && Debug)
++	//	world.log << "Tot[tag]=[tmp.total()]  /  [divideby]"
++	//	world.log << "T[tag]=[gas.total()] .Tmp=[phase2.total()]"
+ 
+-
+-			Enddir4:
+-
+-			if (src.airforce > 25000)
+-				for(var/atom/movable/AM as mob|obj in src)
+-					if ((!( AM.anchored ) && AM.weight <= src.airforce))
+-						spawn( 0 )
+-							step(AM, src.airdir)
+-							return
+-					//Foreach goto(2073)
+-			if (space)
+-				src.oxygen = 0
+-				src.poison = 0
+-				src.co2 = 0
+-				src.sl_gas = 0
+-				src.n2 = 0
+-				src.temp = 0
+-			else
+-				src.oxygen = total / divideby
+-				src.poison = tpoison / divideby
+-				src.co2 = tco2 / divideby
+-				src.sl_gas = tosl_gas / divideby
+-				src.n2 = ton2 / divideby
+-				src.temp = totemp / divideby
+-			if (src.sl_gas > 0)
+-				src.sl_gas--
+-			if (src.co2 >= src.poison)
+-				src.co2 -= src.poison
+-				src.oxygen += src.poison
+-				src.poison = 0
+-			else
+-				src.poison -= src.co2
+-				src.oxygen += src.co2
+-				src.co2 = 0
+-
+-			src.oldoxy = src.oxygen
+-			src.oldpoison = src.poison
+-			src.oldco2 = src.co2
+-			src.osl_gas = src.sl_gas
+-			src.on2 = src.n2
+-			src.otemp = src.temp
+-
+-			//if(tag && Debug)
+-			//	world.log << "Tot[tag]=[total+tpoison+tco2+tosl_gas+ton2]  /  [divideby]"
+-			//	world.log << "T[tag]=[tot_gas()] .Old=[tot_old_gas()]"
+-
+-	if ((locate(/obj/effects/water, src) || src.firelevel < 900000.0))
++	if((locate(/obj/effects/water, src) || src.firelevel < 900000.0))
++	{	//	water soothes the burning
++		src.gas.temp += (T20C - src.gas.temp) / FIRERATE
+ 		src.firelevel = 0
+-		//cool due to water
+-		temp += (T20C - temp) / FIRERATE
++	}
++}
+ 
+-	return
+-
+ /turf/conduction()
+-
++{
+ 	var/difftemp = 0
+ 	for(var/turf/T in FindCondTurfs())
+ 		var/cond = getCond(get_dir(src, T))
+-		difftemp += (T.otemp-src.temp)/(10*cond)
++		difftemp += (T.phase1.temp-src.gas.temp)/(10*cond)
+ 
+-	temp += difftemp
++	src.gas.temp += difftemp
++}
+ 
+-
+ /turf/proc/FindCondTurfs()
+-
++{
+ 	var/list/L = list(  )
+-	if(condN)
+-		L += linkN
+-	if(condS)
+-		L += linkS
+-	if(condE)
+-		L += linkE
+-	if(condW)
+-		L += linkW
+ 
++	if(condN)	L += linkN
++	if(condS)	L += linkS
++	if(condE)	L += linkE
++	if(condW)	L += linkW
+ 
+ 	return L
++}
+ 
+ /turf/proc/getCond(dir)
++{
+ 	switch(dir)
+-		if(1)
+-			return condN
+-		if(2)
+-			return condS
+-		if(4)
+-			return condE
+-		if(8)
+-			return condW
++		if(1)	return condN
++		if(2)	return condS
++		if(4)	return condE
++		if(8)	return condW
+ 	return 0
+-
++}
+Index: game/cellautomata.dm
+===================================================================
+--- game/cellautomata.dm	(revision 281)
++++ game/cellautomata.dm	(working copy)
+@@ -850,15 +850,9 @@
+ 					AM.z = 1
+ 					//Foreach goto(79)
+ 				var/turf/U = locate(T.x, T.y, shuttle_z)
+-				U.oxygen = T.oxygen
+-				U.oldoxy = T.oldoxy
+-				U.tmpoxy = T.tmpoxy
+-				U.poison = T.poison
+-				U.oldpoison = T.oldpoison
+-				U.tmppoison = T.tmppoison
+-				U.co2 = T.co2
+-				U.oldco2 = T.oldco2
+-				U.tmpco2 = T.tmpco2
++				U.gas.copy_cop(T.gas)
++				U.phase1.copy_cop(T.phase1)
++				U.phase2.copy_cop(T.phase2)
+ 
+ 				U.buildlinks()
+ 				//T = null
+@@ -891,15 +885,9 @@
+ 					AM.z = shuttle_z
+ 					//Foreach goto(2483)
+ 				var/turf/U = locate(T.x, T.y, shuttle_z)
+-				U.oxygen = T.oxygen
+-				U.oldoxy = T.oldoxy
+-				U.tmpoxy = T.tmpoxy
+-				U.poison = T.poison
+-				U.oldpoison = T.oldpoison
+-				U.tmppoison = T.tmppoison
+-				U.co2 = T.co2
+-				U.oldco2 = T.oldco2
+-				U.tmpco2 = T.tmpco2
++				U.gas.copy_cop(T.gas)
++				U.phase1.copy_cop(T.phase1)
++				U.phase2.copy_cop(T.phase2)
+ 
+ 				U.buildlinks()
+ 				//T = null
+@@ -1012,4 +1000,4 @@
+ 		src.var_swap = !( src.var_swap )
+ 
+ 		sleep(2)
+-	while (src.processing)
+\ No newline at end of file
++	while (src.processing)
+Index: game/chemical.dm
+===================================================================
+--- game/chemical.dm	(revision 281)
++++ game/chemical.dm	(working copy)
+@@ -133,410 +133,144 @@
+ 	return
+ 
+ 
+-
+-
+-/* --------------------------
+-
+-heat = amount * temperature(abs)
+-
+-heat is conserved between exchanges
+-
+----------------------------- */
+-
+-//fractional multipliers of heat
++//----------------------------------------------------------------------------
++//--	Gas Processing - reorganized by Kelson
++//----------------------------------------------------------------------------
++//--	Heat = temp(absolute) * amount
++//--	Heat is conserved between gas exchanges
++//----------------------------------------------------------------------------
++//--	fractional multipliers of heat
+ #define TURF_ADD_FRAC 0.95		//cooling due to release of gas into tile
+ #define TURF_TAKE_FRAC 1.06		//heating due to pressurization into pipework
++//----------------------------------------------------------------------------
++/datum/substance/gas/proc/clear()				{	oxygen = 0;	plasma = 0;	no2 = 0;	co2 = 0; nitrogen = 0				}
++/datum/substance/gas/proc/total()				{	return co2 + oxygen + plasma + no2 + nitrogen						}
++/datum/substance/gas/proc/has_gas()				{	return (src.total() > 0)										}
++/datum/substance/gas/proc/leak(T as turf)		{	src.turf_add(T, src.total())									}
++/datum/substance/gas/proc/add_gas(C,N,O,P,S)	{	co2 += C; nitrogen += N; oxygen += O; plasma += P; no2 += S		}
++/datum/substance/gas/proc/rem_gas(C,N,O,P,S)	{	co2 -= C; nitrogen -= N; oxygen -= O; plasma -= P; no2 -= S		}
++/datum/substance/gas/proc/set_gas(C,N,O,P,S)	{	co2  = C; nitrogen  = N; oxygen  = O; plasma  = P; no2  = S		}
++/datum/substance/gas/proc/multiply_gas(F)		{	co2 *= F; nitrogen *= F; oxygen *= F; plasma *= F; no2 *= F		}
++//----------------------------------------------------------------------------
++/datum/substance/gas/proc/gain_gas(var/datum/substance/gas/T)	{ src.add_gas(T.co2,T.nitrogen,T.oxygen,T.plasma,T.no2)	}
++/datum/substance/gas/proc/lose_gas(var/datum/substance/gas/T)	{ src.rem_gas(T.co2,T.nitrogen,T.oxygen,T.plasma,T.no2)	}
++/datum/substance/gas/proc/copy_gas(var/datum/substance/gas/T)	{ src.set_gas(T.co2,T.nitrogen,T.oxygen,T.plasma,T.no2)	}
++/datum/substance/gas/proc/copy_all(var/datum/substance/gas/T)	{ src.copy_gas(T);	src.temp = T.temp					}
++/datum/substance/gas/proc/copy_cop(var/datum/substance/gas/T)	{ src.set_gas(T.co2,0,T.oxygen,T.plasma,0)				}
++//----------------------------------------------------------------------------
++/datum/substance/gas/proc/add_delta(var/datum/substance/gas/T)
++{
++	var/source = src.total();	var/target = T.total();	if(target < 0) return
++	src.temp = (source*src.temp + target*T.temp) / (source+target)
++	src.gain_gas(T)
++}
++//----------------------------------------------------------------------------
++/datum/substance/gas/proc/sub_delta(var/datum/substance/gas/T)	{	src.lose_gas(T)	}
++//----------------------------------------------------------------------------
++/datum/substance/gas/proc/transfer(var/datum/substance/gas/target as obj, amount)
++{	//	transfers [amount] from [src] to [target]
++	if(!amount)								return
++	if(!istype(target,/datum/substance/gas))	return
++	if(!src.has_gas())						return
+ 
+-// Not used?
+-/obj/substance/gas/leak(T as turf)
++	var/tTotal	= target.total()
++	var/sTotal	= src.total()
+ 
+-	turf_add(T, src.co2 + src.oxygen + src.plasma + src.n2)
+-	return
++	//	transfer, at most, all the gas in target
++	if(amount < 0 || amount > sTotal)	amount = sTotal
+ 
+-/obj/substance/gas/proc/tot_gas()
++	//	don't overfill the container
++	if(target.maximum > 0)
++		if(target.maximum < (amount + tTotal))
++			amount = src.maximum - tTotal
+ 
+-	return src.co2 + src.oxygen + src.plasma + src.sl_gas + src.n2
+-	return
++	//	all gasses are transferred at the same rate
++	var/datum/substance/gas/tmp = new/datum/substance/gas(src)
++	tmp.multiply_gas(amount/sTotal)
+ 
+-/obj/substance/gas/proc/transfer_from(var/obj/substance/gas/target as obj, amount)
++	//	energy is preserved during the transfer
++	src.temp = (tTotal*target.temp + amount*src.temp)/(tTotal+amount)
++	target.gain_gas(tmp);
++	src.lose_gas(tmp);
++}
++//----------------------------------------------------------------------------
++/datum/substance/gas/proc/transfer_from(var/datum/substance/gas/target as obj, amount)
++{	//	transfers [amount] from [target] to [src]
++	return target.transfer(src,amount)
++}
++//----------------------------------------------------------------------------
++/datum/substance/gas/proc/merge_into(var/datum/substance/gas/target as obj)
++{	return target.transfer(src,target.total())	}
++//----------------------------------------------------------------------------
++/datum/substance/gas/proc/turf_add(var/turf/target as turf, amount)
++{
++	if(!amount)	return
++	if(!istype(target, /turf) && !istype(target, /obj/move))	return
++	if (locate(/obj/move, target)) target = locate(/obj/move, target)
++	src.transfer(target.gas,amount)	//	might need TURF_ADD_FRAC
++	target.reset_phases()
++}
++//----------------------------------------------------------------------------
++/datum/substance/gas/proc/turf_take(var/turf/target as turf, amount)
++{
++	if(!amount)	return
++	if(!istype(target, /turf) && !istype(target, /obj/move))	return
++	if(locate(/obj/move, target))	target = locate(/obj/move, target)
++	target.gas.transfer(src,amount)	//	might need TURF_ADD_FRAC
++	target.reset_phases()
++}
++//----------------------------------------------------------------------------
++/datum/substance/gas/proc/turf_add_all_oxy(var/turf/target as turf)
++{
++	var/t_gas = src.total()
++	var/t_turf = target.gas.total()
+ 
+-	if ((!( istype(target, /obj/substance/gas) ) || !( amount )))
+-		return
+-	var/t1 = target.co2 + target.oxygen + target.plasma + target.sl_gas + target.n2
+-	if (!( t1 ))
+-		return
+-	if (amount > t1)
+-		amount = t1
+-	var/t2 = src.co2 + src.oxygen + src.plasma + src.sl_gas + src.n2
+-	if (amount < 0)
+-		amount = t1
+-	if ((src.maximum > 0 && (src.maximum - t2) < amount))
+-		amount = src.maximum - t2
+-	var/t_oxy = amount * target.oxygen / t1
+-	var/t_pla = amount * target.plasma / t1
+-	var/t_co2 = amount * target.co2 / t1
+-	var/t_sl_gas = amount * target.sl_gas / t1
+-	var/t_n2 = amount * target.n2 / t1
+-	var/t3 = t1 + t2
+-	var/t4 = t2 * src.temperature
+-	var/t5 = t1 * target.temperature
+-	if (t3 > 0)
+-		src.temperature = (t4 + t5) / t3
+-	src.co2 += t_co2
+-	src.oxygen += t_oxy
+-	src.plasma += t_pla
+-	src.sl_gas += t_sl_gas
+-	src.n2 += t_n2
+-	target.oxygen -= t_oxy
+-	target.co2 -= t_co2
+-	target.plasma -= t_pla
+-	target.sl_gas -= t_sl_gas
+-	target.n2 -= t_n2
+-	return
++	if(t_gas <= 0)		return
++	if(src.oxygen <= 0)	return
+ 
+-/obj/substance/gas/proc/clear()
+-
++	target.gas.temp = (target.gas.temp * t_turf + src.oxygen*src.temp) / (t_turf + src.oxygen)
++	target.gas.oxygen += src.oxygen
++	target.reset_phases()
+ 	src.oxygen = 0
+-	src.plasma = 0
+-	src.co2 = 0
+-	src.sl_gas = 0
+-	src.n2 = 0
+-	return
++}
++//----------------------------------------------------------------------------
++// replaces gas values of src with n - updates during gas_flow step
++/datum/substance/gas/proc/replace_by(var/datum/substance/gas/n)
++{
++	src.copy_all(n)
++}
++//----------------------------------------------------------------------------
++// relative "specific heat capacity" of gas contents
++/datum/substance/gas/proc/shc()	{	return 2*co2 + 1.5*nitrogen + oxygen + 0.5*no2 + 1.2*plasma	}
++//----------------------------------------------------------------------------
++/datum/substance/gas/proc/extract_toxs(var/turf/target as turf)
++{
++	if(!istype(target,/turf) && !istype(target,/obj/move)) return
++	if(locate(/obj/move, target))	target = locate(/obj/move, target)
+ 
+-/obj/substance/gas/proc/has_gas()
++	var/datum/substance/gas/air;
++	air.co2		= max(0, target.gas.co2	- 0)
++	air.oxygen	= max(0, target.gas.oxygen - O2STANDARD)
++	air.no2	= max(0, target.gas.no2 - 0)
++	air.nitrogen		= max(0, target.gas.nitrogen		- N2STANDARD)
++	air.plasma	= max(0, target.gas.plasma - 0)
+ 
+-	return (src.co2 + src.oxygen + src.plasma + src.sl_gas + src.n2) > 0
+-	return
++	var/air_total = air.total()
++	var/src_total = src.total()
+ 
+-/obj/substance/gas/proc/turf_add(var/turf/target as turf, amount)
++	src.temp = (src_total*src.temp + air_total*target.gas.temp)/(src_total+air_total)
++	target.gas.lose_gas(air)
++	target.reset_phases()
++	src.gain_gas(air)
+ 
+-	if (((!( istype(target, /turf) ) && !( istype(target, /obj/move) )) || !( amount )))
+-		return
+-	if (locate(/obj/move, target))
+-		target = locate(/obj/move, target)
+-	var/t2 = src.co2 + src.oxygen + src.plasma + src.sl_gas + src.n2
+-	if (amount < 0)
+-		amount = src.plasma + src.oxygen + src.co2 + src.sl_gas + src.n2
+-	if (!( t2 ))
+-		return
+-	var/t_oxy = amount * src.oxygen / t2
+-	var/t_pla = amount * src.plasma / t2
+-	var/t_co2 = amount * src.co2 / t2
+-	var/t_sl_gas = amount * src.sl_gas / t2
+-	var/t_n2 = amount * src.n2 / t2
++	//make stored temp closer to nominal (20C)
++	src.temp += (T20C - src.temp) / REGULATE_RATE
++}
+ 
+-	src.co2 -= t_co2
+-	src.oxygen -= t_oxy
+-	src.plasma -= t_pla
+-	src.sl_gas -= t_sl_gas
+-	src.n2 -= t_n2
++//----------------------------------------------------------------------------
++//--	End /datum/substance/gas
++//----------------------------------------------------------------------------
+ 
+-	var/ttotal = target.tot_gas()
+-
+-	target.oxygen += t_oxy
+-	target.co2 += t_co2
+-	target.poison += t_pla
+-	target.sl_gas += t_sl_gas
+-	target.n2 += t_n2
+-
+-	target.temp = ( target.temp * ttotal + (amount * temperature)*TURF_ADD_FRAC ) /  (ttotal + amount)
+-	//target.heat += amount * src.temperature
+-	target.res_vars()
+-
+-	return
+-
+-/obj/substance/gas/proc/turf_add_all_oxy(var/turf/target as turf)
+-
+-	var/t_gas = tot_gas()
+-	var/t_turf = target.tot_gas()
+-
+-	if(t_gas>0)
+-
+-		var/heat_change = oxygen * temperature
+-
+-		//target.heat += heat_change
+-		if( (t_turf + oxygen) >0 )
+-			target.temp = ( target.temp * t_turf + heat_change ) / ( t_turf + oxygen )
+-
+-		target.oxygen += oxygen
+-
+-
+-		var/nonoxy = tot_gas() - oxygen
+-
+-		if(nonoxy>0)
+-
+-			temperature = ( temperature * tot_gas() - heat_change )/(nonoxy)
+-		else
+-			temperature = T20C
+-
+-		oxygen = 0
+-		target.res_vars()
+-
+-	return
+-
+-/obj/substance/gas/proc/turf_take(var/turf/target as turf, amount)
+-
+-	if (((!( istype(target, /turf) ) && !( istype(target, /obj/move) )) || !( amount )))
+-		return
+-	if (locate(/obj/move, target))
+-		target = locate(/obj/move, target)
+-
+-	var/t1 = target.co2 + target.oxygen + target.poison + target.sl_gas + target.n2
+-	if (!( t1 ))
+-		return
+-	var/t2 = src.co2 + src.oxygen + src.plasma + src.sl_gas + src.n2
+-
+-	if (amount > 0)
+-		if ((src.maximum > 0 && (src.maximum - t2) < amount))
+-			amount = src.maximum - t2
+-	else
+-		amount = src.plasma + src.oxygen + src.co2 + src.sl_gas + src.n2
+-
+-	if (amount > t1)
+-		amount = t1
+-
+-	var/turf_total = target.poison + target.oxygen + target.co2 + target.sl_gas + target.n2
+-
+-//	var/heat_gain = (turf_total ? amount / turf_total * target.heat : 0)
+-//	var/temp_gain = (turf_total ? target.heat / turf_total : 0)
+-
+-	var/heat_gain = (turf_total ? amount * target.temp : 0)
+-
+-
+-	var/t_oxy = amount * target.oxygen / t1
+-	var/t_pla = amount * target.poison / t1
+-	var/t_co2 = amount * target.co2 / t1
+-	var/t_sl_gas = amount * target.sl_gas / t1
+-	var/t_n2 = amount * target.n2 / t1
+-
+-
+-	/*
+-
+-	var/t3 = t1 + t2
+-	var/t4 = t2 * src.temperature
+-	var/t5 = t1 * temp_gain
+-	if (t3 > 0)
+-		src.temperature = (t4 + t5) / t3
+-	else
+-		src.temperature = 0
+-	*/
+-	if(t2+amount>0)
+-		temperature = (temperature*t2 + heat_gain * TURF_TAKE_FRAC)/(t2+amount)
+-
+-
+-	src.co2 += t_co2
+-	src.oxygen += t_oxy
+-	src.plasma += t_pla
+-	src.sl_gas += t_sl_gas
+-	src.n2 += t_n2
+-
+-	target.oxygen -= t_oxy
+-	target.co2 -= t_co2
+-	target.poison -= t_pla
+-	target.sl_gas -= t_sl_gas
+-	target.n2 -= t_n2
+-	//target.heat -= heat_gain			// no temp change; we just take a proportional amount of all gases
+-	target.res_vars()
+-	return
+-
+-/* original version
+-/obj/substance/gas/proc/extract_toxs(var/turf/target as turf)
+-
+-	if ((!( istype(target, /turf) ) && !( istype(target, /obj/move) )))
+-		return
+-	if (locate(/obj/move, target))
+-		target = locate(/obj/move, target)
+-	var/co2_diff = target.co2 - 0
+-	var/oxy_diff = target.oxygen - O2STANDARD
+-	var/no2_diff = target.sl_gas - 0
+-	var/n2_diff = target.n2 - N2STANDARD
+-	var/plas_diff = target.poison - 0
+-	if (co2_diff < 0)
+-		co2_diff = 0
+-	if (oxy_diff < 0)
+-		oxy_diff = 0
+-	if (no2_diff < 0)
+-		no2_diff = 0
+-	if (n2_diff < 0)
+-		n2_diff = 0
+-	if (plas_diff < 0)
+-		plas_diff = 0
+-	var/turf_total = target.poison + target.oxygen + target.co2 + target.sl_gas + target.n2
+-	var/air_total = co2_diff + oxy_diff + no2_diff + n2_diff + plas_diff
+-	var/heat_gain = (turf_total ? air_total / turf_total * target.heat : null)
+-	var/temp_gain = (turf_total ? target.heat / turf_total + TD0 : 0)
+-	src.co2 += co2_diff
+-	src.oxygen += oxy_diff
+-	src.sl_gas += no2_diff
+-	src.n2 += n2_diff
+-	src.plasma += plas_diff
+-	target.co2 -= co2_diff
+-	target.oxygen -= oxy_diff
+-	target.sl_gas -= no2_diff
+-	target.n2 -= n2_diff
+-	target.poison -= plas_diff
+-	var/t3 = turf_total + air_total
+-	var/t4 = turf_total * src.temperature
+-	var/t5 = air_total * temp_gain
+-	if (t3 > 0)
+-		src.temperature = (t4 + t5) / t3
+-	else
+-		src.temperature = 0
+-	target.heat -= heat_gain
+-	target.res_vars()
+-	return
+-*/
+-
+-
+-
+-// modified version
+-/obj/substance/gas/proc/extract_toxs(var/turf/target as turf)
+-	if ((!( istype(target, /turf) ) && !( istype(target, /obj/move) )))
+-		return
+-	if (locate(/obj/move, target))
+-		target = locate(/obj/move, target)
+-	var/co2_diff = max(0, target.co2 - 0)
+-	var/oxy_diff = max(0,target.oxygen - O2STANDARD)
+-	var/no2_diff = max(0, target.sl_gas - 0)
+-	var/n2_diff = max(0,target.n2 - N2STANDARD)
+-	var/plas_diff = max(0,target.poison - 0)
+-
+-	var/turf_total = target.poison + target.oxygen + target.co2 + target.sl_gas + target.n2
+-	var/air_total = co2_diff + oxy_diff + no2_diff + n2_diff + plas_diff
+-
+-
+-	var/heat_gain = (turf_total ? air_total  * target.temp : null)
+-	//var/temp_gain = (turf_total ? target.heat / turf_total + TD0 : 0)
+-
+-	src.co2 += co2_diff
+-	src.oxygen += oxy_diff
+-	src.sl_gas += no2_diff
+-	src.n2 += n2_diff
+-	src.plasma += plas_diff
+-
+-	target.co2 -= co2_diff
+-	target.oxygen -= oxy_diff
+-	target.sl_gas -= no2_diff
+-	target.n2 -= n2_diff
+-	target.poison -= plas_diff
+-
+-
+-	var/gasheat1 = temperature * tot_gas()
+-	var/gastot2 = tot_gas() + air_total
+-
+-	if(gastot2 > 0)
+-		temperature = (gasheat1 + heat_gain)/( gastot2 )
+-	else
+-		temperature = T20C
+-
+-	var/turftot2 = turf_total - air_total
+-	if(turftot2>0)
+-		target.temp = ( target.temp*turf_total - heat_gain)/(turftot2)
+-
+-	//target.heat -= heat_gain
+-
+-	//make stored temperature closer to nominal (20C)
+-	src.temperature += (T20C - src.temperature) / REGULATE_RATE
+-
+-
+-	target.res_vars()
+-	return
+-
+-//
+-
+-
+-/obj/substance/gas/proc/merge_into(var/obj/substance/gas/target as obj)
+-
+-	if (!( istype(target, /obj/substance/gas) ))
+-		return
+-	var/s_tot = src.tot_gas()
+-	var/t_tot = target.tot_gas()
+-	var/amount = s_tot + t_tot
+-	if (amount > 0 && t_tot > 0)
+-		src.temperature = (s_tot*src.temperature + t_tot*target.temperature) / amount
+-
+-	src.co2 += target.co2
+-	src.oxygen += target.oxygen
+-	src.plasma += target.plasma
+-	src.sl_gas += target.sl_gas
+-	src.n2 += target.n2
+-	target.oxygen = 0
+-	target.plasma = 0
+-	target.co2 = 0
+-	target.sl_gas = 0
+-	target.n2 = 0
+-	return
+-
+-
+-// sets src to a given fraction of the gas (without affecting the gas)
+-/obj/substance/gas/proc/set_frac(var/obj/substance/gas/gas, amount)
+-
+-	var/tot = gas.tot_gas()
+-
+-	if(tot>0)		// if gas is 0, do nothing
+-
+-		var/frac = amount / tot
+-
+-		src.oxygen = frac * gas.oxygen
+-		src.co2 = frac * gas.co2
+-		src.plasma = frac * gas.plasma
+-		src.sl_gas = frac *	gas.sl_gas
+-		src.n2 = frac * gas.n2
+-
+-		src.temperature = gas.temperature
+-
+-
+-// same as merge_into except the target is not zeroed
+-// calc temperature from added gas
+-// delta should always be positive
+-/obj/substance/gas/proc/add_delta(var/obj/substance/gas/target)
+-
+-
+-	var/s_tot = src.tot_gas()
+-	var/t_tot = target.tot_gas()
+-
+-	if(t_tot < 0)
+-		world.log << "Called add_delta with negative delta: [src.loc] : [src.tostring()] + [target.tostring()]"
+-
+-	var/amount = s_tot + t_tot
+-	if (amount>0)		// only set temp if adding gas, not subtracting
+-		src.temperature = (s_tot*src.temperature + t_tot*target.temperature) / amount
+-
+-	src.co2 += target.co2
+-	src.oxygen += target.oxygen
+-	src.plasma += target.plasma
+-	src.sl_gas += target.sl_gas
+-	src.n2 += target.n2
+-
+-
+-// subtract a (+ve) delta. Do not affect temperature since just a proportional change
+-/obj/substance/gas/proc/sub_delta(var/obj/substance/gas/target)
+-
+-	src.co2 -= target.co2
+-	src.oxygen -= target.oxygen
+-	src.plasma -= target.plasma
+-	src.sl_gas -= target.sl_gas
+-	src.n2 -= target.n2
+-
+-
+-
+-
+-// replaces gas values of src with n - updates during gas_flow step
+-/obj/substance/gas/proc/replace_by(var/obj/substance/gas/n)
+-	oxygen = n.oxygen
+-	plasma = n.plasma
+-	sl_gas = n.sl_gas
+-	co2 = n.co2
+-	n2 = n.n2
+-	temperature = n.temperature
+-
+-	//do nothing to values of n
+-
+-// relative "specific heat capacity" of gas contents
+-/obj/substance/gas/proc/shc()
+-	return 2*co2 + 1.5*n2 + oxygen + 0.5*sl_gas + 1.2*plasma
+-
+-
+ /datum/chemical/pathogen/proc/process(source as obj)
+ 
+ 	return
+Index: game/cryo.dm
+===================================================================
+--- game/cryo.dm	(revision 281)
++++ game/cryo.dm	(working copy)
+@@ -857,7 +857,7 @@
+ 			t2 = text("Cooling-[] <A href = '?src=\ref[];cool=0'>Stop</A>", src.c_used, src)
+ 		else
+ 			t2 = text("<A href = '?src=\ref[];cool=1'>Cool</A> Stopped", src)
+-		var/dat = text("<HTML><HEAD></HEAD><BODY><TT><BR>\n\t\t<B>Temperature</B>: []<BR>\n\t\t<B>Transfer Status</B>: []<BR>\n\t\t   <B>Chemicals Used</B>: []<BR>\n\t\t<B>Freezer status</B>: []<BR>\n\t\t   <A href='?src=\ref[];cp=-5'>-</A> <A href='?src=\ref[];cp=-1'>-</A> [] <A href='?src=\ref[];cp=1'>+</A> <A href='?src=\ref[];cp=5'>+</A><BR>\n<BR>\n\t[]<BR>\n<BR>\n<BR>\n\t<A href='?src=\ref[];mach_close=freezer'>Close</A><BR>\n\t</TT></BODY></HTML>", src.temperature-T0C, (src.transfer ? text("Transfering <A href='?src=\ref[];transfer=0'>Stop</A>", src) : text("<A href='?src=\ref[];transfer=1'>Transfer</A> Stopped", src)), t1, t2, src, src, src.c_used, src, src, d1, user)
++		var/dat = text("<HTML><HEAD></HEAD><BODY><TT><BR>\n\t\t<B>Temperature</B>: []<BR>\n\t\t<B>Transfer Status</B>: []<BR>\n\t\t   <B>Chemicals Used</B>: []<BR>\n\t\t<B>Freezer status</B>: []<BR>\n\t\t   <A href='?src=\ref[];cp=-5'>-</A> <A href='?src=\ref[];cp=-1'>-</A> [] <A href='?src=\ref[];cp=1'>+</A> <A href='?src=\ref[];cp=5'>+</A><BR>\n<BR>\n\t[]<BR>\n<BR>\n<BR>\n\t<A href='?src=\ref[];mach_close=freezer'>Close</A><BR>\n\t</TT></BODY></HTML>", src.temp-T0C, (src.transfer ? text("Transfering <A href='?src=\ref[];transfer=0'>Stop</A>", src) : text("<A href='?src=\ref[];transfer=1'>Transfer</A> Stopped", src)), t1, t2, src, src, src.c_used, src, src, d1, user)
+ 		user << browse(dat, "window=freezer;size=400x500")
+ 	return
+ 
+@@ -946,10 +946,10 @@
+ 				else
+ 					u_cool = 0
+ 	if (u_cool)
+-		src.temperature = max((-100.0+T0C), src.temperature - (u_cool * 5) )
++		src.temp = max((-100.0+T0C), src.temp - (u_cool * 5) )
+ 		use_power(200)
+ 
+-	src.temperature = min(src.temperature + 5, 20+T0C)
++	src.temp = min(src.temp + 5, 20+T0C)
+ 	if (src.transfer)
+ 		var/u_oxy = 0
+ 		var/u_pla = 0
+@@ -1004,13 +1004,13 @@
+ 			if ( (u_oxy + u_pla) > 0)
+ 				ngas.oxygen += u_oxy
+ 				ngas.plasma += u_pla
+-				ngas.temperature = src.temperature
++				ngas.temp = src.temp
+ 	if (ngas.oxygen!=0 || ngas.plasma!=0)
+ 		spawn( 1 )
+ 			if (src.line_out)
+ 
+ 				if(vnode)
+-					var/delta_gt = FLOWFRAC * ( vnode.get_gas_val(src) - gas.tot_gas() / capmult)
++					var/delta_gt = FLOWFRAC * ( vnode.get_gas_val(src) - gas.total() / capmult)
+ 					calc_delta( src, gas, ngas, vnode, delta_gt)
+ 				else
+ 					leak_to_turf()
+@@ -1060,8 +1060,8 @@
+ 	new /obj/item/weapon/flasks/plasma( src )
+ 	rebuild_overlay()
+ 
+-	gas = new/obj/substance/gas()
+-	ngas = new/obj/substance/gas()
++	gas = new/datum/substance/gas()
++	ngas = new/datum/substance/gas()
+ 
+ 	gasflowlist += src
+ 	/*spawn( 50 )
+@@ -1085,7 +1085,7 @@
+ 
+ 
+ /obj/machinery/freezer/get_gas_val(from)
+-	return gas.tot_gas()
++	return gas.total()
+ 
+ /obj/machinery/freezer/get_gas(from)
+ 	return gas
+@@ -1358,10 +1358,10 @@
+ 
+ 	add_overlays()
+ 
+-	src.gas = new /obj/substance/gas( null )
+-	gas.temperature = T20C
+-	src.ngas = new /obj/substance/gas (null)
+-	ngas.temperature = T20C
++	src.gas = new /datum/substance/gas( null )
++	gas.temp = T20C
++	src.ngas = new /datum/substance/gas (null)
++	ngas.temp = T20C
+ 
+ 	gasflowlist += src
+ 
+@@ -1384,7 +1384,7 @@
+ /obj/machinery/cryo_cell/process()
+ 
+ 	if(vnode)
+-		var/delta_gt = FLOWFRAC * ( vnode.get_gas_val(src) - gas.tot_gas() / capmult)
++		var/delta_gt = FLOWFRAC * ( vnode.get_gas_val(src) - gas.total() / capmult)
+ 		calc_delta( src, gas, ngas, vnode, delta_gt)
+ 	else
+ 		leak_to_turf()
+@@ -1421,7 +1421,7 @@
+ 
+ 
+ /obj/machinery/cryo_cell/get_gas_val(from)
+-	return gas.tot_gas()
++	return gas.total()
+ 
+ /obj/machinery/cryo_cell/get_gas(from)
+ 	return gas
+@@ -1497,10 +1497,10 @@
+ 	user.machine = src
+ 	if (user.check_intelligence())
+ 		var/dat = "<font color='blue'> <B>System Statistics:</B></FONT><BR>"
+-		if (src.gas.temperature > T0C)
+-			dat += text("<font color='red'>\tTemperature (&deg;C): [] (MUST be below 0, add coolant to mixture)</FONT><BR>", round(src.gas.temperature-T0C, 0.1))
++		if (src.gas.temp > T0C)
++			dat += text("<font color='red'>\tTemperature (&deg;C): [] (MUST be below 0, add coolant to mixture)</FONT><BR>", round(src.gas.temp-T0C, 0.1))
+ 		else
+-			dat += text("<font color='blue'>\tTemperature (&deg;C): [] </FONT><BR>", round(src.gas.temperature-T0C, 0.1))
++			dat += text("<font color='blue'>\tTemperature (&deg;C): [] </FONT><BR>", round(src.gas.temp-T0C, 0.1))
+ 		if (src.gas.plasma < 1)
+ 			dat += text("<font color='red'>\tPlasma Units: [] (Add plasma to mixture!)</FONT><BR>", round(src.gas.plasma, 0.1))
+ 		else
+@@ -1606,12 +1606,12 @@
+ 		src.ngas.oxygen--
+ 		M.heal_damage(suffocation = 5)
+ 
+-	if (src.gas.temperature < T0C && src.gas.plasma >= 1)
++	if (src.gas.temp < T0C && src.gas.plasma >= 1)
+ 		M.heal_damage(toxin = 5, brute = 5, burn = 5)
+ 		src.ngas.plasma--
+ 
+-	if (src.gas.temperature < (60+T0C))
+-		src.gas.temperature = min(src.gas.temperature + 1, 60+T0C)
++	if (src.gas.temp < (60+T0C))
++		src.gas.temp = min(src.gas.temp + 1, 60+T0C)
+ 	src.updateDialog()
+ 	return
+ 
+@@ -1619,7 +1619,7 @@
+ /*
+ /obj/machinery/cryo_cell/receive_gas(S as obj, source as obj)
+ 
+-	if (!( istype(S, /obj/substance/gas) ))
++	if (!( istype(S, /datum/substance/gas) ))
+ 		//S = null
+ 		del(S)
+ 		return
+Index: game/demo.dm
+===================================================================
+--- game/demo.dm	(revision 281)
++++ game/demo.dm	(working copy)
+@@ -269,7 +269,7 @@
+ 		if (locate(/obj/move, T))
+ 			T = locate(/obj/move, T)
+ 		if (T.firelevel < 900000.0)
+-			T.firelevel = T.poison
++			T.firelevel = T.gas.plasma
+ 
+ 	return
+ 
+@@ -570,7 +570,7 @@
+ 	user.machine = src
+ 	if (!( src.gas ))
+ 		return
+-	var/dat = text("<TT><B>Tank</B><BR>\n<FONT color = 'blue'><B>Contains/Capacity</B> [] / []</FONT><BR>\nInterals Valve: <A href='?src=\ref[];stat=1'>[] Gas Flow</A><BR>\n\t<A href='?src=\ref[];cp=-50'>-</A> <A href='?src=\ref[];cp=-5'>-</A> <A href='?src=\ref[];cp=-1'>-</A> [] <A href='?src=\ref[];cp=1'>+</A> <A href='?src=\ref[];cp=5'>+</A> <A href='?src=\ref[];cp=50'>+</A><BR>\n<BR>\n<A href='?src=\ref[];mach_close=tank'>Close</A>\n</TT>", src.gas.tot_gas(), src.maximum, src, ((src.loc == user && user.internal == src) ? "Stop" : "Restore"), src, src, src, src.i_used, src, src, src, user)
++	var/dat = text("<TT><B>Tank</B><BR>\n<FONT color = 'blue'><B>Contains/Capacity</B> [] / []</FONT><BR>\nInterals Valve: <A href='?src=\ref[];stat=1'>[] Gas Flow</A><BR>\n\t<A href='?src=\ref[];cp=-50'>-</A> <A href='?src=\ref[];cp=-5'>-</A> <A href='?src=\ref[];cp=-1'>-</A> [] <A href='?src=\ref[];cp=1'>+</A> <A href='?src=\ref[];cp=5'>+</A> <A href='?src=\ref[];cp=50'>+</A><BR>\n<BR>\n<A href='?src=\ref[];mach_close=tank'>Close</A>\n</TT>", src.gas.total(), src.maximum, src, ((src.loc == user && user.internal == src) ? "Stop" : "Restore"), src, src, src, src.i_used, src, src, src, user)
+ 	user << browse(dat, "window=tank;size=600x300")
+ 	return
+ 
+@@ -604,10 +604,10 @@
+ 		return
+ 	return
+ 
+-/obj/item/weapon/tank/proc/process(mob/M as mob, obj/substance/gas/G as obj)
++/obj/item/weapon/tank/proc/process(mob/M as mob, datum/substance/gas/G as obj)
+ 
+ 	var/amount = src.i_used
+-	var/total = src.gas.tot_gas()
++	var/total = src.gas.total()
+ 	if (amount > total)
+ 		amount = total
+ 	if (total > 0)
+@@ -639,7 +639,7 @@
+ /obj/item/weapon/tank/New()
+ 
+ 	..()
+-	src.gas = new /obj/substance/gas( src )
++	src.gas = new /datum/substance/gas( src )
+ 	src.gas.maximum = src.maximum
+ 	return
+ 
+@@ -653,8 +653,8 @@
+ /obj/item/weapon/tank/burn(fi_amount)
+ 
+ 	if(src.gas)
+-		if ( (fi_amount * src.gas.tot_gas()) > (src.maximum * 3.75E7) )
+-			src.gas.turf_add(get_turf(src.loc), src.gas.tot_gas())
++		if ( (fi_amount * src.gas.total()) > (src.maximum * 3.75E7) )
++			src.gas.turf_add(get_turf(src.loc), src.gas.total())
+ 		//SN src = null
+ 			del(src)
+ 			return
+@@ -664,7 +664,7 @@
+ 	set src in view(1)
+ 
+ 	if(src)
+-		usr << text("\blue The \icon[] contains [] unit\s of gas.", src, src.gas.tot_gas())
++		usr << text("\blue The \icon[] contains [] unit\s of gas.", src, src.gas.total())
+ 	return
+ 
+ /obj/item/weapon/tank/oxygentank/New()
+@@ -689,9 +689,9 @@
+ 
+ 	if (!( src.on ))
+ 		return 0
+-	if ((num < 1 || src.gas.tot_gas() < num))
++	if ((num < 1 || src.gas.total() < num))
+ 		return 0
+-	var/obj/substance/gas/G = new /obj/substance/gas(  )
++	var/datum/substance/gas/G = new /datum/substance/gas(  )
+ 	G.transfer_from(src.gas, num)
+ 	if (G.oxygen >= 100)
+ 		return 1
+@@ -710,44 +710,44 @@
+ /obj/item/weapon/tank/anesthetic/New()
+ 
+ 	..()
+-	src.gas.sl_gas = 700000
++	src.gas.no2 = 700000
+ 	src.gas.oxygen = 1000000
+ 	return
+ 
+ /obj/item/weapon/tank/plasmatank/proc/release()
+ 	var/turf/T = get_turf(src.loc)
+-	T.poison += src.gas.plasma * src.gas.temperature / 25.0
+-	T.oxygen += src.gas.oxygen * src.gas.temperature / 25.0
+-	T.n2 += src.gas.n2 * src.gas.temperature / 25.0
+-	T.sl_gas += src.gas.sl_gas * src.gas.temperature / 25.0
+-	T.res_vars()
++	T.gas.plasma += src.gas.plasma * src.gas.temp / 25.0
++	T.gas.oxygen += src.gas.oxygen * src.gas.temp / 25.0
++	T.gas.nitrogen += src.gas.nitrogen * src.gas.temp / 25.0
++	T.gas.no2 += src.gas.no2 * src.gas.temp / 25.0
++	T.reset_phases()
+ 
+ 	src.gas.plasma = 0
+ 	src.gas.oxygen = 0
+-	src.gas.n2 = 0
+-	src.gas.sl_gas = 0
++	src.gas.nitrogen = 0
++	src.gas.no2 = 0
+ 
+-	var/temp = src.gas.temperature
++	var/temp = src.gas.temp
+ 	spawn(10)
+ 		T.firelevel = temp * 3600.0
+-		T.res_vars()
++		T.reset_phases()
+ 
+ 
+ 
+ /obj/item/weapon/tank/plasmatank/proc/ignite()
+ 
+-	var/strength = ((src.gas.plasma + src.gas.oxygen/2.0) / 1600000.0) * src.gas.temperature
+-	//if ((src.gas.plasma < 1600000.0 || src.gas.temperature < 773))		//500degC
++	var/strength = ((src.gas.plasma + src.gas.oxygen/2.0) / 1600000.0) * src.gas.temp
++	//if ((src.gas.plasma < 1600000.0 || src.gas.temp < 773))		//500degC
+ 	if (strength < 773.0)
+ 		var/turf/T = get_turf(src.loc)
+-		T.poison += src.gas.plasma
+-		T.firelevel = T.poison
+-		T.res_vars()
++		T.gas.plasma += src.gas.plasma
++		T.firelevel = T.gas.plasma
++		T.reset_phases()
+ 
+ 		if(src.master)
+ 			src.master.loc = null
+ 
+-		//if ((src.gas.temperature > (450+T0C) && src.gas.plasma == 1600000.0))
++		//if ((src.gas.temp > (450+T0C) && src.gas.plasma == 1600000.0))
+ 		if (strength > (450+T0C))
+ 			var/turf/sw = locate(max(T.x - 4, 1), max(T.y - 4, 1), T.z)
+ 			var/turf/ne = locate(min(T.x + 4, world.maxx), min(T.y + 4, world.maxy), T.z)
+@@ -769,7 +769,7 @@
+ 			makepowernets()
+ 
+ 		else
+-			//if ((src.gas.temperature > (300+T0C) && src.gas.plasma == 1600000.0))
++			//if ((src.gas.temp > (300+T0C) && src.gas.plasma == 1600000.0))
+ 			if (strength > (300+T0C))
+ 				var/turf/sw = locate(max(T.x - 4, 1), max(T.y - 4, 1), T.z)
+ 				var/turf/ne = locate(min(T.x + 4, world.maxx), min(T.y + 4, world.maxy), T.z)
+@@ -2485,7 +2485,7 @@
+ 				src.state = 0
+ 				//var/turf/station/floor/F = new /turf/station/floor( locate(src.x, src.y, src.z) )
+ 				var/turf/station/floor/F = src.ReplaceWithFloor()
+-				F.oxygen = O2STANDARD
++				F.gas.oxygen = O2STANDARD
+ 				new /obj/item/weapon/sheet/metal( F )
+ 				new /obj/item/weapon/sheet/metal( F )
+ 				F.buildlinks()
+@@ -2694,7 +2694,7 @@
+ 				src.state = 0
+ 				//var/turf/station/floor/F = new /turf/station/floor( locate(src.x, src.y, src.z) )
+ 				var/turf/station/floor/F = src.ReplaceWithFloor()
+-				F.oxygen = O2STANDARD
++				F.gas.oxygen = O2STANDARD
+ 				new /obj/item/weapon/sheet/metal( F )
+ 				new /obj/item/weapon/sheet/metal( F )
+ 				F.buildlinks()
+@@ -2830,7 +2830,7 @@
+ 			src.state = 0
+ 			//var/turf/station/floor/F = new /turf/station/floor( locate(src.x, src.y, src.z) )
+ 			var/turf/station/floor/F = src.ReplaceWithFloor()
+-			F.oxygen = O2STANDARD
++			F.gas.oxygen = O2STANDARD
+ 			new /obj/item/weapon/sheet/metal( F )
+ 			new /obj/item/weapon/sheet/metal( F )
+ 			F.buildlinks()
+@@ -2848,7 +2848,7 @@
+ 			//var/turf/station/floor/F = new /turf/station/floor( locate(src.x, src.y, src.z) )
+ 			var/turf/station/floor/F = src.ReplaceWithFloor()
+ 
+-			F.oxygen = O2STANDARD
++			F.gas.oxygen = O2STANDARD
+ 			new /obj/d_girders( F )
+ 			new /obj/item/weapon/sheet/metal( F )
+ 			F.buildlinks()
+@@ -2864,7 +2864,7 @@
+ 			src.state = 0
+ 			//var/turf/station/r_wall/F = new /turf/station/r_wall( locate(src.x, src.y, src.z) )
+ 			var/turf/station/r_wall/F = src.ReplaceWithRWall()
+-			F.oxygen = O2STANDARD
++			F.gas.oxygen = O2STANDARD
+ 			F.icon_state = "r_girder"
+ 			F.state = 1
+ 			F.opacity = 0
+@@ -2908,7 +2908,7 @@
+ 			src.opacity = 1
+ 			src.updatecell = 0
+ 			src.intact = 1
+-			src.oxygen = O2STANDARD
++			src.gas.oxygen = O2STANDARD
+ 			src.updatecell = 1
+ 			src.levelupdate()
+ 			src.buildlinks()
+@@ -2937,7 +2937,7 @@
+ 				src.state = 0
+ 				//var/turf/station/floor/F = new /turf/station/floor( locate(src.x, src.y, src.z) )
+ 				var/turf/station/floor/F = src.ReplaceWithFloor()
+-				F.oxygen = O2STANDARD
++				F.gas.oxygen = O2STANDARD
+ 				new /obj/item/weapon/sheet/metal( F )
+ 				new /obj/item/weapon/sheet/metal( F )
+ 				F.buildlinks()
+@@ -3074,8 +3074,8 @@
+ /turf/station/floor/plasma_test/updatecell()
+ 
+ 	..()
+-	src.poison = 7.5E7
+-	res_vars()
++	src.gas.plasma = 7.5E7
++	reset_phases()
+ 	return
+ 
+ 
+Index: game/demo2.dm
+===================================================================
+--- game/demo2.dm	(revision 281)
++++ game/demo2.dm	(working copy)
+@@ -131,16 +131,16 @@
+ 	else
+ 		T = null
+ 	if (src.h_status)
+-		var/t1 = src.gas.tot_gas()
+-		if ((t1 > 0 && src.gas.temperature < (src.h_tar+T0C)))
++		var/t1 = src.gas.total()
++		if ((t1 > 0 && src.gas.temp < (src.h_tar+T0C)))
+ 			var/increase = src.heatrate / t1
+-			var/n_temp = src.gas.temperature + increase
+-			src.gas.temperature = min(n_temp, (src.h_tar+T0C))
++			var/n_temp = src.gas.temp + increase
++			src.gas.temp = min(n_temp, (src.h_tar+T0C))
+ 			use_power( src.h_tar*8)
+ 	switch(src.t_status)
+ 		if(1.0)
+ 			if (src.holding)
+-				var/t1 = src.gas.tot_gas()
++				var/t1 = src.gas.total()
+ 				var/t2 = t1
+ 				var/t = src.t_per
+ 				if (src.t_per > t2)
+@@ -150,7 +150,7 @@
+ 				src.t_status = 3
+ 		if(2.0)
+ 			if (src.holding)
+-				var/t1 = src.gas.tot_gas()
++				var/t1 = src.gas.total()
+ 				var/t2 = src.maximum - t1
+ 				var/t = src.t_per
+ 				if (src.t_per > t2)
+@@ -186,7 +186,7 @@
+ /obj/machinery/atmoalter/heater/New()
+ 
+ 	..()
+-	src.gas = new /obj/substance/gas( src )
++	src.gas = new /datum/substance/gas( src )
+ 	src.gas.maximum = src.maximum
+ 	return
+ 
+@@ -219,7 +219,7 @@
+ 			ct = text("<A href='?src=\ref[];c=1'>Release</A> <A href='?src=\ref[];c=2'>Accept</A> Stopped", src, src)
+ 		else
+ 			ct = "Disconnected"
+-	var/dat = text("<TT><B>Canister Valves</B><BR>\n<FONT color = 'blue'><B>Contains/Capacity</B> [] / []</FONT><BR>\nUpper Valve Status: [][]<BR>\n\t<A href='?src=\ref[];tp=-[]'>M</A> <A href='?src=\ref[];tp=-10000'>-</A> <A href='?src=\ref[];tp=-1000'>-</A> <A href='?src=\ref[];tp=-100'>-</A> <A href='?src=\ref[];tp=-1'>-</A> [] <A href='?src=\ref[];tp=1'>+</A> <A href='?src=\ref[];tp=100'>+</A> <A href='?src=\ref[];tp=1000'>+</A> <A href='?src=\ref[];tp=10000'>+</A> <A href='?src=\ref[];tp=[]'>M</A><BR>\nHeater Status: [] - []<BR>\n\tTrg Tmp: <A href='?src=\ref[];ht=-50'>-</A> <A href='?src=\ref[];ht=-5'>-</A> <A href='?src=\ref[];ht=-1'>-</A> [] <A href='?src=\ref[];ht=1'>+</A> <A href='?src=\ref[];ht=5'>+</A> <A href='?src=\ref[];ht=50'>+</A><BR>\n<BR>\nPipe Valve Status: []<BR>\n\t<A href='?src=\ref[];cp=-[]'>M</A> <A href='?src=\ref[];cp=-10000'>-</A> <A href='?src=\ref[];cp=-1000'>-</A> <A href='?src=\ref[];cp=-100'>-</A> <A href='?src=\ref[];cp=-1'>-</A> [] <A href='?src=\ref[];cp=1'>+</A> <A href='?src=\ref[];cp=100'>+</A> <A href='?src=\ref[];cp=1000'>+</A> <A href='?src=\ref[];cp=10000'>+</A> <A href='?src=\ref[];cp=[]'>M</A><BR>\n<BR>\n<A href='?src=\ref[];mach_close=canister'>Close</A><BR>\n</TT>", src.gas.tot_gas(), src.maximum, tt, (src.holding ? text("<BR><A href='?src=\ref[];tank=1'>Tank ([]</A>)", src, src.holding.gas.tot_gas()) : null), src, num2text(1000000.0, 7), src, src, src, src, src.t_per, src, src, src, src, src, num2text(1000000.0, 7), ht, (src.gas.tot_gas() ? (src.gas.temperature-T0C) : 20), src, src, src, src.h_tar, src, src, src, ct, src, num2text(1000000.0, 7), src, src, src, src, src.c_per, src, src, src, src, src, num2text(1000000.0, 7), user)
++	var/dat = text("<TT><B>Canister Valves</B><BR>\n<FONT color = 'blue'><B>Contains/Capacity</B> [] / []</FONT><BR>\nUpper Valve Status: [][]<BR>\n\t<A href='?src=\ref[];tp=-[]'>M</A> <A href='?src=\ref[];tp=-10000'>-</A> <A href='?src=\ref[];tp=-1000'>-</A> <A href='?src=\ref[];tp=-100'>-</A> <A href='?src=\ref[];tp=-1'>-</A> [] <A href='?src=\ref[];tp=1'>+</A> <A href='?src=\ref[];tp=100'>+</A> <A href='?src=\ref[];tp=1000'>+</A> <A href='?src=\ref[];tp=10000'>+</A> <A href='?src=\ref[];tp=[]'>M</A><BR>\nHeater Status: [] - []<BR>\n\tTrg Tmp: <A href='?src=\ref[];ht=-50'>-</A> <A href='?src=\ref[];ht=-5'>-</A> <A href='?src=\ref[];ht=-1'>-</A> [] <A href='?src=\ref[];ht=1'>+</A> <A href='?src=\ref[];ht=5'>+</A> <A href='?src=\ref[];ht=50'>+</A><BR>\n<BR>\nPipe Valve Status: []<BR>\n\t<A href='?src=\ref[];cp=-[]'>M</A> <A href='?src=\ref[];cp=-10000'>-</A> <A href='?src=\ref[];cp=-1000'>-</A> <A href='?src=\ref[];cp=-100'>-</A> <A href='?src=\ref[];cp=-1'>-</A> [] <A href='?src=\ref[];cp=1'>+</A> <A href='?src=\ref[];cp=100'>+</A> <A href='?src=\ref[];cp=1000'>+</A> <A href='?src=\ref[];cp=10000'>+</A> <A href='?src=\ref[];cp=[]'>M</A><BR>\n<BR>\n<A href='?src=\ref[];mach_close=canister'>Close</A><BR>\n</TT>", src.gas.total(), src.maximum, tt, (src.holding ? text("<BR><A href='?src=\ref[];tank=1'>Tank ([]</A>)", src, src.holding.gas.total()) : null), src, num2text(1000000.0, 7), src, src, src, src, src.t_per, src, src, src, src, src, num2text(1000000.0, 7), ht, (src.gas.total() ? (src.gas.temp-T0C) : 20), src, src, src, src.h_tar, src, src, src, ct, src, num2text(1000000.0, 7), src, src, src, src, src.c_per, src, src, src, src, src, num2text(1000000.0, 7), user)
+ 	user << browse(dat, "window=canister;size=600x300")
+ 	return
+ 
+@@ -321,7 +321,7 @@
+ 
+ /obj/machinery/atmoalter/canister/proc/update_icon()
+ 
+-	var/air_in = src.gas.tot_gas()
++	var/air_in = src.gas.total()
+ 
+ 	src.overlays = 0
+ 
+@@ -373,7 +373,7 @@
+ 	switch(src.t_status)
+ 		if(1.0)
+ 			if (src.holding)
+-				var/t1 = src.gas.tot_gas()
++				var/t1 = src.gas.total()
+ 				var/t2 = t1
+ 				var/t = src.t_per
+ 				if (src.t_per > t2)
+@@ -381,7 +381,7 @@
+ 				src.holding.gas.transfer_from(src.gas, t)
+ 			else
+ 				if (T)
+-					var/t1 = src.gas.tot_gas()
++					var/t1 = src.gas.total()
+ 					var/t2 = t1
+ 					var/t = src.t_per
+ 					if (src.t_per > t2)
+@@ -390,7 +390,7 @@
+ 			src.update_icon()
+ 		if(2.0)
+ 			if (src.holding)
+-				var/t1 = src.gas.tot_gas()
++				var/t1 = src.gas.total()
+ 				var/t2 = src.maximum - t1
+ 				var/t = src.t_per
+ 				if (src.t_per > t2)
+@@ -429,7 +429,7 @@
+ /obj/machinery/atmoalter/canister/New()
+ 
+ 	..()
+-	src.gas = new /obj/substance/gas( src )
++	src.gas = new /datum/substance/gas( src )
+ 	src.gas.maximum = src.maximum
+ 	return
+ 
+@@ -482,9 +482,9 @@
+ 
+ 
+ 	var/dat = {"<TT><B>Canister Valves</B><BR>
+-<FONT color = 'blue'><B>Contains/Capacity</B> [num2text(src.gas.tot_gas(), 20)] / [num2text(src.maximum, 20)]</FONT><BR>
++<FONT color = 'blue'><B>Contains/Capacity</B> [num2text(src.gas.total(), 20)] / [num2text(src.maximum, 20)]</FONT><BR>
+ Upper Valve Status: [tt]<BR>
+-\t[(src.holding ? "<A href='?src=\ref[src];tank=1'>Tank ([src.holding.gas.tot_gas()]</A>)" : null)]<BR>
++\t[(src.holding ? "<A href='?src=\ref[src];tank=1'>Tank ([src.holding.gas.total()]</A>)" : null)]<BR>
+ \t<A href='?src=\ref[src];tp=-[num2text(1000000.0, 7)]'>M</A> <A href='?src=\ref[src];tp=-10000'>-</A> <A href='?src=\ref[src];tp=-1000'>-</A> <A href='?src=\ref[src];tp=-100'>-</A> <A href='?src=\ref[src];tp=-1'>-</A> [src.t_per] <A href='?src=\ref[src];tp=1'>+</A> <A href='?src=\ref[src];tp=100'>+</A> <A href='?src=\ref[src];tp=1000'>+</A> <A href='?src=\ref[src];tp=10000'>+</A> <A href='?src=\ref[src];tp=[num2text(1000000.0, 7)]'>M</A><BR>
+ Pipe Valve Status: [ct]<BR>
+ \t<A href='?src=\ref[src];cp=-[num2text(1000000.0, 7)]'>M</A> <A href='?src=\ref[src];cp=-10000'>-</A> <A href='?src=\ref[src];cp=-1000'>-</A> <A href='?src=\ref[src];cp=-100'>-</A> <A href='?src=\ref[src];cp=-1'>-</A> [src.c_per] <A href='?src=\ref[src];cp=1'>+</A> <A href='?src=\ref[src];cp=100'>+</A> <A href='?src=\ref[src];cp=1000'>+</A> <A href='?src=\ref[src];cp=10000'>+</A> <A href='?src=\ref[src];cp=[num2text(1000000.0, 7)]'>M</A><BR>
+@@ -505,7 +505,7 @@
+ \t<A href='?src=\ref[];cp=-[]'>M</A> <A href='?src=\ref[];cp=-10000'>-</A> <A href='?src=\ref[];cp=-1000'>-</A> <A href='?src=\ref[];cp=-100'>-</A> <A href='?src=\ref[];cp=-1'>-</A> [] <A href='?src=\ref[];cp=1'>+</A> <A href='?src=\ref[];cp=100'>+</A> <A href='?src=\ref[];cp=1000'>+</A> <A href='?src=\ref[];cp=10000'>+</A> <A href='?src=\ref[];cp=[]'>M</A><BR>
+ <BR>
+ <A href='?src=\ref[];mach_close=canister'>Close</A><BR>
+-</TT>"}, num2text(src.gas.tot_gas(), 20), num2text(src.maximum, 20), tt, (src.holding ? text("<A href='?src=\ref[];tank=1'>Tank ([]</A>)", src, src.holding.gas.tot_gas()) : null), src, num2text(1000000.0, 7), src, src, src, src, src.t_per, src, src, src, src, src, num2text(1000000.0, 7), ct, src, num2text(1000000.0, 7), src, src, src, src, src.c_per, src, src, src, src, src, num2text(1000000.0, 7), user)
++</TT>"}, num2text(src.gas.total(), 20), num2text(src.maximum, 20), tt, (src.holding ? text("<A href='?src=\ref[];tank=1'>Tank ([]</A>)", src, src.holding.gas.total()) : null), src, num2text(1000000.0, 7), src, src, src, src, src.t_per, src, src, src, src, src, num2text(1000000.0, 7), ct, src, num2text(1000000.0, 7), src, src, src, src, src.c_per, src, src, src, src, src, num2text(1000000.0, 7), user)
+ 
+ */
+ 	user << browse(dat, "window=canister;size=600x300")
+@@ -618,7 +618,7 @@
+ 		if (!( istype(T, /turf) ))
+ 			return
+ 		else
+-			T.firelevel = T.poison
++			T.firelevel = T.gas.plasma
+ 	else
+ 		src.health = 0
+ 		spawn( 0 )
+@@ -642,13 +642,13 @@
+ /obj/machinery/atmoalter/canister/anesthcanister/New()
+ 
+ 	..()
+-	src.gas.sl_gas = src.maximum*filled
++	src.gas.no2 = src.maximum*filled
+ 	return
+ 
+ /obj/machinery/atmoalter/canister/n2canister/New()
+ 
+ 	..()
+-	src.gas.n2 = src.maximum*filled
++	src.gas.nitrogen = src.maximum*filled
+ 	return
+ 
+ /obj/machinery/atmoalter/canister/co2canister/New()
+@@ -662,7 +662,7 @@
+ 
+ 	..()
+ 	src.gas.oxygen = (src.maximum*0.25)*filled
+-	src.gas.n2 = (src.maximum*0.75)*filled
++	src.gas.nitrogen = (src.maximum*0.75)*filled
+ 	return
+ 
+ 
+Index: game/engine.dm
+===================================================================
+--- game/engine.dm	(revision 281)
++++ game/engine.dm	(working copy)
+@@ -223,25 +223,10 @@
+ 
+ 		for(var/atom/movable/AM as mob|obj in T)
+ 			AM.loc = S
+-			S.oxygen = T.oxygen
+-			S.oldoxy = T.oldoxy
+-			S.tmpoxy = T.tmpoxy
+-			S.poison = T.poison
+-			S.oldpoison = T.oldpoison
+-			S.tmppoison = T.tmppoison
+-			S.co2 = T.co2
+-			S.oldco2 = T.oldco2
+-			S.tmpco2 = T.tmpco2
+-			S.sl_gas = T.sl_gas
+-			S.osl_gas = T.osl_gas
+-			S.tsl_gas = T.tsl_gas
+-			S.n2 = T.n2
+-			S.on2 = T.on2
+-			S.tn2 = T.tn2
+-			S.temp = T.temp
+-			S.ttemp = T.ttemp
+-			S.otemp = T.otemp
+-			//Foreach goto(100)
++			S.gas.copy_gas(T.gas)
++			S.phase1.copy_all(T.phase1)
++			S.phase2.copy_all(T.phase2)
++
+ 			S.buildlinks()
+ 
+ 
+@@ -321,31 +306,31 @@
+ 
+ 	var/turf/T = src.loc
+ 
+-	var/turf_total = T.tot_gas()
++	var/turf_total = T.gas.total()
+ 
+ 	var/t1 = add_tspace("[round(turf_total / CELLSTANDARD * 100, 0.1)]%",6)
+-	t += "<PRE>Pressure: [t1] Temperature: [round(T.temp - T0C,0.1)]&deg;C<BR>"
++	t += "<PRE>Pressure: [t1] Temperature: [round(T.gas.temp - T0C,0.1)]&deg;C<BR>"
+ 
+ 	if(turf_total == 0)
+ 		t+="O2: 0 N2: 0 CO2: 0><BR>Plasma: 0 N20: 0"
+ 	else
+-		t1 = add_tspace(round(T.oxygen/turf_total * 100, 0.1),5)
++		t1 = add_tspace(round(T.gas.oxygen/turf_total * 100, 0.1),5)
+ 
+ 		t += "O2: [t1] "
+ 
+-		t1 = add_tspace(round(T.n2/turf_total * 100, 0.1),5)
++		t1 = add_tspace(round(T.gas.nitrogen/turf_total * 100, 0.1),5)
+ 
+ 		t += "N2: [t1] "
+ 
+-		t1 = add_tspace(round(T.co2/turf_total * 100, 0.01),5)
++		t1 = add_tspace(round(T.gas.co2/turf_total * 100, 0.01),5)
+ 
+ 		t += "CO2: [t1]<BR>"
+ 
+-		t1 = add_tspace(round(T.poison/turf_total * 100, 0.001),5)
++		t1 = add_tspace(round(T.gas.plasma/turf_total * 100, 0.001),5)
+ 
+ 		t += "Plasma: [t1] "
+ 
+-		t1 = add_tspace(round(T.sl_gas/turf_total * 100, 0.001),5)
++		t1 = add_tspace(round(T.gas.no2/turf_total * 100, 0.001),5)
+ 
+ 		t += "N2O: [t1]"
+ 
+Index: game/instructions.dm
+===================================================================
+--- game/instructions.dm	(revision 281)
++++ game/instructions.dm	(working copy)
+@@ -96,12 +96,12 @@
+ 
+ /turf/station/command/floor/updatecell()
+ 
+-	src.oxygen = O2STANDARD
++	src.gas.oxygen = O2STANDARD
+ 	src.firelevel = 0
+-	src.co2 = 0
+-	src.poison = 0
+-	src.sl_gas = 0
+-	src.n2 = N2STANDARD
++	src.gas.co2 = 0
++	src.gas.plasma = 0
++	src.gas.no2 = 0
++	src.gas.nitrogen = N2STANDARD
+ 	return
+ 
+ /turf/station/command/conduction()
+Index: game/items.dm
+===================================================================
+--- game/items.dm	(revision 281)
++++ game/items.dm	(working copy)
+@@ -445,7 +445,7 @@
+ /obj/item/weapon/flashbang/proc/prime()
+ 	//TODO: handle flashbangs in closets properly
+ 	var/turf/T = get_turf(src)
+-	T.firelevel = T.poison
++	T.firelevel = T.gas.plasma
+ 	for(var/mob/carbon/M in viewers(T))
+ 		if (locate(/obj/item/weapon/cloaking_device, M))
+ 			for(var/obj/item/weapon/cloaking_device/S in M)
+@@ -649,8 +649,8 @@
+ /obj/item/weapon/syndicate_uplink/proc/explode()
+ 
+ 	var/turf/T = get_turf(src.loc)
+-	T.firelevel = T.poison
+-	T.res_vars()
++	T.firelevel = T.gas.plasma
++	T.reset_phases()
+ 	var/sw = locate(max(T.x - 4, 1), max(T.y - 4, 1), T.z)
+ 	var/ne = locate(min(T.x + 4, world.maxx), min(T.y + 4, world.maxy), T.z)
+ 	for(var/turf/U in block(sw, ne))
+@@ -2450,47 +2450,29 @@
+ 		return
+ 	if (locate(/obj/move, T))
+ 		T = locate(/obj/move, T)
+-	var/turf_total = T.co2 + T.oxygen + T.poison + T.sl_gas + T.n2
+-	turf_total = max(turf_total, 1)
+-	user.see("\blue <B>Results:</B>")
++	var/turf_total = max(T.gas.total(), 1) / 100
++	usr.see("\blue <B>Results:</B>")
+ 	var/t = ""
+-	var/t1 = turf_total / CELLSTANDARD * 100
+-	if ((90 < t1 && t1 < 110))
+-		user.see(text("\blue Air Pressure: []%", t1))
+-	else
+-		user.see(text("\blue Air Pressure:\red []%", t1))
+-	t1 = T.n2 / turf_total * 100
+-	t1 = round(t1, 0.0010)
+-	if ((60 < t1 && t1 < 80))
+-		t += text("<font color=blue>Nitrogen: []</font> ", t1)
+-	else
+-		t += text("<font color=red>Nitrogen: []</font> ", t1)
+-	t1 = T.oxygen / turf_total * 100
+-	t1 = round(t1, 0.0010)
+-	if ((20 < t1 && t1 < 24))
+-		t += text("<font color=blue>Oxygen: []</font> ", t1)
+-	else
+-		t += text("<font color=red>Oxygen: []</font> ", t1)
+-	t1 = T.poison / turf_total * 100
+-	t1 = round(t1, 0.0010)
+-	if (t1 < 0.5)
+-		t += text("<font color=blue>Plasma: []</font> ", t1)
+-	else
+-		t += text("<font color=red>Plasma: []</font> ", t1)
+-	t1 = T.co2 / turf_total * 100
+-	t1 = round(t1, 0.0010)
+-	if (t1 < 1)
+-		t += text("<font color=blue>CO2: []</font> ", t1)
+-	else
+-		t += text("<font color=red>CO2: []</font> ", t1)
+-	t1 = T.sl_gas / turf_total * 100
+-	t1 = round(t1, 0.0010)
+-	if (t1 < 5)
+-		t += text("<font color=blue>N2O: []</font>", t1)
+-	else
+-		t += text("<font color=red>N2O: []</font>", t1)
++	var/t1 = turf_total / CELLSTANDARD * 10000
++	if(90 > t1 || t1 > 110)		t += text("\blue Air Pressure: []%", t1)
++	else						t += text("\blue Air Pressure:\red []%", t1)
++	t1 = round(T.gas.nitrogen / turf_total,0.0010)
++	if(60 > t1 || t1 >  80)		t += text("<font color=blue>Nitrogen: []</font> ", t1)
++	else						t += text("<font color=red>Nitrogen: []</font> ", t1)
++	t1 = round(T.gas.oxygen / turf_total, 0.0010)
++	if(20 > t1 || t1 > 24)		t += text(">font color=blue>Oxygen: []>/font> ", t1)
++	else						t += text(">font color=red>Oxygen: []>/font> ", t1)
++	t1 = round(T.gas.plasma / turf_total, 0.0010)
++	if(t1 > 0.5)				t += text(">font color=blue>Plasma: []>/font> ", t1)
++	else						t += text(">font color=red>Plasma: []>/font> ", t1)
++	t1 = round(T.gas.co2 / turf_total, 0.0010)
++	if(t1 > 1)					t += text(">font color=blue>CO2: []>/font> ", t1)
++	else						t += text(">font color=red>CO2: []>/font> ", t1)
++	t1 = round(T.gas.no2 / turf_total, 0.0010)
++	if(t1 > 5)					t += text(">font color=blue>NO2: []>/font>", t1)
++	else						t += text(">font color=red>NO2: []>/font>", t1)
+ 	user.see(t)
+-	user.see(text("\blue \t Temperature: []&deg;C", (T.temp-T0C) ))
++	user.see(text("\blue \t Temperature: []&deg;C", (T.gas.temp-T0C) ))
+ 	src.add_fingerprint(user)
+ 	return
+ 
+@@ -2949,8 +2931,8 @@
+ 
+ 	W.burnt = 1
+ 	W.intact = 0
+-	W.oxygen = 0
+-	W.n2 = 0
++	W.gas.oxygen = 0
++	W.gas.nitrogen = 0
+ 	W.buildlinks()
+ 	W.levelupdate()
+ 	W.icon_state = "Floor1"
+@@ -3123,7 +3105,7 @@
+ 			if (!( istype(T, /turf) ))
+ 				return
+ 		if (T.firelevel < 900000.0)
+-			T.firelevel = T.poison
++			T.firelevel = T.gas.plasma
+ 	return
+ 
+ /obj/item/weapon/igniter/examine()
+@@ -3829,7 +3811,7 @@
+ 		var/turf/location = user.loc
+ 		if (!( istype(location, /turf) ))
+ 			return
+-		location.firelevel = location.poison + 1
++		location.firelevel = location.gas.plasma + 1
+ 	return
+ 
+ /obj/item/weapon/weldingtool/attack_self(mob/user as mob)
+@@ -4059,14 +4041,14 @@
+ 		if(2.0)
+ 			if(prob(25))
+ 				var/turf/T = src.loc
+-				T.poison += 1600000
+-				T.oxygen += 1600000
++				T.gas.plasma += 1600000
++				T.gas.oxygen += 1600000
+ 			del(src)
+ 		if(3.0)
+ 			if(prob(5))
+ 				var/turf/T = src.loc
+-				T.poison += 1600000
+-				T.oxygen += 1600000
++				T.gas.plasma += 1600000
++				T.gas.oxygen += 1600000
+ 				//SN src = null
+ 				del(src)
+ 				return
+@@ -4076,8 +4058,8 @@
+ /obj/weldfueltank/blob_act()
+ 	if(prob(25))
+ 		var/turf/T = src.loc
+-		T.poison += 1600000
+-		T.oxygen += 1600000
++		T.gas.plasma += 1600000
++		T.gas.oxygen += 1600000
+ 		del(src)
+ 
+ /obj/watertank/attackby(obj/item/weapon/extinguisher/W as obj, mob/user as mob)
+Index: game/meteor.dm
+===================================================================
+--- game/meteor.dm	(revision 281)
++++ game/meteor.dm	(working copy)
+@@ -78,7 +78,7 @@
+ /obj/meteor/Move()
+ 	var/turf/T = src.loc
+ 	if (istype(T, /turf))
+-		T.firelevel = T.poison + 5
++		T.firelevel = T.gas.plasma + 5
+ 	..()
+ 	if(src.z != 1 || src.loc == src.dest)
+ 		del(src)
+@@ -92,7 +92,7 @@
+ 		if (--src.hits <= 0)
+ 			if(prob(15) && !istype(A, /obj/grille))
+ 				var/obj/item/weapon/tank/plasmatank/pt = new /obj/item/weapon/tank/plasmatank( src )
+-				pt.gas.temperature = 475+T0C
++				pt.gas.temp = 475+T0C
+ 				pt.ignite()
+ 				//this is pretty crazy, but it seems to be the easiest way to get an explosion
+ 			del(src)
+Index: game/mob/carbon/breathing.dm
+===================================================================
+--- game/mob/carbon/breathing.dm	(revision 281)
++++ game/mob/carbon/breathing.dm	(working copy)
+@@ -1,87 +1,96 @@
+-/mob/carbon/var/max_air_breathed = 650 //max amount of air breathed per second
+-/mob/carbon/var/oxygen_needed = 67
++/mob/carbon/var/max_air_breathed	= 650 //max amount of air breathed per second
++/mob/carbon/var/oxygen_needed		= 67
+ /mob/carbon/var/co2_breathed
+-/mob/carbon/var/taking_tox_damage = 0
+-/mob/carbon/var/taking_suff_damage = 0
++/mob/carbon/var/taking_tox_damage	= 0
++/mob/carbon/var/taking_suff_damage	= 0
+ 
++/mob/carbon/proc/aircheck(datum/substance/gas/G as obj)
++{
++	if(!G) return
++	src.taking_tox_damage	= 0
++	src.taking_suff_damage	= 0
+ 
+-/mob/carbon/proc/aircheck(obj/substance/gas/G as obj)
+-	if (G)
+-		taking_tox_damage = 0
+-		taking_suff_damage = 0
+-		var/a_oxygen = G.oxygen * 0.7
+-		var/a_plasma = G.plasma
+-		var/a_sl_gas = G.sl_gas * 0.7
+-		G.oxygen -= a_oxygen
+-		G.plasma -= a_plasma
+-		G.sl_gas -= a_sl_gas
+-		if (a_oxygen < oxygen_needed)
+-			src.take_damage(suffocation = round( (oxygen_needed - a_oxygen) / 5 ) + 1)
+-			src.taking_suff_damage = 1
+-		if (a_plasma > 5)
+-			var/plasma_dam = round(a_plasma / 10) + 1
+-			if ((src.mask && src.mask.a_filter >= 4))
+-				plasma_dam = max(plasma_dam - 40, 0)
+-			if(plasma_dam > 0)
+-				src.take_damage(toxin = plasma_dam)
+-				src.taking_tox_damage = 1
++	var/a_oxygen = G.oxygen * 0.7
++	var/a_plasma = G.plasma
++	var/a_no2_gas = G.no2 * 0.7
+ 
+-		src.co2_breathed = min(0, src.co2_breathed - 5)
+-		src.co2_breathed += G.co2
+-		if(src.co2_breathed > 50)
+-			src.co2_breathed -= 50
+-			src.knockdown_until(3)
+-			src.take_damage(suffocation = 2)
++	G.oxygen -= a_oxygen
++	G.plasma -= a_plasma
++	G.no2 -= a_no2_gas
+ 
+-		src.sl_gas_breathed = max(0, src.sl_gas_breathed - 5)
+-		src.sl_gas_breathed += a_sl_gas
+-		if (src.sl_gas_breathed > 50)
+-			src.knockdown_until(3)
++	if (a_oxygen < oxygen_needed)
++		src.take_damage(suffocation = round( (oxygen_needed - a_oxygen) / 5 ) + 1)
++		src.taking_suff_damage = 1
++	if (a_plasma > 5)
++		var/plasma_dam = round(a_plasma / 10) + 1
++		if ((src.mask && src.mask.a_filter >= 4))
++			plasma_dam = max(plasma_dam - 40, 0)
++		if(plasma_dam > 0)
++			src.take_damage(toxin = plasma_dam)
++			src.taking_tox_damage = 1
+ 
+-		G.co2 += a_oxygen //breathe out!
++	src.co2_breathed = min(0, src.co2_breathed - 5)
++	src.co2_breathed += G.co2
++	if(src.co2_breathed > 50)
++		src.co2_breathed -= 50
++		src.knockdown_until(3)
++		src.take_damage(suffocation = 2)
+ 
+-	return
++	src.no2_breathed = max(0, src.no2_breathed - 5)
++	src.no2_breathed += a_no2_gas
++	if (src.no2_breathed > 50)
++		src.knockdown_until(3)
+ 
++	G.co2 += a_oxygen //breathe out!
++}
++
+ /mob/carbon/proc/get_breathed_air(turf/T)
+-	var/frac_air_taken = 1.4E-4 //fraction of air in tile taken
+-	if (src.get_damage() + 25 > src.death_threshold)
+-		frac_air_taken = 5.0E-5
+-	else if (src.get_damage() + 50 > src.death_threshold)
+-		frac_air_taken = 1.0E-4
++{
++	// aircheck uses oxygen * 70%, factor is 1/70%
++	var/oxy_required = oxygen_needed * 1.43	// = 95.81	-	require 15% oxygen
++	var/max_breathed = max_air_breathed
++	if(src.get_damage()+25 > src.death_threshold)		{	max_breathed *= 0.55	}	//	require 27% oxygen
++	else if(src.get_damage()+50 > src.death_threshold)	{	max_breathed *= 0.75	}	//	require 20% oxygen
+ 
+-	var/turf_total = T.oxygen + T.poison + T.sl_gas + T.co2 + T.n2
+-	var/obj/substance/gas/G = new /obj/substance/gas(  )
+-	G.maximum = 10000
+-	if (src.internal)
+-		src.internal.process(src, G)
+-		if (src.hud && src.hud.internal)
+-			src.hud.internal.icon_state = "internal1"
++	var/turf_total = T.gas.total()
++	var/oxygen_rate = turf_total / T.gas.oxygen
++	var/datum/substance/gas/G = new /datum/substance/gas( maximum = 10000 )
++	if(src.hud && src.hud.internal)	src.hud.internal.icon_state = "internal1"
+ 
+-		if (src.mask.flags & HALFMASK && (!istype(src.helmet, /obj/item/weapon/clothing/head) || !( src.helmet.flags & HEADSPACE )))
+-			//only get half of air from internals
+-			G.turf_add(T, G.tot_gas() * 0.5)
+-			G.turf_take(T, frac_air_taken / 2 * turf_total - G.tot_gas())
++	if(!src.internal)	G.turf_take(T, max(max_breathed,oxy_required*oxygen_rate))
+ 	else
+-		if (src.hud && src.hud.internal)
+-			src.hud.internal.icon_state = "internal0"
+-		G.turf_take(T, frac_air_taken * turf_total)
++	{
++		src.internal.process(src, G)	//	transfer gasses from internals to G
++		if(src.mask.flags & HALFMASK)
++			if(!istype(src.helmet, /obj/item/weapon/clothing/head) || !(src.helmet.flags & HEADSPACE))
++			{
++				//half the air from internals is wasted
++				G.turf_add(T, G.total() * 0.5)
+ 
+-	if (G.tot_gas() > max_air_breathed)
+-		G.turf_add(T, G.tot_gas() - max_air_breathed)
++				//	pull the rest required from the room
++				if(G.oxygen < oxy_required)
++					if(max_breathed > G.total())
++						G.turf_take(T, max_breathed - G.total())
++
++			}
++	}
++
++	if(G.total() > max_breathed) G.turf_add(T, G.total() - max_breathed)
+ 	return G
++}
+ 
+ /mob/carbon/proc/breathe()
+-	if (src.internal && !src.contents.Find(src.internal))
+-		src.internal = null
+-	if (!src.mask || ! (src.mask.flags | MASKINTERNALS))
+-		src.internal = null
++{
++	if(src.internal && !src.contents.Find(src.internal))	src.internal = null
++	if(!src.mask || ! (src.mask.flags | MASKINTERNALS))		src.internal = null
+ 
+ 	if (src.losebreath > 0)
++	{
+ 		src.losebreath--
+-		if (prob(5))
+-			src.gasp()
++		if(prob(5)) src.gasp()
+ 		src.take_damage(suffocation = 5)
+ 		return
++	}
+ 
+ 	var/T = src.loc
+ 	if (isobj(T))
+@@ -92,8 +101,9 @@
+ 			T = locate(/obj/move, T)
+ 
+ 		//breathe in
+-		var/obj/substance/gas/G = src.get_breathed_air(T)
++		var/datum/substance/gas/G = src.get_breathed_air(T)
+ 		//process air
+ 		src.aircheck(G)
+ 		//breathe out
+-		G.turf_add(T, G.tot_gas())
+\ No newline at end of file
++		G.turf_add(T, G.total())
++}
+Index: game/mob/carbon/var.dm
+===================================================================
+--- game/mob/carbon/var.dm	(revision 281)
++++ game/mob/carbon/var.dm	(working copy)
+@@ -127,7 +127,7 @@
+ 	var/icon/face = null
+ 	var/icon/face2 = null
+ 
+-	var/sl_gas_breathed = 0
++	var/no2_breathed = 0
+ 
+ 	var/is_dextrous = 0
+ 	is_intelligent = 0
+Index: game/modes/nuclear.dm
+===================================================================
+--- game/modes/nuclear.dm	(revision 281)
++++ game/modes/nuclear.dm	(working copy)
+@@ -109,7 +109,7 @@
+ 				p2.master = R
+ 				p3.master = R
+ 				R.status = 1
+-				p3.gas.temperature = 500 +T0C
++				p3.gas.temp = 500 +T0C
+ 				p2.status = 1
+ 				del(A)
+ 				continue
+Index: game/modes/traitor.dm
+===================================================================
+--- game/modes/traitor.dm	(revision 281)
++++ game/modes/traitor.dm	(working copy)
+@@ -248,15 +248,15 @@
+ 				if(plasma_bomb)
+ 					for(var/obj/item/weapon/assembly/r_i_ptank/O in L)
+ 						var/obj/item/weapon/tank/plasmatank/P = O.part3
+-						if ((P.gas.plasma >= 1600000.0 && P.gas:temperature >= 773)) // 500 degrees Celsius
++						if ((P.gas.plasma >= 1600000.0 && P.gas.temp >= 773)) // 500 degrees Celsius
+ 							traitorwin = 1
+ 					for(var/obj/item/weapon/assembly/t_i_ptank/O in L)
+ 						var/obj/item/weapon/tank/plasmatank/P = O.part3
+-						if ((P.gas.plasma >= 1600000.0 && P.gas:temperature >= 773))
++						if ((P.gas.plasma >= 1600000.0 && P.gas.temp >= 773))
+ 							traitorwin = 1
+ 					for(var/obj/item/weapon/assembly/m_i_ptank/O in L)
+ 						var/obj/item/weapon/tank/plasmatank/P = O.part3
+-						if ((P.gas.plasma >= 1600000.0 && P.gas:temperature >= 773))
++						if ((P.gas.plasma >= 1600000.0 && P.gas.temp >= 773))
+ 							traitorwin = 1
+ 				if(hand_tele)
+ 					for(var/obj/item/weapon/hand_tele/O in L)
+Index: game/newpipe.dm
+===================================================================
+--- game/newpipe.dm	(revision 281)
++++ game/newpipe.dm	(working copy)
+@@ -6,8 +6,8 @@
+ /obj/machinery/pipeline/New()
+ 	..()
+ 
+-	gas = new/obj/substance/gas(src)
+-	ngas = new/obj/substance/gas()
++	gas = new/datum/substance/gas(src)
++	ngas = new/datum/substance/gas()
+ 
+ 	gasflowlist += src
+ 
+@@ -54,7 +54,7 @@
+ 
+ 
+ /obj/machinery/pipeline/get_gas_val(from)
+-	return gas.tot_gas()/capmult
++	return gas.total()/capmult
+ 
+ /obj/machinery/pipeline/get_gas(from)
+ 	return gas
+@@ -63,11 +63,11 @@
+ 
+ /obj/machinery/pipeline/gas_flow()
+ 
+-	//if(suffix == "d" && Debug) world.log << "PLF1  [gas.tot_gas()] ~ [ngas.tot_gas()]"
++	//if(suffix == "d" && Debug) world.log << "PLF1  [gas.total()] ~ [ngas.total()]"
+ 
+ 	gas.replace_by(ngas)
+ 
+-	//if(suffix == "d" && Debug) world.log << "PLF2  [gas.tot_gas()] ~ [ngas.tot_gas()]"
++	//if(suffix == "d" && Debug) world.log << "PLF2  [gas.total()] ~ [ngas.total()]"
+ 
+ /obj/machinery/pipeline/process()
+ 
+@@ -79,11 +79,11 @@
+ 
+ //	var/dbg = (suffix == "d") && Debug
+ 
+-	//if(dbg) world.log << "PLP1 [gas.tot_gas()] ~ [ngas.tot_gas()]"
++	//if(dbg) world.log << "PLP1 [gas.total()] ~ [ngas.total()]"
+ 
+ 
+-	var/gtemp = ngas.temperature					// cached temperature for heat exch calc
+-	var/tot_node = ngas.tot_gas() / numnodes		// fraction of gas in this node
++	var/gtemp = ngas.temp						// cached temperature for heat exch calc
++	var/tot_node = ngas.total() / numnodes		// fraction of gas in this node
+ 
+ 	//if(dbg) world.log << "PLHE: [gtemp] [tot_node]"
+ 
+@@ -95,25 +95,25 @@
+ 	// now do standard gas flow proc
+ 
+ 
+-	//if(dbg) world.log << "PLP2 [ngas.tot_gas()]"
++	//if(dbg) world.log << "PLP2 [ngas.total()]"
+ 
+ 	var/delta_gt
+ 
+ 	if(vnode1)
+-		delta_gt = FLOWFRAC * ( vnode1.get_gas_val(src) - gas.tot_gas() / capmult)
++		delta_gt = FLOWFRAC * ( vnode1.get_gas_val(src) - gas.total() / capmult)
+ 		calc_delta( src, gas, ngas, vnode1, delta_gt)//, dbg)
+ 
+-		//if(dbg) world.log << "PLT1 [delta_gt] >> [gas.tot_gas()] ~ [ngas.tot_gas()]"
++		//if(dbg) world.log << "PLT1 [delta_gt] >> [gas.total()] ~ [ngas.total()]"
+ 
+ 		flow = delta_gt
+ 	else
+ 		leak_to_turf(1)
+ 
+ 	if(vnode2)
+-		delta_gt = FLOWFRAC * ( vnode2.get_gas_val(src) - gas.tot_gas() / capmult)
++		delta_gt = FLOWFRAC * ( vnode2.get_gas_val(src) - gas.total() / capmult)
+ 		calc_delta( src, gas, ngas, vnode2, delta_gt)//, dbg)
+ 
+-		//if(dbg) world.log << "PLT2 [delta_gt] >> [gas.tot_gas()] ~ [ngas.tot_gas()]"
++		//if(dbg) world.log << "PLT2 [delta_gt] >> [gas.total()] ~ [ngas.total()]"
+ 
+ 		flow -= delta_gt
+ 	else
+@@ -453,7 +453,7 @@
+ 		termination++
+ 
+ 
+-/obj/machinery/pipes/proc/heat_exchange(var/obj/substance/gas/gas, var/tot_node, var/numnodes, var/temp, var/dbg=0)
++/obj/machinery/pipes/proc/heat_exchange(var/datum/substance/gas/gas, var/tot_node, var/numnodes, var/temp, var/dbg=0)
+ 
+ 
+ 	var/turf/T = src.loc		// turf location of pipe
+@@ -461,30 +461,30 @@
+ 
+ 	if( level != 1)				// no heat exchange for under-floor pipes
+ 		if(istype(T,/turf/space))		// heat exchange less efficient in space (no conduction)
+-			gas.temperature += ( T.temp - temp) / (3.0 * insulation * numnodes)
++			gas.temp += ( T.gas.temp - gas.temp) / (3.0 * insulation * numnodes)
+ 		else
+ 
+ 	//		if(dbg) world.log << "PHE: ([x],[y]) [T.temp]-> \..."
+-			var/delta_T = (T.temp - temp) / (insulation)	// normal turf
++			var/delta_T = (T.gas.temp - gas.temp) / (insulation)	// normal turf
+ 
+-			gas.temperature += delta_T	/ numnodes			// heat the pipe due to turf temperature
++			gas.temp += delta_T	/ numnodes			// heat the pipe due to turf temperature
+ 
+ 			/*
+-			if(abs(delta_T*tot_node/T.tot_gas()) > 1)
++			if(abs(delta_T*tot_node/T.total()) > 1)
+ 				world.log << "Turf [T] at [T.x],[T.y]: gt=[temp] tt=[T.temp]"
+-				world.log << "dT = [delta_T] tn=[tot_node] ttg=[T.tot_gas()] tt-=[delta_T*tot_node/T.tot_gas()]"
++				world.log << "dT = [delta_T] tn=[tot_node] ttg=[T.total()] tt-=[delta_T*tot_node/T.total()]"
+ 
+ 			*/
+-			var/tot_turf = max(1, T.tot_gas())
+-			T.temp -= delta_T*min(10,tot_node/tot_turf)			// also heat the turf due to pipe temp
++			var/tot_turf = max(1, T.gas.total())
++			T.gas.temp -= delta_T*min(10,tot_node/tot_turf)			// also heat the turf due to pipe temp
+ 							// clamp max temp change to prevent thermal runaway
+ 							// if low amount of gas in turf
+ 	//		if(dbg) world.log << "[T.temp] [tot_turf] #[delta_T]"
+-			T.res_vars()	// ensure turf tmp vars are updated
++			T.reset_phases()	// ensure turf tmp vars are updated
+ 
+ 	else								// if level 1 but in space, perform cooling anyway - exposed pipes
+ 		if(istype(T,/turf/space))
+-			gas.temperature += ( T.temp - temp) / (3.0 * insulation * numnodes)
++			gas.temp += ( T.gas.temp - gas.temp) / (3.0 * insulation * numnodes)
+ 
+ 
+ 
+@@ -492,10 +492,10 @@
+ /*
+ /obj/machinery/pipes/receive_amount()
+ 	if(gas)
+-		return max(0, capacity - gas.tot_gas())
++		return max(0, capacity - gas.total())
+ 	return 0
+ 
+-/obj/machinery/pipes/receive_gas(var/obj/substance/gas/t_gas as obj, from as obj, amount)
++/obj/machinery/pipes/receive_gas(var/datum/substance/gas/t_gas as obj, from as obj, amount)
+ 	//new pipe logic
+ 	// src receives (up to) 'amount' of gas 't_gas' from 'from'
+ 	// uses receive_amount to find actual amount of gas to transfer
+@@ -506,18 +506,18 @@
+ 
+ 	gas.transfer_from(t_gas, amount)	// transfer from incoming gas to local gas reservoir. Remainder left in t_gas
+ 
+-	var/tot = gas.tot_gas()		// total amount of gas now in reservoir
++	var/tot = gas.total()		// total amount of gas now in reservoir
+ 
+ 	var/turf/T = src.loc		// turf location of pipe
+ 
+ 	if( level != 1)				// no heat exchange for under-floor pipes
+ 		if(istype(T,/turf/space))		// heat exchange less efficient in space (no conduction)
+-			gas.temperature += ( T.temp - gas.temperature) / (3.0 * insulation)
++			gas.temp += ( T.temp - gas.temp) / (3.0 * insulation)
+ 		else
+-			var/delta_T = (T.temp - gas.temperature) / insulation	// normal turf
+-			gas.temperature += delta_T								// heat the pipe due to turf temperature
++			var/delta_T = (T.temp - gas.temp) / insulation	// normal turf
++			gas.temp += delta_T								// heat the pipe due to turf temperature
+ 
+-			T.temp -= delta_T*tot/T.tot_gas()						// also heat the turf due to pipe temp
++			T.temp -= delta_T*tot/T.total()						// also heat the turf due to pipe temp
+ 
+ 	last_flow = amount		// for metering of flow rate
+ 
+@@ -580,13 +580,13 @@
+ 
+ /obj/machinery/circulator/New()
+ 	..()
+-	gas1 = new/obj/substance/gas(src)
++	gas1 = new/datum/substance/gas(src)
+ 	gas1.maximum = capacity
+-	gas2 = new/obj/substance/gas(src)
++	gas2 = new/datum/substance/gas(src)
+ 	gas2.maximum = capacity
+ 
+-	ngas1 = new/obj/substance/gas()
+-	ngas2 = new/obj/substance/gas()
++	ngas1 = new/datum/substance/gas()
++	ngas2 = new/datum/substance/gas()
+ 
+ 	gasflowlist += src
+ 
+@@ -684,7 +684,7 @@
+ 	updateicon()
+ 
+ /*
+-/obj/machinery/circulator/receive_gas(var/obj/substance/gas/t_gas as obj, from as obj, amount)
++/obj/machinery/circulator/receive_gas(var/datum/substance/gas/t_gas as obj, from as obj, amount)
+ 
+ 
+ 	if(from != src.node1)
+@@ -719,13 +719,13 @@
+ 	var/delta_gt
+ 
+ 	if(vnode1)
+-		delta_gt = FLOWFRAC * ( vnode1.get_gas_val(src) - gas1.tot_gas() / capmult)
++		delta_gt = FLOWFRAC * ( vnode1.get_gas_val(src) - gas1.total() / capmult)
+ 		calc_delta( src, gas1, ngas1, vnode1, delta_gt)
+ 	else
+ 		leak_to_turf(1)
+ 
+ 	if(vnode2)
+-		delta_gt = FLOWFRAC * ( vnode2.get_gas_val(src) - gas2.tot_gas() / capmult)
++		delta_gt = FLOWFRAC * ( vnode2.get_gas_val(src) - gas2.total() / capmult)
+ 		calc_delta( src, gas2, ngas2, vnode2, delta_gt)
+ 	else
+ 		leak_to_turf(2)
+@@ -760,9 +760,9 @@
+ /obj/machinery/circulator/get_gas_val(from)
+ 
+ 	if(from == vnode1)
+-		return gas1.tot_gas()/capmult
++		return gas1.total()/capmult
+ 	else
+-		return gas2.tot_gas()/capmult
++		return gas2.total()/capmult
+ 
+ /obj/machinery/circulator/get_gas(from)
+ 
+@@ -793,9 +793,9 @@
+ 
+ 
+ 
+-	src.gas = new /obj/substance/gas( src )
++	src.gas = new /datum/substance/gas( src )
+ 	src.gas.maximum = src.capacity
+-	src.ngas = new /obj/substance/gas()
++	src.ngas = new /datum/substance/gas()
+ 	gasflowlist += src
+ 
+ 
+@@ -830,26 +830,26 @@
+ 	var/delta_gt
+ 
+ 	if(vnode1)
+-		delta_gt = FLOWFRAC * ( vnode1.get_gas_val(src) - gas.tot_gas() / capmult)
++		delta_gt = FLOWFRAC * ( vnode1.get_gas_val(src) - gas.total() / capmult)
+ 		calc_delta( src, gas, ngas, vnode1, delta_gt)
+ 	else
+ 		leak_to_turf(1)
+ 
+ 	if(vnode2)
+-		delta_gt = FLOWFRAC * ( vnode2.get_gas_val(src) - gas.tot_gas() / capmult)
++		delta_gt = FLOWFRAC * ( vnode2.get_gas_val(src) - gas.total() / capmult)
+ 		calc_delta( src, gas, ngas, vnode2, delta_gt)
+ 	else
+ 		leak_to_turf(2)
+ 
+ 	if(vnode3)
+-		delta_gt = FLOWFRAC * ( vnode3.get_gas_val(src) - gas.tot_gas() / capmult)
++		delta_gt = FLOWFRAC * ( vnode3.get_gas_val(src) - gas.total() / capmult)
+ 		calc_delta( src, gas, ngas, vnode3, delta_gt)
+ 	else
+ 		leak_to_turf(3)
+ 
+ 
+ /obj/machinery/manifold/get_gas_val(from)
+-	return gas.tot_gas()/capmult
++	return gas.total()/capmult
+ 
+ /obj/machinery/manifold/get_gas(from)
+ 	return gas
+@@ -885,10 +885,10 @@
+ 
+ 	..()
+ 
+-	gas = new/obj/substance/gas(src)
++	gas = new/datum/substance/gas(src)
+ 	gas.maximum = capacity
+-	ngas = new/obj/substance/gas()
+-	//agas = new/obj/substance/gas()
++	ngas = new/datum/substance/gas()
++	//agas = new/datum/substance/gas()
+ 
+ 	gasflowlist += src
+ 	spawn(5)
+@@ -928,7 +928,7 @@
+ 
+ 
+ /obj/machinery/connector/get_gas_val(from)
+-	return gas.tot_gas()/capmult
++	return gas.total()/capmult
+ 
+ /obj/machinery/connector/get_gas(from)
+ 	return gas
+@@ -937,13 +937,13 @@
+ /obj/machinery/connector/gas_flow()
+ 
+ //	var/dbg = (suffix == "d") && Debug
+-	//if(dbg) world.log << "CF0: ngas=[ngas.tot_gas()]"
++	//if(dbg) world.log << "CF0: ngas=[ngas.total()]"
+ 
+ 	//ngas.transfer_from(agas, -1)
+ 
+-	//if(dbg)	world.log << "CF1: ngas=[gas.tot_gas()]"
++	//if(dbg)	world.log << "CF1: ngas=[gas.total()]"
+ 	gas.replace_by(ngas)
+-	//if(dbg)	world.log << "CF2: gas=[gas.tot_gas()]"
++	//if(dbg)	world.log << "CF2: gas=[gas.total()]"
+ 	flag = 0
+ 
+ /obj/machinery/connector/process()
+@@ -955,19 +955,19 @@
+ 	var/delta_gt
+ //	var/dbg = (suffix == "d") && Debug
+ 
+-	//if(dbg) world.log << "C[tag]P: [gas.tot_gas()] ~ [ngas.tot_gas()]"
+-	//if(dbg && connected) world.log << "C[tag]PC: [connected.gas.tot_gas()]"
++	//if(dbg) world.log << "C[tag]P: [gas.total()] ~ [ngas.total()]"
++	//if(dbg && connected) world.log << "C[tag]PC: [connected.gas.total()]"
+ 
+ 	if(vnode)
+ 
+-		delta_gt = FLOWFRAC * ( vnode.get_gas_val(src) - gas.tot_gas() / capmult)
++		delta_gt = FLOWFRAC * ( vnode.get_gas_val(src) - gas.total() / capmult)
+ 		//if(dbg) world.log << "C[tag]P0: [delta_gt]"
+ 
+-		//var/obj/substance/gas/vgas = vnode.get_gas(src)
++		//var/datum/substance/gas/vgas = vnode.get_gas(src)
+ 
+-		//if(dbg) world.log << "C[tag]P1: [gas.tot_gas()], [ngas.tot_gas()] -> [vgas.tot_gas()]"
++		//if(dbg) world.log << "C[tag]P1: [gas.total()], [ngas.total()] -> [vgas.total()]"
+ 		calc_delta( src, gas, ngas, vnode, delta_gt)//, dbg)
+-		//if(dbg) world.log << "C[tag]P2: [gas.tot_gas()], [ngas.tot_gas()] -> [vgas.tot_gas()]"
++		//if(dbg) world.log << "C[tag]P2: [gas.total()], [ngas.total()] -> [vgas.total()]"
+ 
+ 	else
+ 		leak_to_turf()
+@@ -976,18 +976,18 @@
+ 		var/amount
+ 		if(connected.c_status == 1)				// canister set to release
+ 
+-			//if(dbg) world.log << "C[tag]PC1: [gas.tot_gas()], [ngas.tot_gas()] <- [connected.gas.tot_gas()]"
+-			amount = min(connected.c_per, capacity - gas.tot_gas() )	// limit to space in connector
+-			amount = max(0, min(amount, connected.gas.tot_gas() ) )		// limit to amount in canister, or 0
++			//if(dbg) world.log << "C[tag]PC1: [gas.total()], [ngas.total()] <- [connected.gas.total()]"
++			amount = min(connected.c_per, capacity - gas.total() )	// limit to space in connector
++			amount = max(0, min(amount, connected.gas.total() ) )		// limit to amount in canister, or 0
+ 			//if(dbg) world.log << "C[tag]PC2: a=[amount]"
+-			//var/ng = ngas.tot_gas()
++			//var/ng = ngas.total()
+ 			ngas.transfer_from( connected.gas, amount)
+-			//if(dbg) world.log <<"[ngas.tot_gas()-ng] from siph to connector"
+-			//if(dbg) world.log << "C[tag]PC3: [gas.tot_gas()], [ngas.tot_gas()] <- [connected.gas.tot_gas()]"
++			//if(dbg) world.log <<"[ngas.total()-ng] from siph to connector"
++			//if(dbg) world.log << "C[tag]PC3: [gas.total()], [ngas.total()] <- [connected.gas.total()]"
+ 		else if(connected.c_status == 2)		// canister set to accept
+ 
+-			amount = min(connected.c_per, connected.gas.maximum - connected.gas.tot_gas())	//limit to space in canister
+-			amount = max(0, min(amount, gas.tot_gas() ) )				// limit to amount in connector, or 0
++			amount = min(connected.c_per, connected.gas.maximum - connected.gas.total())	//limit to space in canister
++			amount = max(0, min(amount, gas.total() ) )				// limit to amount in connector, or 0
+ 
+ 			connected.gas.transfer_from( ngas, amount)
+ 
+@@ -1018,8 +1018,8 @@
+ 
+ /obj/machinery/junction/New()
+ 	..()
+-	gas = new/obj/substance/gas(src)
+-	ngas = new/obj/substance/gas()
++	gas = new/datum/substance/gas(src)
++	ngas = new/datum/substance/gas()
+ 	gasflowlist += src
+ 
+ 	h_dir = dir					// the h/e pipe is in obj dir
+@@ -1068,7 +1068,7 @@
+ 	var/delta_gt
+ 
+ 	if(vnode1)
+-		delta_gt = FLOWFRAC * ( vnode1.get_gas_val(src) - gas.tot_gas() / capmult)
++		delta_gt = FLOWFRAC * ( vnode1.get_gas_val(src) - gas.total() / capmult)
+ 		calc_delta( src, gas, ngas, vnode1, delta_gt) //, dbg)
+ 
+ 	//	if(dbg)	world.log << "J[dbg]T1: [delta_gt] >> [gas.tostring()] ~ [ngas.tostring()]"
+@@ -1076,7 +1076,7 @@
+ 		leak_to_turf(1)
+ 
+ 	if(vnode2)
+-		delta_gt = FLOWFRAC * ( vnode2.get_gas_val(src) - gas.tot_gas() / capmult)
++		delta_gt = FLOWFRAC * ( vnode2.get_gas_val(src) - gas.total() / capmult)
+ 		calc_delta( src, gas, ngas, vnode2, delta_gt) //, dbg)
+ 
+ 	//	if(dbg)	world.log << "J[dbg]T2: [delta_gt] >> [gas.tostring()] ~ [ngas.tostring()]"
+@@ -1085,7 +1085,7 @@
+ 
+ 
+ /obj/machinery/junction/get_gas_val(from)
+-	return gas.tot_gas()/capmult
++	return gas.total()/capmult
+ 
+ /obj/machinery/junction/get_gas(from)
+ 	return gas
+@@ -1110,11 +1110,11 @@
+ 
+ 
+ 
+-/proc/calc_delta(obj/machinery/source, obj/substance/gas/sgas, obj/substance/gas/sngas, obj/machinery/target, amount, dbg=0)
++/proc/calc_delta(obj/machinery/source, datum/substance/gas/sgas, datum/substance/gas/sngas, obj/machinery/target, amount, dbg=0)
+ 
+-	var/obj/substance/gas/tgas = target.get_gas(source)
++	var/datum/substance/gas/tgas = target.get_gas(source)
+ 
+-	var/obj/substance/gas/ndelta = new()
++	var/datum/substance/gas/ndelta = new()
+ 
+ 	/*if(dbg)
+ 		if(amount>0)
+@@ -1131,7 +1131,7 @@
+ 	//	if(dbg)
+ 	//		world.log << "[amount]<0"
+ 
+-		ndelta.set_frac(sgas, -amount)		// this is fraction of the gas which will be transfered to other node
++		ndelta.multiply_gas(-amount/sgas.total())		// this is fraction of the gas which will be transfered to other node
+ 
+ 	//	if(dbg)
+ 	//		world.log << "ND: [ndelta.tostring()]"
+@@ -1146,7 +1146,7 @@
+ 	//	if(dbg)
+ 	//		world.log << "[amount]>0"
+ 
+-		ndelta.set_frac(tgas, amount)		// fraction of gas from the other node
++		ndelta.multiply_gas(amount/tgas.total())		// fraction of gas from the other node
+ 	//	if(dbg)
+ 	//		world.log << "ND: [ndelta.tostring()]"
+ 
+@@ -1155,17 +1155,17 @@
+ 	//		world.log << "SND: [sngas.tostring()]"
+ 
+ 
+-/obj/substance/gas/proc/tostring()
+-	return "Tot: [src.tot_gas()] ; [oxygen]/[n2]/#[plasma]/[co2]/[sl_gas] ; Temp:[temperature]"
++/datum/substance/gas/proc/tostring()
++	return "Tot: [src.total()] ; [oxygen]/[nitrogen]/#[plasma]/[co2]/[no2] ; Temp:[temp]"
+ 
+ 
+ /obj/machinery/vent/New()
+ 
+ 	..()
+ 	p_dir = dir
+-	gas = new/obj/substance/gas(src)
++	gas = new/datum/substance/gas(src)
+ 	gas.maximum = capacity
+-	ngas = new/obj/substance/gas()
++	ngas = new/datum/substance/gas()
+ 	gasflowlist += src
+ 
+ 
+@@ -1185,7 +1185,7 @@
+ 
+ 
+ /obj/machinery/vent/get_gas_val(from)
+-	return gas.tot_gas()/2
++	return gas.total()/2
+ 
+ /obj/machinery/vent/get_gas(from)
+ 	return gas
+@@ -1194,15 +1194,15 @@
+ /obj/machinery/vent/gas_flow()
+ 
+ //	var/dbg = (suffix=="d") && Debug
+-	//if(dbg) world.log << "V[tag]F1: [gas.tot_gas()] ~ [ngas.tot_gas()]"
++	//if(dbg) world.log << "V[tag]F1: [gas.total()] ~ [ngas.total()]"
+ 	gas.replace_by(ngas)
+-	//if(dbg) world.log << "V[tag]F2: [gas.tot_gas()] ~ [ngas.tot_gas()]"
++	//if(dbg) world.log << "V[tag]F2: [gas.total()] ~ [ngas.total()]"
+ 
+ /obj/machinery/vent/process()
+ 
+ 
+ //	var/dbg = (suffix=="d") && Debug
+-	//if(dbg)	world.log << "V[tag]T1: [gas.tot_gas()] ~ [ngas.tot_gas()]"
++	//if(dbg)	world.log << "V[tag]T1: [gas.total()] ~ [ngas.total()]"
+ 
+ 	//if(suffix=="dbgp")
+ 	//	world.log << "VP"
+@@ -1212,22 +1212,22 @@
+ 
+ 	var/turf/T = src.loc
+ 
+-	delta_gt = FLOWFRAC * (gas.tot_gas() / capmult)
+-	//var/ng = ngas.tot_gas()
++	delta_gt = FLOWFRAC * (gas.total() / capmult)
++	//var/ng = ngas.total()
+ 	ngas.turf_add(T, delta_gt)
+ 
+-	//if(dbg) world.log << "[num2text(ng-ngas.tot_gas(),10)] from vent to turf"
+-	//if(dbg)	world.log << "V[tag]T2: [gas.tot_gas()] ~ [ngas.tot_gas()]"
++	//if(dbg) world.log << "[num2text(ng-ngas.total(),10)] from vent to turf"
++	//if(dbg)	world.log << "V[tag]T2: [gas.total()] ~ [ngas.total()]"
+ 
+ 	if(vnode)
+ 
+-		//if(dbg)	world.log << "V[tag]N1: [gas.tot_gas()] ~ [ngas.tot_gas()]"
++		//if(dbg)	world.log << "V[tag]N1: [gas.total()] ~ [ngas.total()]"
+ 
+-		delta_gt = FLOWFRAC * ( vnode.get_gas_val(src) - gas.tot_gas() / capmult)
++		delta_gt = FLOWFRAC * ( vnode.get_gas_val(src) - gas.total() / capmult)
+ 
+ 		calc_delta( src, gas, ngas, vnode, delta_gt)//, dbg)
+ 
+-		//if(dbg)	world.log << "V[tag]N2: [gas.tot_gas()] ~ [ngas.tot_gas()]"
++		//if(dbg)	world.log << "V[tag]N2: [gas.total()] ~ [ngas.total()]"
+ 
+ 	else
+ 		leak_to_turf()
+@@ -1250,9 +1250,9 @@
+ 	..()
+ 
+ 	p_dir = dir
+-	gas = new/obj/substance/gas(src)
++	gas = new/datum/substance/gas(src)
+ 	gas.maximum = capacity
+-	ngas = new/obj/substance/gas()
++	ngas = new/datum/substance/gas()
+ 	gasflowlist += src
+ 
+ 
+@@ -1272,7 +1272,7 @@
+ 
+ 
+ /obj/machinery/inlet/get_gas_val(from)
+-	return gas.tot_gas()/2
++	return gas.total()/2
+ 
+ /obj/machinery/inlet/get_gas(from)
+ 	return gas
+@@ -1281,15 +1281,15 @@
+ /obj/machinery/inlet/gas_flow()
+ 
+ 	var/dbg = (suffix=="d") && Debug
+-	if(dbg) world.log << "I[tag]F1: [gas.tot_gas()] ~ [ngas.tot_gas()]"
++	if(dbg) world.log << "I[tag]F1: [gas.total()] ~ [ngas.total()]"
+ 	gas.replace_by(ngas)
+-	if(dbg) world.log << "I[tag]F2: [gas.tot_gas()] ~ [ngas.tot_gas()]"
++	if(dbg) world.log << "I[tag]F2: [gas.total()] ~ [ngas.total()]"
+ 
+ /obj/machinery/inlet/process()
+ 
+ 
+ 	var/dbg = (suffix=="d") && Debug
+-	if(dbg)	world.log << "I[tag]T1: [gas.tot_gas()] ~ [ngas.tot_gas()]"
++	if(dbg)	world.log << "I[tag]T1: [gas.total()] ~ [ngas.total()]"
+ 
+ 	//if(suffix=="dbgp")
+ 	//	world.log << "VP"
+@@ -1304,17 +1304,17 @@
+ 	if(T && !T.density)
+ 		flow_to_turf(gas, ngas, T, dbg)		// act as gas leak
+ 
+-	if(dbg)	world.log << "I[tag]T2: [gas.tot_gas()] ~ [ngas.tot_gas()]"
++	if(dbg)	world.log << "I[tag]T2: [gas.total()] ~ [ngas.total()]"
+ 
+ 	if(vnode)
+ 
+-		//if(dbg)	world.log << "V[tag]N1: [gas.tot_gas()] ~ [ngas.tot_gas()]"
++		//if(dbg)	world.log << "V[tag]N1: [gas.total()] ~ [ngas.total()]"
+ 
+-		delta_gt = FLOWFRAC * ( vnode.get_gas_val(src) - gas.tot_gas() / capmult)
++		delta_gt = FLOWFRAC * ( vnode.get_gas_val(src) - gas.total() / capmult)
+ 
+ 		calc_delta( src, gas, ngas, vnode, delta_gt)//, dbg)
+ 
+-		//if(dbg)	world.log << "V[tag]N2: [gas.tot_gas()] ~ [ngas.tot_gas()]"
++		//if(dbg)	world.log << "V[tag]N2: [gas.total()] ~ [ngas.total()]"
+ 
+ 	else
+ 		leak_to_turf()
+@@ -1334,25 +1334,25 @@
+ // standard proc for all machines - passed gas/ngas as arguments
+ // equilibrate a pipe object and a turf's gas content
+ 
+-/obj/machinery/proc/flow_to_turf(var/obj/substance/gas/sgas, var/obj/substance/gas/sngas, var/turf/T, var/dbg = 0)
++/obj/machinery/proc/flow_to_turf(var/datum/substance/gas/sgas, var/datum/substance/gas/sngas, var/turf/T, var/dbg = 0)
+ 
+ 	if(dbg) world.log << "FTT: G=[sgas.tostring()] ~ N=[sngas.tostring()]"
+ 	if(dbg) world.log << "T=[T.tostring()]"
+ 
+ 
+ 
+-	var/t_tot = T.tot_gas() * 0.2		// partial pressure of turf gas at pipe, for the moment
++	var/t_tot = T.gas.total() * 0.2		// partial pressure of turf gas at pipe, for the moment
+ 
+-	var/delta_gt = FLOWFRAC * ( t_tot - sgas.tot_gas() / capmult )
++	var/delta_gt = FLOWFRAC * ( t_tot - sgas.total() / capmult )
+ 
+ 	if(dbg) world.log << "FTT: dgt=[delta_gt]"
+ 
+-	var/obj/substance/gas/ndelta = new()
++	var/datum/substance/gas/ndelta = new()
+ 
+ 	if(delta_gt < 0)	// flow from pipe to turf
+ 
+ 		//world.log << "FTT<0"
+-		ndelta.set_frac(sgas, -delta_gt)		// ndelta contains gas to transfer to turf
++		ndelta.multiply_gas(-delta_gt/sgas.total())		// ndelta contains gas to transfer to turf
+ 		//world.log << "ND=[ndelta.tostring()]"
+ 		sngas.sub_delta(ndelta)			// update new gas to remove the amount transfered
+ 		//world.log << "SN=[sngas.tostring()]"
+@@ -1369,15 +1369,14 @@
+ 		if(dbg) world.log << "SN=[sngas.tostring()]"
+ 		if(dbg) world.log << "T=[T.tostring()]"
+ 
+-		if(dbg) world.log << "LTT: [num2text(delta_gt,10)] from turf to [sgas.loc]"
++		if(dbg) world.log << "LTT: [num2text(delta_gt,10)] from turf to [T]"
+ 
+-	T.res_vars()	// update turf gas vars for both cases
++	T.reset_phases()	// update turf gas vars for both cases
+ 
+ 
+ 
+ /turf/proc/tostring()
+-	var/obj/substance/gas/G = src.get_gas()
+-	return G.tostring()
++	return src.gas.tostring()
+ 
+ /proc/Plasma()
+ 
+@@ -1386,7 +1385,7 @@
+ 	for(var/obj/machinery/M in machines)
+ 		if(M.suffix=="dbgp")
+ 
+-			var/obj/substance/gas/G = M.get_gas()
++			var/datum/substance/gas/G = M.get_gas()
+ 			var/p = G.plasma
+ 
+ 			mplas += p
+@@ -1397,7 +1396,7 @@
+ 	var/tplas = 0
+ 
+ 	for(var/turf/station/engine/floor/T in world)
+-		tplas += T.poison
++		tplas += T.gas.plasma
+ 
+ 	world.log << "\nTotals: M=[num2text(mplas, 10)] T=[num2text(tplas, 10)], all = [num2text(mplas+tplas, 10)]"
+ 
+@@ -1407,10 +1406,10 @@
+ 
+ /obj/machinery/valve/New()
+ 	..()
+-	gas1 = new/obj/substance/gas(src)
+-	ngas1 = new/obj/substance/gas()
+-	gas2 = new/obj/substance/gas(src)
+-	ngas2 = new/obj/substance/gas()
++	gas1 = new/datum/substance/gas(src)
++	ngas1 = new/datum/substance/gas()
++	gas2 = new/datum/substance/gas(src)
++	ngas2 = new/datum/substance/gas()
+ 
+ 	gasflowlist += src
+ 	switch(dir)
+@@ -1454,14 +1453,14 @@
+ 	var/delta_gt
+ 
+ 	if(vnode1)
+-		delta_gt = FLOWFRAC * ( vnode1.get_gas_val(src) - gas1.tot_gas() / capmult)
++		delta_gt = FLOWFRAC * ( vnode1.get_gas_val(src) - gas1.total() / capmult)
+ 		calc_delta( src, gas1, ngas1, vnode1, delta_gt)
+ 
+ 	else
+ 		leak_to_turf(1)
+ 
+ 	if(vnode2)
+-		delta_gt = FLOWFRAC * ( vnode2.get_gas_val(src) - gas2.tot_gas() / capmult)
++		delta_gt = FLOWFRAC * ( vnode2.get_gas_val(src) - gas2.total() / capmult)
+ 		calc_delta( src, gas2, ngas2, vnode2, delta_gt)
+ 
+ 	else
+@@ -1470,27 +1469,27 @@
+ 
+ 	if(open)		// valve operating, so transfer btwen resv1 & 2
+ 
+-		delta_gt = FLOWFRAC * (gas1.tot_gas() / capmult - gas2.tot_gas() / capmult)
++		delta_gt = FLOWFRAC * (gas1.total() / capmult - gas2.total() / capmult)
+ 
+-		var/obj/substance/gas/ndelta = new()
++		var/datum/substance/gas/ndelta = new()
+ 
+ 		if(delta_gt < 0)		// then flowing from R2 to R1
+ 
+-			ndelta.set_frac(gas2, -delta_gt)
++			ndelta.multiply_gas(-delta_gt/gas2.total())
+ 
+ 			ngas2.sub_delta(ndelta)
+ 			ngas1.add_delta(ndelta)
+ 
+ 		else				// flowing from R1 to R2
+-			ndelta.set_frac(gas1, delta_gt)
++			ndelta.multiply_gas(delta_gt/gas1.total())
+ 			ngas2.add_delta(ndelta)
+ 			ngas1.sub_delta(ndelta)
+ 
+ /obj/machinery/valve/get_gas_val(from)
+ 	if(from == vnode2)
+-		return gas2.tot_gas()/capmult
++		return gas2.total()/capmult
+ 	else
+-		return gas1.tot_gas()/capmult
++		return gas1.total()/capmult
+ 
+ /obj/machinery/valve/get_gas(from)
+ 	if(from == vnode2)
+Index: game/overview.dm
+===================================================================
+--- game/overview.dm	(revision 281)
++++ game/overview.dm	(working copy)
+@@ -120,12 +120,8 @@
+ 
+ 			if(!colour2 && !T.density)
+ 
+-				var/turf_total = T.co2 + T.oxygen + T.poison + T.sl_gas + T.n2
++				var/t1 = T.gas.total() / CELLSTANDARD * 150
+ 
+-
+-				var/t1 = turf_total / CELLSTANDARD * 150
+-
+-
+ 				if(t1<=100)
+ 					colour2 = rgb(t1*2.55,0,0)
+ 				else
+@@ -201,8 +197,7 @@
+ 						sense = 0
+ 
+ 					if("/turf/station/floor", "/turf/station/engine/floor")
+-						var/turf_total = T.co2 + T.oxygen + T.poison + T.sl_gas + T.n2
+-						var/t1 = turf_total / CELLSTANDARD * 175
++						var/t1 = T.gas.total() / CELLSTANDARD * 175
+ 
+ 						if(t1<=100)
+ 							colour = rgb(0,0,t1*2.55)
+Index: game/power.dm
+===================================================================
+--- game/power.dm	(revision 281)
++++ game/power.dm	(working copy)
+@@ -767,8 +767,8 @@
+ /obj/machinery/power/generator/process()
+ 
+ /*	if(circ && circ.gas1)
+-		var/gen = circ.gas2.tot_gas()*max(0, circ.gas2.temperature - 298)/300
+-		circ.ngas2.temperature = max(298, circ.ngas2.temperature - 50)
++		var/gen = circ.gas2.total()*max(0, circ.gas2.temp - 298)/300
++		circ.ngas2.temp = max(298, circ.ngas2.temp - 50)
+ 
+ 		add_avail(gen)
+ */
+@@ -779,8 +779,8 @@
+ 		var/gc = circ1.gas2.shc()
+ 		var/gh = circ2.gas2.shc()
+ 
+-		var/tc = circ1.gas2.temperature
+-		var/th = circ2.gas2.temperature
++		var/tc = circ1.gas2.temp
++		var/th = circ2.gas2.temp
+ 		var/deltat = th-tc
+ 
+ 		var/eta = (1-tc/th)*0.65		// efficiency 65% of Carnot
+@@ -803,8 +803,8 @@
+ 			lastgen = q * GENRATE
+ 			add_avail(lastgen)
+ 
+-			circ1.ngas2.temperature = tcp
+-			circ2.ngas2.temperature = thp
++			circ1.ngas2.temp = tcp
++			circ2.ngas2.temp = thp
+ 
+ 		else
+ 			lastgen = 0
+@@ -846,13 +846,13 @@
+ 	t += "Output : [round(lastgen)] W<BR><BR>"
+ 
+ 	t += "<B>Cold loop</B><BR>"
+-	t += "Temperature Inlet: [round(circ1.ngas1.temperature, 0.1)] K  Outlet: [round(circ1.ngas2.temperature, 0.1)] K<BR>"
++	t += "Temperature Inlet: [round(circ1.ngas1.temp, 0.1)] K  Outlet: [round(circ1.ngas2.temp, 0.1)] K<BR>"
+ 
+ 	t += "Circulator: [c1on ? "<B>On</B> <A href = '?src=\ref[src];c1p=1'>Off</A>" : "<A href = '?src=\ref[src];c1p=1'>On</A> <B>Off</B> "]<BR>"
+ 	t += "Rate: <A href = '?src=\ref[src];c1r=-3'>M</A> <A href = '?src=\ref[src];c1r=-2'>-</A> <A href = '?src=\ref[src];c1r=-1'>-</A> [add_lspace(c1rate,3)]% <A href = '?src=\ref[src];c1r=1'>+</A> <A href = '?src=\ref[src];c1r=2'>+</A> <A href = '?src=\ref[src];c1r=3'>M</A><BR>"
+ 
+ 	t += "<B>Hot loop</B><BR>"
+-	t += "Temperature Inlet: [round(circ2.ngas1.temperature, 0.1)] K  Outlet: [round(circ2.ngas2.temperature, 0.1)] K<BR>"
++	t += "Temperature Inlet: [round(circ2.ngas1.temp, 0.1)] K  Outlet: [round(circ2.ngas2.temp, 0.1)] K<BR>"
+ 
+ 	t += "Circulator: [c2on ? "<B>On</B> <A href = '?src=\ref[src];c2p=1'>Off</A>" : "<A href = '?src=\ref[src];c2p=1'>On</A> <B>Off</B> "]<BR>"
+ 	t += "Rate: <A href = '?src=\ref[src];c2r=-3'>M</A> <A href = '?src=\ref[src];c2r=-2'>-</A> <A href = '?src=\ref[src];c2r=-1'>-</A> [add_lspace(c2rate,3)]% <A href = '?src=\ref[src];c2r=1'>+</A> <A href = '?src=\ref[src];c2r=2'>+</A> <A href = '?src=\ref[src];c2r=3'>M</A><BR>"
+@@ -2395,7 +2395,7 @@
+ /obj/machinery/compressor/New()
+ 	..()
+ 
+-	gas = new/obj/substance/gas(src)
++	gas = new/datum/substance/gas(src)
+ 	gas.maximum = capacity
+ 	inturf = get_step(src, WEST)
+ 
+@@ -2471,18 +2471,18 @@
+ 
+ 	add_avail(lastgen)
+ 
+-	//if(compressor.gas.temperature > (T20C+50))
+-	var/newrpm = ((compressor.gas.temperature-T20C-50) * compressor.gas.tot_gas() / TURBPRES)*30000
++	//if(compressor.gas.temp > (T20C+50))
++	var/newrpm = ((compressor.gas.temp-T20C-50) * compressor.gas.total() / TURBPRES)*30000
+ 	newrpm = max(0, newrpm)
+ 
+ 	if(!compressor.starter || newrpm > 1000)
+ 		compressor.rpmtarget = newrpm
+ 	//endif was here
+ 
+-	if(compressor.gas.tot_gas()>0)
+-		var/oamount = min(compressor.gas.tot_gas(), (compressor.rpm+100)/35000*compressor.capacity)
++	if(compressor.gas.total()>0)
++		var/oamount = min(compressor.gas.total(), (compressor.rpm+100)/35000*compressor.capacity)
+ 		compressor.gas.turf_add(outturf, oamount)
+-		outturf.firelevel = outturf.poison
++		outturf.firelevel = outturf.gas.plasma
+ 
+ 	if(lastgen > 100)
+ 		overlays += image('pipes.dmi', "turb-o", FLY_LAYER)
+Index: game/shuttle.dm
+===================================================================
+--- game/shuttle.dm	(revision 281)
++++ game/shuttle.dm	(working copy)
+@@ -38,16 +38,9 @@
+ 					AM.z = 8
+ 					//Foreach goto(96)
+ 				var/turf/U = locate(T.x, T.y, 8)
+-				U.oxygen = T.oxygen
+-				U.oldoxy = T.oldoxy
+-				U.tmpoxy = T.tmpoxy
+-				U.poison = T.poison
+-				U.oldpoison = T.oldpoison
+-				U.tmppoison = T.tmppoison
+-				U.co2 = T.co2
+-				U.oldco2 = T.oldco2
+-				U.tmpco2 = T.tmpco2
+-				//T = null
++				U.gas.copy_cop(T.gas)
++				U.phase1.copy_cop(T.phase1)
++				U.phase2.copy_cop(T.phase2)
+ 				del(T)
+ 			//Foreach goto(62)
+ 		prison_entered = null
+@@ -61,16 +54,9 @@
+ 							AM.z = 1
+ 							//Foreach goto(346)
+ 						var/turf/U = locate(T.x, T.y, 1)
+-						U.oxygen = T.oxygen
+-						U.oldoxy = T.oldoxy
+-						U.tmpoxy = T.tmpoxy
+-						U.poison = T.poison
+-						U.oldpoison = T.oldpoison
+-						U.tmppoison = T.tmppoison
+-						U.co2 = T.co2
+-						U.oldco2 = T.oldco2
+-						U.tmpco2 = T.tmpco2
+-						//T = null
++						U.gas.copy_cop(T.gas)
++						U.phase1.copy_cop(T.phase1)
++						U.phase2.copy_cop(T.phase2)
+ 						del(T)
+ 					//Foreach goto(312)
+ 				prison_entered = 1
+@@ -86,25 +72,10 @@
+ 	var/A = locate(/area/shuttle_prison)
+ 	for(var/obj/move/T in A)
+ 		T.firelevel = 0
+-		T.oxygen = O2STANDARD
+-		T.oldoxy = O2STANDARD
+-		T.tmpoxy = O2STANDARD
+-		T.poison = 0
+-		T.oldpoison = 0
+-		T.tmppoison = 0
+-		T.co2 = 0
+-		T.oldco2 = 0
+-		T.tmpco2 = 0
+-		T.sl_gas = 0
+-		T.osl_gas = 0
+-		T.tsl_gas = 0
+-		T.n2 = N2STANDARD
+-		T.on2 = N2STANDARD
+-		T.tn2 = N2STANDARD
+-		T.temp = T20C
+-		T.otemp = T20C
+-		T.ttemp = T20C
+-		//Foreach goto(40)
++		T.gas.clear()
++		T.gas.nitrogen = N2STANDARD
++		T.gas.oxygen = O2STANDARD
++		T.reset_phases()
+ 	viewers(null, null) << "\red <B>Prison shuttle Restabalized!</B>"
+ 	src.add_fingerprint(usr)
+ 	return
+@@ -138,25 +109,10 @@
+ 	var/A = locate(/area/shuttle)
+ 	for(var/obj/move/T in A)
+ 		T.firelevel = 0
+-		T.oxygen = O2STANDARD
+-		T.oldoxy = O2STANDARD
+-		T.tmpoxy = O2STANDARD
+-		T.poison = 0
+-		T.oldpoison = 0
+-		T.tmppoison = 0
+-		T.co2 = 0
+-		T.oldco2 = 0
+-		T.tmpco2 = 0
+-		T.sl_gas = 0
+-		T.osl_gas = 0
+-		T.tsl_gas = 0
+-		T.n2 = N2STANDARD
+-		T.on2 = N2STANDARD
+-		T.tn2 = N2STANDARD
+-		T.temp = T20C
+-		T.otemp = T20C
+-		T.ttemp = T20C
+-		//Foreach goto(35)
++		T.gas.clear()
++		T.gas.nitrogen = N2STANDARD
++		T.gas.oxygen = O2STANDARD
++		T.reset_phases()
+ 	world << "\red <B>Shuttle Restabalized!</B>"
+ 	src.add_fingerprint(usr)
+ 	return
+Index: game/weap_sat.dm
+===================================================================
+--- game/weap_sat.dm	(revision 281)
++++ game/weap_sat.dm	(working copy)
+@@ -312,7 +312,7 @@
+ 		step_to(src, T, null)
+ 		T = src.loc
+ 		if (istype(T, /turf))
+-			T.firelevel = T.poison
++			T.firelevel = T.gas.plasma
+ 	spawn( 3 )
+ 		src.Life()
+ 		return
+@@ -340,7 +340,7 @@
+ 		step_to(src, T, null)
+ 		T = src.loc
+ 		if (istype(T, /turf))
+-			T.firelevel = T.poison
++			T.firelevel = T.gas.plasma
+ 	spawn( 3 )
+ 		src.Life()
+ 		return
+@@ -351,14 +351,14 @@
+ 	..()
+ 	var/turf/T = src.loc
+ 	if (istype(T, /turf))
+-		T.firelevel = T.poison
++		T.firelevel = T.gas.plasma
+ 	return
+ 
+ /obj/effects/sparks/Del()
+ 
+ 	var/turf/T = src.loc
+ 	if (istype(T, /turf))
+-		T.firelevel = T.poison
++		T.firelevel = T.gas.plasma
+ 	..()
+ 	return
+ 
+@@ -367,7 +367,7 @@
+ 	..()
+ 	var/turf/T = src.loc
+ 	if (istype(T, /turf))
+-		T.firelevel = T.poison
++		T.firelevel = T.gas.plasma
+ 	return
+ 
+ /obj/laser/Bump()
+Index: setup.dm
+===================================================================
+--- setup.dm	(revision 281)
++++ setup.dm	(working copy)
+@@ -3,8 +3,9 @@
+ #define O2STANDARD 756000.0			// O2 standard value (21%)
+ #define N2STANDARD 2844000.0		// N2 standard value (79%)
+ 
+-#define T0C 273.15					// 0degC
+-#define T20C 293.15					// 20degC
++#define T0C 273.15					// 0 deg C - frozen water
++#define T20C 293.15					// 20 deg C - normal temp
++#define TCMB 2.7					// -270 deg C - space temp
+ 
+ #define FIREOFFSET 505				//bias for starting firelevel
+ #define FIREQUOT 15000				//divisor to get target temp from firelevel

@@ -1,0 +1,77 @@
+Index: unstable.dme
+===================================================================
+--- unstable.dme	(revision 477)
++++ unstable.dme	(working copy)
+@@ -114,6 +114,7 @@
+ #include "code\game\dna\locus.dm"
+ #include "code\game\dna\gene\appearance.dm"
+ #include "code\game\dna\gene\blobbishness.dm"
++#include "code\game\dna\gene\bloodtype.dm"
+ #include "code\game\dna\gene\fire_immune.dm"
+ #include "code\game\dna\gene\gender.dm"
+ #include "code\game\dna\gene\gene.dm"
+Index: code/game/mob/carbon/var.dm
+===================================================================
+--- code/game/mob/carbon/var.dm	(revision 477)
++++ code/game/mob/carbon/var.dm	(working copy)
+@@ -82,6 +82,7 @@
+ 	var/skin_color
+ 
+ 	var/appearance = APPEARANCE_MONKEY
++	var/bloodtype = null
+ 
+ 	var/list/body_standing = list()
+ 	var/list/body_lying = list()
+Index: code/game/mob/carbon/new.dm
+===================================================================
+--- code/game/mob/carbon/new.dm	(revision 477)
++++ code/game/mob/carbon/new.dm	(working copy)
+@@ -26,6 +26,8 @@
+ 	if(gender)
+ 		src.gender = gender
+ 
++	src.bloodtype = get_random_blood_type()
++
+ 	src.organs += new /datum/organ("chest")
+ 	src.organs += new /datum/organ("diaper")
+ 	src.organs += new /datum/organ("head")
+@@ -40,4 +42,4 @@
+ 
+ 	src.dna = new /datum/dna(src)
+ 	src.dna.register(src)
+-	src.dna.apply(src)
+\ No newline at end of file
++	src.dna.apply(src)
+Index: code/game/dna/gene/bloodtype.dm
+===================================================================
+--- code/game/dna/gene/bloodtype.dm	(revision 0)
++++ code/game/dna/gene/bloodtype.dm	(revision 0)
+@@ -0,0 +1,28 @@
++/var/const
++	BLOOD_OPOS = "O+"
++	BLOOD_APOS = "A+"
++	BLOOD_BPOS = "B+"
++	BLOOD_ABPOS = "AB+"
++	BLOOD_ONEG = "O-"
++	BLOOD_ANEG = "A-"
++	BLOOD_BNEG = "B-"
++	BLOOD_ABNEG = "AB-"
++
++/datum/gene/bloodtype
++	is_noticeable = 0
++	default = BLOOD_OPOS
++
++	New()
++		attributes = get_blood_types()
++	
++	apply(mob/carbon/M, attribute)
++		M.bloodtype = attribute
++
++	pick_attribute(mob/carbon/M)
++		return M.bloodtype
++
++/proc/get_blood_types()
++	return list(BLOOD_OPOS, BLOOD_APOS, BLOOD_BPOS, BLOOD_ABPOS, BLOOD_ONEG, BLOOD_ANEG, BLOOD_BNEG, BLOOD_ABNEG)
++
++/proc/get_random_blood_type()
++	return pick(374; BLOOD_OPOS, 357; BLOOD_APOS, 85; BLOOD_BPOS, 34; BLOOD_ABPOS, 66; BLOOD_ONEG, 63; BLOOD_ANEG, 15; BLOOD_BNEG, 6; BLOOD_ABNEG)

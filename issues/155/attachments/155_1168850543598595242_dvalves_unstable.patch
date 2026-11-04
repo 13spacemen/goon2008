@@ -1,0 +1,207 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 260)
++++ code/atoms.dm	(working copy)
+@@ -817,6 +817,12 @@
+ 	s_istate = "armor"
+ 	s_fire = 1.875E7
+ 	brute_protect = 6.0
++/obj/item/weapon/clothing/suit/heavy_armor
++	name = "heavy armor"
++	icon_state = "swat_suit"
++	s_istate = "swat_suit"
++	s_fire = 1.875E7
++	brute_protect = 6.25
+ /obj/item/weapon/clothing/suit/bio_suit
+ 	name = "bio suit"
+ 	desc = "A suit that protects against biological contamination."
+@@ -839,6 +845,17 @@
+ 	flags = FPRINT | TABLEPASS
+ 	s_fire = 7.5E7
+ 	fire_protect = 126.0
++/obj/item/weapon/clothing/suit/black_firesuit
++	name = "black firesuit"
++	desc = "A suit that protects against extreme fire and heat."
++	icon_state = "ro_suit"
++	fb_filter = 6.0
++	h_filter = 6.0
++	a_filter = 4.0
++	s_istate = "ro_suit"
++	flags = FPRINT | TABLEPASS
++	s_fire = 7.5E7
++	fire_protect = 126.0
+ obj/item/weapon/clothing/suit/labcoat
+ 	name = "labcoat"
+ 	desc = "A suit that protects against minor chemical spills."
+@@ -2268,10 +2285,6 @@
+ 	var/obj/item/weapon/disk/nuclear/auth = null
+ 	flags = FPRINT
+ /obj/machinery/valve
+-	name = "valve"
+-	icon = 'pipes.dmi'
+-	icon_state = "valve0"
+-	desc = "A gas valve."
+ 	var/obj/substance/gas/gas1 = null
+ 	var/obj/substance/gas/ngas1 = null
+ 	var/obj/substance/gas/gas2 = null
+@@ -2285,7 +2298,16 @@
+ 	var/open = 0
+ 	anchored = 1.0
+ 	capmult = 2
+-
++	icon = 'pipes.dmi'
++/obj/machinery/valve/mvalve
++	name = "valve"
++	icon_state = "valve0"
++	desc = "A gas valve."
++	is_ai_interactable = 0
++/obj/machinery/valve/dvalve
++	name = "digital valve"
++	icon_state = "dvalve0"
++	desc = "A digital gas valve."
+ /obj/machinery/manifold
+ 	name = "manifold"
+ 	icon = 'pipes.dmi'
+Index: code/game/demo2.dm
+===================================================================
+--- code/game/demo2.dm	(revision 260)
++++ code/game/demo2.dm	(working copy)
+@@ -630,38 +630,38 @@
+ 
+ 	..()
+ 	src.update_icon()
+-	src.gas.plasma = 9.0E7*filled
++	src.gas.plasma = src.maximum*filled
+ 	return
+ 
+ /obj/machinery/atmoalter/canister/oxygencanister/New()
+ 
+ 	..()
+-	src.gas.oxygen = 1.0E8*filled
++	src.gas.oxygen = src.maximum*filled
+ 	return
+ 
+ /obj/machinery/atmoalter/canister/anesthcanister/New()
+ 
+ 	..()
+-	src.gas.sl_gas = 1.0E8*filled
++	src.gas.sl_gas = src.maximum*filled
+ 	return
+ 
+ /obj/machinery/atmoalter/canister/n2canister/New()
+ 
+ 	..()
+-	src.gas.n2 = 1.0E8*filled
++	src.gas.n2 = src.maximum*filled
+ 	return
+ 
+ /obj/machinery/atmoalter/canister/co2canister/New()
+ 
+ 	..()
+-	src.gas.co2 = 1.0E8*filled
++	src.gas.co2 = src.maximum*filled
+ 	return
+ 
+ 
+ /obj/machinery/atmoalter/canister/aircanister/New()
+ 
+ 	..()
+-	src.gas.oxygen = 2.1e7*filled
+-	src.gas.n2 = 7.9e7*filled
++	src.gas.oxygen = (src.maximum*0.25)*filled
++	src.gas.n2 = (src.maximum*0.75)*filled
+ 	return
+ 
+Index: code/game/newpipe.dm
+===================================================================
+--- code/game/newpipe.dm	(revision 260)
++++ code/game/newpipe.dm	(working copy)
+@@ -1427,15 +1427,18 @@
+ 		if(4,8)
+ 			p_dir = 12
+ 
++/obj/machinery/valve/mvalve/New()
+ 	icon_state = "valve[open]"
+ 
++/obj/machinery/valve/dvalve/New()
++	icon_state = "dvalve[open]"
++
+ /obj/machinery/valve/examine()
+ 	set src in oview(1)
+ 
+ 	usr << "[desc] It is [ open? "open" : "closed"]."
+ 
+ 
+-
+ /obj/machinery/valve/buildnodes()
+ 
+ 	var/turf/T = src.loc
+@@ -1449,16 +1452,13 @@
+ 
+ 	return
+ 
+-
+ /obj/machinery/valve/gas_flow()
+ 
+ 	gas1.replace_by(ngas1)
+ 	gas2.replace_by(ngas2)
+ 
+-
+ /obj/machinery/valve/process()
+ 
+-
+ 	var/delta_gt
+ 
+ 	if(vnode1)
+@@ -1494,9 +1494,6 @@
+ 			ngas2.add_delta(ndelta)
+ 			ngas1.sub_delta(ndelta)
+ 
+-
+-
+-
+ /obj/machinery/valve/get_gas_val(from)
+ 	if(from == vnode2)
+ 		return gas2.tot_gas()/capmult
+@@ -1512,7 +1509,6 @@
+ 
+ 	var/turf/T
+ 
+-
+ 	switch(port)
+ 		if(1)
+ 			T = get_step(src, dir)
+@@ -1529,13 +1525,10 @@
+ 	else
+ 		flow_to_turf(gas2, ngas2, T)
+ 
+-/obj/machinery/valve/interact(mob/user)
++/obj/machinery/valve/mvalve/interact(mob/user)
+ 	..()
+ 	add_fingerprint(user)
+-//	if(stat & NOPOWER) return
+ 
+-//	use_power(5)
+-
+ 	if(!open)		// now opening
+ 		flick("valve01", src)
+ 		icon_state = "valve1"
+@@ -1546,3 +1539,17 @@
+ 		sleep(10)
+ 	open = !open
+ 
++/obj/machinery/valve/dvalve/interact(mob/user)
++	..()
++	add_fingerprint(user)
++	if(stat & NOPOWER) return
++
++	if(!open)		// now opening
++		flick("dvalve01", src)
++		icon_state = "dvalve1"
++		sleep(10)
++	else			// now closing
++		flick("dvalve10", src)
++		icon_state = "dvalve0"
++		sleep(10)
++	open = !open
+\ No newline at end of file

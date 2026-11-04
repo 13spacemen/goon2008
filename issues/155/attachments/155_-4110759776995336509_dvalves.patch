@@ -1,0 +1,328 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 257)
++++ code/atoms.dm	(working copy)
+@@ -982,6 +982,12 @@
+ 	s_istate = "armor"
+ 	s_fire = 1.875E7
+ 	brute_protect = 6.0
++/obj/item/weapon/clothing/suit/heavy_armor
++	name = "heavy armor"
++	icon_state = "swat_suit"
++	s_istate = "swat_suit"
++	s_fire = 1.875E7
++	brute_protect = 6.25
+ /obj/item/weapon/clothing/suit/bio_suit
+ 	name = "bio suit"
+ 	desc = "A suit that protects against biological contamination."
+@@ -1004,6 +1010,17 @@
+ 	flags = FPRINT | TABLEPASS
+ 	s_fire = 7.5E7
+ 	fire_protect = 126.0
++/obj/item/weapon/clothing/suit/black_firesuit
++	name = "black firesuit"
++	desc = "A suit that protects against extreme fire and heat."
++	icon_state = "ro_suit"
++	fb_filter = 6.0
++	h_filter = 6.0
++	a_filter = 4.0
++	s_istate = "ro_suit"
++	flags = FPRINT | TABLEPASS
++	s_fire = 7.5E7
++	fire_protect = 126.0
+ obj/item/weapon/clothing/suit/labcoat
+ 	name = "labcoat"
+ 	desc = "A suit that protects against minor chemical spills."
+@@ -2642,6 +2659,25 @@
+ 	anchored = 1.0
+ 	capmult = 2
+ 
++/obj/machinery/dvalve
++	name = "digital valve"
++	icon = 'pipes.dmi'
++	icon_state = "dvalve0"
++	desc = "A digital gas valve."
++	var/obj/substance/gas/gas1 = null
++	var/obj/substance/gas/ngas1 = null
++	var/obj/substance/gas/gas2 = null
++	var/obj/substance/gas/ngas2 = null
++	var/capacity = 6000000.0
++	var/obj/machinery/node1 = null
++	var/obj/machinery/node2 = null
++	var/obj/machinery/vnode1 = null
++	var/obj/machinery/vnode2 = null
++	var/id = "dv1"
++	var/open = 0
++	anchored = 1.0
++	capmult = 2
++
+ /obj/machinery/manifold
+ 	name = "manifold"
+ 	icon = 'pipes.dmi'
+Index: code/game/demo2.dm
+===================================================================
+--- code/game/demo2.dm	(revision 257)
++++ code/game/demo2.dm	(working copy)
+@@ -189,10 +189,10 @@
+ 	src.gas = new /obj/substance/gas( src )
+ 	src.gas.maximum = src.maximum
+ 	return
+-
+-/obj/machinery/atmoalter/heater/attack_ai(mob/user as mob)
+-	return src.attack_hand(user)
+-
++
++/obj/machinery/atmoalter/heater/attack_ai(mob/user as mob)
++	return src.attack_hand(user)
++
+ /obj/machinery/atmoalter/heater/attack_paw(mob/user as mob)
+ 
+ 	return src.attack_hand(user)
+@@ -290,7 +290,7 @@
+ 										src.holding = null
+ 										if (src.t_status == 2)
+ 											src.t_status = 3
+-		src.updateUsrDialog()
++		src.updateUsrDialog()
+ 		src.add_fingerprint(usr)
+ 	else
+ 		usr << browse(null, "window=canister")
+@@ -430,7 +430,7 @@
+ 			src.update_icon()
+ */
+ 
+-	src.updateDialog()
++	src.updateDialog()
+ 	src.update_icon()
+ 	return
+ 
+@@ -463,10 +463,10 @@
+ 	src.health = 0
+ 	healthcheck()
+ 	return
+-
+-/obj/machinery/atmoalter/canister/attack_ai(var/mob/user as mob)
+-	return src.attack_hand(user)
+-	
++
++/obj/machinery/atmoalter/canister/attack_ai(var/mob/user as mob)
++	return src.attack_hand(user)
++
+ /obj/machinery/atmoalter/canister/attack_paw(var/mob/user as mob)
+ 
+ 	return src.attack_hand(user)
+@@ -576,7 +576,7 @@
+ 								src.holding = null
+ 								if (src.t_status == 2)
+ 									src.t_status = 3
+-		src.updateUsrDialog()
++		src.updateUsrDialog()
+ 		src.add_fingerprint(usr)
+ 		update_icon()
+ 	else
+@@ -648,38 +648,38 @@
+ 
+ 	..()
+ 	src.update_icon()
+-	src.gas.plasma = 9.0E7*filled
++	src.gas.plasma = src.maximum*filled
+ 	return
+ 
+ /obj/machinery/atmoalter/canister/oxygencanister/New()
+ 
+ 	..()
+-	src.gas.oxygen = 1.0E8*filled
++	src.gas.oxygen = src.maximum*filled
+ 	return
+ 
+ /obj/machinery/atmoalter/canister/anesthcanister/New()
+ 
+ 	..()
+-	src.gas.sl_gas = 1.0E8*filled
++	src.gas.sl_gas = src.maximum*filled
+ 	return
+ 
+ /obj/machinery/atmoalter/canister/n2canister/New()
+ 
+ 	..()
+-	src.gas.n2 = 1.0E8*filled
++	src.gas.n2 = src.maximum*filled
+ 	return
+ 
+ /obj/machinery/atmoalter/canister/co2canister/New()
+ 
+ 	..()
+-	src.gas.co2 = 1.0E8*filled
++	src.gas.co2 = src.maximum*filled
+ 	return
+ 
+ 
+ /obj/machinery/atmoalter/canister/aircanister/New()
+ 
+ 	..()
+-	src.gas.oxygen = 2.1e7*filled
+-	src.gas.n2 = 7.9e7*filled
++	src.gas.oxygen = (src.maximum*0.2)*filled
++	src.gas.n2 = (src.maximum*0.7)*filled
+ 	return
+ 
+Index: code/game/newpipe.dm
+===================================================================
+--- code/game/newpipe.dm	(revision 257)
++++ code/game/newpipe.dm	(working copy)
+@@ -143,7 +143,7 @@
+ 			if (P==null)
+ 				T = src.loc
+ 			else
+-				
++
+ 				ndirs = P.get_node_dirs()
+ 				T = get_step(P, ndirs[2])
+ 	if (T==null)
+@@ -1549,3 +1549,146 @@
+ 		sleep(10)
+ 	open = !open
+ 
++
++// Digital Valve
++
++/obj/machinery/dvalve/New()
++	..()
++	gas1 = new/obj/substance/gas(src)
++	ngas1 = new/obj/substance/gas()
++	gas2 = new/obj/substance/gas(src)
++	ngas2 = new/obj/substance/gas()
++
++	gasflowlist += src
++	switch(dir)
++		if(1, 2)
++			p_dir = 3
++		if(4,8)
++			p_dir = 12
++
++	icon_state = "dvalve[open]"
++
++/obj/machinery/dvalve/examine()
++	set src in oview(1)
++
++	usr << "[desc] It is [ open? "open" : "closed"]."
++
++
++
++/obj/machinery/dvalve/buildnodes()
++
++	var/turf/T = src.loc
++
++	node1 = get_machine(level, T, dir )		// the h/e pipe
++
++	node2 = get_machine(level, T , turn(dir, 180) )	// the regular pipe
++
++	if(node1) vnode1 = node1.getline()
++	if(node2) vnode2 = node2.getline()
++
++	return
++
++
++/obj/machinery/dvalve/gas_flow()
++
++	gas1.replace_by(ngas1)
++	gas2.replace_by(ngas2)
++
++
++/obj/machinery/dvalve/process()
++
++
++	var/delta_gt
++
++	if(vnode1)
++		delta_gt = FLOWFRAC * ( vnode1.get_gas_val(src) - gas1.tot_gas() / capmult)
++		calc_delta( src, gas1, ngas1, vnode1, delta_gt)
++
++	else
++		leak_to_turf(1)
++
++	if(vnode2)
++		delta_gt = FLOWFRAC * ( vnode2.get_gas_val(src) - gas2.tot_gas() / capmult)
++		calc_delta( src, gas2, ngas2, vnode2, delta_gt)
++
++	else
++		leak_to_turf(2)
++
++
++	if(open)		// valve operating, so transfer btwen resv1 & 2
++
++		delta_gt = FLOWFRAC * (gas1.tot_gas() / capmult - gas2.tot_gas() / capmult)
++
++		var/obj/substance/gas/ndelta = new()
++
++		if(delta_gt < 0)		// then flowing from R2 to R1
++
++			ndelta.set_frac(gas2, -delta_gt)
++
++			ngas2.sub_delta(ndelta)
++			ngas1.add_delta(ndelta)
++
++		else				// flowing from R1 to R2
++			ndelta.set_frac(gas1, delta_gt)
++			ngas2.add_delta(ndelta)
++			ngas1.sub_delta(ndelta)
++
++
++
++
++/obj/machinery/dvalve/get_gas_val(from)
++	if(from == vnode2)
++		return gas2.tot_gas()/capmult
++	else
++		return gas1.tot_gas()/capmult
++
++/obj/machinery/dvalve/get_gas(from)
++	if(from == vnode2)
++		return gas2
++	return gas1
++
++/obj/machinery/dvalve/proc/leak_to_turf(var/port)
++
++	var/turf/T
++
++
++	switch(port)
++		if(1)
++			T = get_step(src, dir)
++		if(2)
++			T = get_step(src, turn(dir, 180) )
++
++	if(T.density)
++		T = src.loc
++		if(T.density)
++			return
++
++	if(port==1)
++		flow_to_turf(gas1, ngas1, T)
++	else
++		flow_to_turf(gas2, ngas2, T)
++
++/obj/machinery/dvalve/attack_paw(mob/user)
++	attack_hand(user)
++
++/obj/machinery/dvalve/attack_ai(var/mob/user as mob)
++	return src.attack_hand(user)
++	return
++
++/obj/machinery/dvalve/attack_hand(mob/user)
++	..()
++	add_fingerprint(user)
++	if(stat & NOPOWER) return
++
++	use_power(5)
++
++	if(!open)		// now opening
++		flick("dvalve01", src)
++		icon_state = "dvalve1"
++		sleep(10)
++	else			// now closing
++		flick("dvalve10", src)
++		icon_state = "dvalve0"
++		sleep(10)
++	open = !open
++

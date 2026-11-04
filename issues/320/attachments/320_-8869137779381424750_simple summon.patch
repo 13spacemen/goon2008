@@ -1,0 +1,33 @@
+Index: code/game/admin/admin_powers/summon_mob.dm
+===================================================================
+--- code/game/admin/admin_powers/summon_mob.dm	(revision 0)
++++ code/game/admin/admin_powers/summon_mob.dm	(revision 0)
+@@ -0,0 +1,16 @@
++/datum/admin_power/summon
++	name = "Summon Mob"
++	panel_type = PANEL_TYPE_GAME
++
++	New(adminlevel)
++		if(adminlevel < ADMIN_ADMIN) del(src)
++
++	Topic(href, href_list)
++		var/mob/vch = input(usr, "Which mob will you summon?") as mob in world
++		if(!usr.loc || !vch) return
++		vch << "You've been summoned."
++		usr << "[target] summoned."
++		vch.loc = usr.loc
++
++	get_desc()
++		return "<a href='?src=\ref[src]'>Summon</a>"
+Index: unstable.dme
+===================================================================
+--- unstable.dme	(revision 576)
++++ unstable.dme	(working copy)
+@@ -132,6 +132,7 @@
+ #include "code\game\admin\admin_powers\restart.dm"
+ #include "code\game\admin\admin_powers\show_traitor.dm"
+ #include "code\game\admin\admin_powers\start_now.dm"
++#include "code\game\admin\admin_powers\summon_mob.dm"
+ #include "code\game\admin\admin_powers\toggle_mode_voting.dm"
+ #include "code\game\admin\admin_powers\toggle_ooc.dm"
+ #include "code\game\admin\admin_powers\toggle_respawn.dm"

@@ -1,0 +1,244 @@
+Index: code/game/algorithm.dm
+===================================================================
+--- code/game/algorithm.dm	(revision 468)
++++ code/game/algorithm.dm	(working copy)
+@@ -27,15 +27,14 @@
+ 	if (rank == "AI")
+ 		var/mob/silicon/ai/A = new()
+ 		A.client = src.client
+-		A.prefs = src.prefs
+ 		A.loc = startloc
+ 		del(src)
+ 		return
+ 
+ 	if (rank == "Medical Doctor")
+-		src.prefs.name = addtext("Dr. ",src.prefs.name)
++		src.client.prefs.name = addtext("Dr. ",src.client.prefs.name)
+ 
+-	var/mob/carbon/human/M = new(startloc, src.prefs.name, src.prefs.hair_color, src.prefs.hair_style, src.prefs.skin_color, src.prefs.gender)
++	var/mob/carbon/human/M = new(startloc, src.client.prefs.name, src.client.prefs.hair_color, src.client.prefs.hair_style, src.client.prefs.skin_color, src.client.prefs.gender)
+ 
+ 	M.equip_if_possible(new /obj/item/weapon/radio/headset(M), SLOT_HEADSET)
+ 	M.equip_if_possible(new /obj/item/weapon/storage/backpack(M), SLOT_BACK)
+@@ -146,7 +145,6 @@
+ 	src << "<B>You are the [rank].</B>"
+ 
+ 	M.client = src.client
+-	M.prefs = src.prefs
+ 	M.update_clothing()
+ 	del(src)
+ 
+Index: code/game/client.dm
+===================================================================
+--- code/game/client.dm	(revision 468)
++++ code/game/client.dm	(working copy)
+@@ -1,5 +1,6 @@
+ /client
+ 	var/last_known_ip
++	var/datum/preferences/prefs = new()
+ 
+ /client/Del()
+ 	world.log_access("Logout: [src.key]")
+Index: code/game/jobs.dm
+===================================================================
+--- code/game/jobs.dm	(revision 468)
++++ code/game/jobs.dm	(working copy)
+@@ -12,17 +12,10 @@
+ 
+ /proc/FindOccupationCandidates(list/unassigned, job, level)
+ 	var/list/candidates = list()
+-
+-	for (var/mob/prespawn/M in unassigned)
+-		if (level == 1 && M.prefs.job1 == job)
+-			candidates += M
+-
+-		if (level == 2 && M.prefs.job2 == job)
+-			candidates += M
+-
+-		if (level == 3 && M.prefs.job3 == job)
+-			candidates += M
+-
++	for(var/mob/prespawn/M in unassigned)
++		if(level == 1 && M.client.prefs.job1 == job)	candidates += M
++		if(level == 2 && M.client.prefs.job2 == job)	candidates += M
++		if(level == 3 && M.client.prefs.job3 == job)	candidates += M
+ 	return candidates
+ 
+ /proc/reassign_job(job, list/unassigned, list/semiassigned)
+@@ -30,23 +23,23 @@
+ 	for (var/level = 1; level <= 3; level++)
+ 		var/list/candidates = FindOccupationCandidates(unassigned + semiassigned, job, level)
+ 		for(var/mob/prespawn/M in candidates) //make sure they want this job more than their old one
+-			if(M in semiassigned)
+-				if(level >= 2 && M.prefs.job1 == semiassigned[M]) //first choice is their current job
+-					candidates -= M
+-					break
+-				if(level >= 3 && M.prefs.job2 == semiassigned[M]) //second choice is current job
+-					candidates -= M
+-					break
+-		if(candidates.len)
+-			var/mob/prespawn/M = pick(candidates)
+-			var/oldjob = null
+-			if(M in semiassigned)
+-				oldjob = semiassigned[M]
+-			unassigned -= M
+-			semiassigned -= M
+-			semiassigned[M] = job
+-			reassign_job(oldjob, unassigned, semiassigned)
+-			return
++			if(!(M in semiassigned)) continue
++			if(level >= 2 && M.client.prefs.job1 == semiassigned[M]) //first choice is their current job
++				candidates -= M
++				break
++			if(level >= 3 && M.client.prefs.job2 == semiassigned[M]) //second choice is current job
++				candidates -= M
++				break
++		if(!candidates.len) continue
++		var/mob/prespawn/M = pick(candidates)
++		var/oldjob = null
++		if(M in semiassigned)
++			oldjob = semiassigned[M]
++		unassigned -= M
++		semiassigned -= M
++		semiassigned[M] = job
++		reassign_job(oldjob, unassigned, semiassigned)
++		return
+ 
+ /proc/DivideOccupations()
+ 	var/list/unassigned = list()
+@@ -161,8 +154,8 @@
+ 	else if(unassigned.len == 1) //don't require a captain or do any of this complex stuff with just one person
+ 		//it makes it harder to test things like being AI
+ 		var/mob/prespawn/M = unassigned[1]
+-		if(M.prefs.job1 && !(M.prefs.job1 == "AI" && !config.allow_ai))
+-			M.Assign_Rank(M.prefs.job1)
++		if(M.client.prefs.job1 && !(M.client.prefs.job1 == "AI" && !config.allow_ai))
++			M.Assign_Rank(M.client.prefs.job1)
+ 		else
+ 			M.Assign_Rank("Captain")
+ 
+Index: code/game/mob/prespawn/login.dm
+===================================================================
+--- code/game/mob/prespawn/login.dm	(revision 468)
++++ code/game/mob/prespawn/login.dm	(working copy)
+@@ -1,11 +1,11 @@
+ /mob/prespawn/Login()
+-	src.client.eye = null
++	client.eye = null
+ 
+-	src.prefs.savefile_loc = "savefiles/[savefile_ver]/[src.ckey].sav"
+-	src.prefs.load()
++	client.prefs.savefile_loc = "savefiles/[savefile_ver]/[src.ckey].sav"
++	client.prefs.load()
+ 
+-	if(!src.prefs.last_version || src.prefs.last_version != md5(changes)) //they havent seen this changelog
++	if(!client.prefs.last_version || client.prefs.last_version != md5(changes)) //they havent seen this changelog
+ 		src.changes()
+ 
+-	src.prefs.setup(src.client)
++	client.prefs.setup(client)
+ 
+Index: code/game/mob/var.dm
+===================================================================
+--- code/game/mob/var.dm	(revision 468)
++++ code/game/mob/var.dm	(working copy)
+@@ -51,4 +51,3 @@
+ 	density = 1
+ 
+ 	var/cameraFollow = null
+-	var/datum/preferences/prefs = new()
+Index: code/game/mob/verbs.dm
+===================================================================
+--- code/game/mob/verbs.dm	(revision 468)
++++ code/game/mob/verbs.dm	(working copy)
+@@ -117,4 +117,4 @@
+ 
+ /mob/verb/character_setup()
+ 	set name = "Character Setup"
+-	prefs.setup(src.client)
++	client.prefs.setup(client)
+Index: code/game/preferences.dm
+===================================================================
+--- code/game/preferences.dm	(revision 468)
++++ code/game/preferences.dm	(working copy)
+@@ -83,10 +83,27 @@
+ 	dat += "<br><a href='byond://?src=\ref[src];reset=1'>Reset</a>"
+ 	dat += "<h2><a href='byond://?src=\ref[src];ready=1'>Ready</a></h2>"
+ 	dat += "</body></html>"
+-	M << browse(dat, "window=mob_occupations;size=300x600;can_close=0")
++	M << browse(dat, "window=mob_occupations;size=300x600;can_close=[!M.mob || !istype(M.mob,/mob/prespawn)]")
+ 
+ /datum/preferences/Topic(href, href_list)
+-	if(href_list["ready"])
++	if(href_list["name"])
++		src.name = input("What is your character's name?", "Character Generation", src.name) as text
++	else if(href_list["gender"])
++		src.gender = input("Select a gender", "Character Generation", src.gender) in list(MALE, FEMALE)
++	else if(href_list["skin_color"])
++		src.choose_skin_color()
++	else if(href_list["hair_color"])
++		src.choose_hair_color()
++	else if(href_list["hair_style"])
++		src.choose_hair_style()
++	else if(href_list["job"])
++		src.choose_job(text2num(href_list["job"]))
++	else if(href_list["reset"])
++		var/loaded = src.load()
++		if(!loaded)	src = initial(src)
++	else if(href_list["prefer_syndicate"])
++		src.be_syndicate = input("Would you like to be eligible for playing as Syndicate?", "Character Generation", src.be_syndicate) in list("Yes", "No")
++	else if(href_list["ready"])
+ 		if(!istype(usr,/mob/prespawn))
+ 			usr << browse(null, "window=mob_occupations")
+ 			return save()
+@@ -99,16 +116,19 @@
+ 		if(!enter_allowed)
+ 			usr << "\blue There is an administrative lock on entering the game!"
+ 			return
+-		world.log_game("[usr.key] entered as [usr.name]")
+-
+ 		for (var/mob/carbon/H in world)
+ 			if (cmptext(H.spawn_name, src.name))
+ 				usr << "You are using a name that is very similar to a currently used name, please choose another one using Character Setup."
+ 				//TODO: make this work properly before spawning
+ 				return
+-		new_player.ready = 1
++
+ 		save()
+ 		usr << browse(null, "window=mob_occupations")
++		if(new_player.ready)	return //	they clicked ready before
++
++		new_player.ready = 1
++		world.log_game("[usr.key] entered as [usr.name]")
++
+ 		if (ticker)
+ 			var/list/L = assistant_occupations
+ 			var/job
+@@ -119,26 +139,8 @@
+ 			new_player.Assign_Rank(job, 1)
+ 		return
+ 
+-	else if(href_list["name"])
+-		src.name = input("What is your character's name?", "Character Generation", src.name) as text
+-	else if(href_list["gender"])
+-		src.gender = input("Select a gender", "Character Generation", src.gender) in list(MALE, FEMALE)
+-	else if(href_list["skin_color"])
+-		src.choose_skin_color()
+-	else if(href_list["hair_color"])
+-		src.choose_hair_color()
+-	else if(href_list["hair_style"])
+-		src.choose_hair_style()
+-	else if(href_list["job"])
+-		src.choose_job(text2num(href_list["job"]))
+-	else if(href_list["reset"])
+-		var/loaded = src.load()
+-		if(!loaded)	src = initial(src)
+-	else if(href_list["prefer_syndicate"])
+-		src.be_syndicate = input("Would you like to be eligible for playing as Syndicate?", "Character Generation", src.be_syndicate) in list("Yes", "No")
+-
+ 	spawn()
+-		src.setup(usr)
++		src.setup(usr.client)
+ 
+ //----------------------------------------------------------------------------
+ 

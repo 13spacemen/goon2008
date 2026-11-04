@@ -1,0 +1,1426 @@
+Index: ai_names.txt
+===================================================================
+--- ai_names.txt	(revision 0)
++++ ai_names.txt	(revision 0)
+@@ -0,0 +1,143 @@
++1-Rover-1
++16-20
++7-Zark-7
++790
++AM
++AMEE
++ASTAR
++Adaptive Manipulator
++Allied Mastercomputer
++Alpha 5
++Alpha 6
++Alpha 7
++AmigoBot
++Android
++Aniel
++Asimov
++Astor
++B-4
++B-9
++B.O.B.
++B166ER
++Bender
++Bishop
++Blitz
++Box
++Brackenridge
++C-3PO
++Cassandra One
++Cell
++Cherry 2000
++Chii
++Chip
++Computer
++Conky 2000
++Cutie
++Data
++Dee Model
++Deep Thought
++Dor-15
++Dorfl
++Dot Matrix
++Duey
++E.D.I.
++ED-209
++Emma-2
++Erasmus
++Ez-27
++FRIEND COMPUTER
++Fagor
++Faith
++Fembot
++Fi
++Frost
++Fum
++Futura
++G2
++George
++Gnut
++Gort
++H.A.R.L.I.E.
++H.E.L.P.eR.
++H.E.R.B.I.E.
++HAL 9000
++Hadaly
++Huey
++Irona
++Jay-Dub
++Jinx
++Johnny 5
++K-9
++KITT
++Klapaucius
++Kryten 2X4B-523P
++L-76
++L-Ron
++LUH 3417
++Louie
++MARK13
++Maria
++Marvin
++Master Control Program
++Max 404
++Maximillian
++Mechagodzilla
++Mechani-Kong
++Metalhead
++Mr. R.I.N.G.
++NCH
++Necron-99
++Norby
++OMM 0910
++Orange v 3.5
++PTO
++Project 2501
++R.I.C. 2.0
++R2-D2
++R4-P17
++Revelation
++Ro-Man
++Robbie
++Robot 5
++Robot Devil
++Robot
++Robotman
++S.A.M.
++S.H.O.C.K.
++S.H.R.O.U.D.
++S.O.P.H.I.E.
++SEN 5241
++SHODAN
++SID 6.7
++Setaur
++Shrike
++Solo
++Speedy
++Super 17
++Surgeon General Kraken
++T-1000
++T-800
++T-850
++THX 1138
++TWA
++Terminus
++Tidy
++Tik-Tok
++Tobor
++Trurl
++ULTRABOT
++Ulysses
++Uniblab
++V.I.N.CENT.
++Voltes V
++W1k1
++Wikipedia
++X-5
++XERXES
++XR
++Yod
++Z-1
++Z-2
++Z-3
++Zed
++Zord
+\ No newline at end of file
+Index: code/atoms/configuration.dm
+===================================================================
+--- code/atoms/configuration.dm	(revision 468)
++++ code/atoms/configuration.dm	(working copy)
+@@ -21,3 +21,6 @@
+ 	var/allow_ai = 1					// allow ai job
+ 	var/hostedby = null
+ 	var/respawn = 1
++
++	var/random_ai_names = 1				// enables random AI name suggestion
++	var/random_names = 0				// enables random player name suggestion
+\ No newline at end of file
+Index: code/configuration.dm
+===================================================================
+--- code/configuration.dm	(revision 468)
++++ code/configuration.dm	(working copy)
+@@ -79,6 +79,10 @@
+ 				config.allow_ai = 1
+ 			if("authentication")
+ 				config.enable_authentication = 1
++			if("random_names")
++				config.random_names = text2num(value)
++			if("random_ai_names")
++				config.random_ai_names  = text2num(value)
+ 			if("probability")
+ 				var/prob_pos = findtext(value, " ")
+ 				var/prob_name = null
+Index: code/data/names.dm
+===================================================================
+--- code/data/names.dm	(revision 468)
++++ code/data/names.dm	(working copy)
+@@ -1,144 +0,0 @@
+-var/list/ai_names = list(
+-	"1-Rover-1",
+-	"16-20",
+-	"7-Zark-7",
+-	"790",
+-	"AM",
+-	"AMEE",
+-	"ASTAR",
+-	"Adaptive Manipulator",
+-	"Allied Mastercomputer",
+-	"Alpha 5",
+-	"Alpha 6",
+-	"Alpha 7",
+-	"AmigoBot",
+-	"Android",
+-	"Aniel",
+-	"Asimov",
+-	"Astor",
+-	"B-4",
+-	"B-9",
+-	"B.O.B.",
+-	"B166ER",
+-	"Bender",
+-	"Bishop",
+-	"Blitz",
+-	"Box",
+-	"Brackenridge",
+-	"C-3PO",
+-	"Cassandra One",
+-	"Cell",
+-	"Cherry 2000",
+-	"Chii",
+-	"Chip",
+-	"Computer",
+-	"Conky 2000",
+-	"Cutie",
+-	"Data",
+-	"Dee Model",
+-	"Deep Thought",
+-	"Dor-15",
+-	"Dorfl",
+-	"Dot Matrix",
+-	"Duey",
+-	"E.D.I.",
+-	"ED-209",
+-	"Emma-2",
+-	"Erasmus",
+-	"Ez-27",
+-	"FRIEND COMPUTER",
+-	"Fagor",
+-	"Faith",
+-	"Fembot",
+-	"Fi",
+-	"Frost",
+-	"Fum",
+-	"Futura",
+-	"G2",
+-	"George",
+-	"Gnut",
+-	"Gort",
+-	"H.A.R.L.I.E.",
+-	"H.E.L.P.eR.",
+-	"H.E.R.B.I.E.",
+-	"HAL 9000",
+-	"Hadaly",
+-	"Huey",
+-	"Irona",
+-	"Jay-Dub",
+-	"Jinx",
+-	"Johnny 5",
+-	"K-9",
+-	"KITT",
+-	"Klapaucius",
+-	"Kryten 2X4B-523P",
+-	"L-76",
+-	"L-Ron",
+-	"LUH 3417",
+-	"Louie",
+-	"MARK13",
+-	"Maria",
+-	"Marvin",
+-	"Master Control Program",
+-	"Max 404",
+-	"Maximillian",
+-	"Mechagodzilla",
+-	"Mechani-Kong",
+-	"Metalhead",
+-	"Mr. R.I.N.G.",
+-	"NCH",
+-	"Necron-99",
+-	"Norby",
+-	"OMM 0910",
+-	"Orange v 3.5",
+-	"PTO",
+-	"Project 2501",
+-	"R.I.C. 2.0",
+-	"R2-D2",
+-	"R4-P17",
+-	"Revelation",
+-	"Ro-Man",
+-	"Robbie",
+-	"Robot 5",
+-	"Robot Devil",
+-	"Robot",
+-	"Robotman",
+-	"S.A.M.",
+-	"S.H.O.C.K.",
+-	"S.H.R.O.U.D.",
+-	"S.O.P.H.I.E.",
+-	"SEN 5241",
+-	"SHODAN",
+-	"SID 6.7",
+-	"Setaur",
+-	"Shrike",
+-	"Solo",
+-	"Speedy",
+-	"Super 17",
+-	"Surgeon General Kraken",
+-	"T-1000",
+-	"T-800",
+-	"T-850",
+-	"THX 1138",
+-	"TWA",
+-	"Terminus",
+-	"Tidy",
+-	"Tik-Tok",
+-	"Tobor",
+-	"Trurl",
+-	"ULTRABOT",
+-	"Ulysses",
+-	"Uniblab",
+-	"V.I.N.CENT.",
+-	"Voltes V",
+-	"W1k1",
+-	"Wikipedia",
+-	"X-5",
+-	"XERXES",
+-	"XR",
+-	"Yod",
+-	"Z-1",
+-	"Z-2",
+-	"Z-3",
+-	"Zed",
+-	"Zord")
+Index: code/game/cellautomata.dm
+===================================================================
+--- code/game/cellautomata.dm	(revision 468)
++++ code/game/cellautomata.dm	(working copy)
+@@ -646,9 +646,18 @@
+ 				admins[text("[]", m_key)] = text("[]", a_lev)
+ 		//Foreach goto(64)
+ 
++	//	Setup Configurations
+ 	config = new /datum/configuration()
+ 	config.load("config.txt")
+ 
++	//	Load Default Names
++	if(config.random_names)
++		first_names = dd_file2list("first_names.txt")
++		last_names = dd_file2list("last_names.txt")
++
++	if(config.random_ai_names)
++		ai_names = dd_file2list("ai_names.txt")
++
+ 	// apply some settings from config..
+ 	abandon_allowed = config.respawn
+ 
+Index: code/game/jobs.dm
+===================================================================
+--- code/game/jobs.dm	(revision 468)
++++ code/game/jobs.dm	(working copy)
+@@ -166,24 +166,35 @@
+ 		else
+ 			M.Assign_Rank("Captain")
+ 
++	//	don't bother checking anyone if we won't replace
++	if(config.random_names && first_names && last_names)
++		for(var/mob/carbon/humanPlayer in world)
++			spawn(0)
++				var/first_last = pick(first_names) + " " + pick(last_names)
++				var/newname = input(humanPlayer,"Would you like to change your name?", "Name change",first_last)
++				if(!length(newname)) newname = first_last
++				if(newname && length(newname) >= 26)
++					newname = copytext(newname, 1, 26)
++				newname = dd_replacetext(newname,">","'")
++				humanPlayer.spawn_name = newname
++				humanPlayer.voice = newname
++				humanPlayer.name = newname
++
++
++	//	still need to loop since we declare who is AI
+ 	for (var/mob/silicon/ai/aiPlayer in world)
+ 		spawn(0)
+-			var/randomname = pick(ai_names)
+-			var/newname = input(
+-				aiPlayer,
+-				"You are the AI. Would you like to change your name to something else?", "Name change",
+-				randomname)
+-
+-			if (length(newname) == 0)
+-				newname = randomname
+-
+-			if (newname)
+-				if (length(newname) >= 26)
++			if(config.random_ai_names)
++				var/randomname = "HAL"	//	default name
++				if(config.random_ai_names && ai_names)	randomname = pick(ai_names)
++				var/newname = input(aiPlayer,"You are the AI. Would you like to change your name to something else?", "Name change",randomname)
++				if(!length(newname)) newname = randomname
++				if(newname && length(newname) >= 26)
+ 					newname = copytext(newname, 1, 26)
+ 				newname = dd_replacetext(newname, ">", "'")
+ 				aiPlayer.spawn_name = newname
++				aiPlayer.voice = newname
+ 				aiPlayer.name = newname
+-				aiPlayer.voice = newname
+ 
+ 			world << text("<b>[] is the AI!</b>", aiPlayer.name)
+ 
+Index: code/globals.dm
+===================================================================
+--- code/globals.dm	(revision 468)
++++ code/globals.dm	(working copy)
+@@ -165,6 +165,10 @@
+ 
+ 	datum/dna/canonical/canonical_dna = new()
+ 
++	list/first_names = null
++	list/last_names = null
++	list/ai_names = null
++
+ world
+ 	name = "In Space No One Can Hear You Say No"
+ 	mob = /mob/prespawn
+Index: first_names.txt
+===================================================================
+--- first_names.txt	(revision 0)
++++ first_names.txt	(revision 0)
+@@ -0,0 +1,500 @@
++Lockie
++Easter
++Loreto
++Willy
++Sherie
++Allegra
++Kaelea
++Kathy
++Vince
++Leta
++Keziah
++Fulton
++Yolanda
++Alexus
++Rickie
++Jeri
++Jed
++Flora
++Jeanna
++Shana
++Launce
++Allegria
++Lynwood
++Topaz
++Nova
++Monty
++Wendi
++Alden
++Diamond
++Nydia
++Jamar
++Vaughn
++Gervase
++Verna
++Nowell
++Ulyssa
++Shanika
++Jeb
++Carolyn
++Gaye
++Yasmin
++Osbert
++Macey
++Vinnie
++Fay
++Josh
++Dominic
++Hervey
++Homer
++Mike
++Tamsin
++Keturah
++Dolores
++Osmund
++Laurissa
++Hailey
++Jermaine
++Graeme
++Geraldine
++Reene
++Netta
++Marje
++Susannah
++Clement
++Claribel
++Leia
++Karly
++Ashlie
++Joni
++Candis
++Archie
++Rickena
++Tania
++Darin
++Lexus
++Linton
++Byron
++Jake
++Jennie
++Della
++Elspet
++Jera
++Meryl
++Sawyer
++Elwood
++Merrilyn
++Desmond
++Camryn
++Quanah
++Shannon
++Eugenia
++Jayne
++Janie
++Raelene
++Kellie
++Gratian
++Olive
++Julia
++Tracey
++Happy
++Heather
++Rodger
++Johnny
++Josiah
++Bronte
++Spike
++Ulric
++Fortune
++Nelle
++Flossie
++Sunshine
++Sue
++Clover
++Deangelo
++Candace
++Ambrosine
++Lyndsey
++Whitaker
++Malachi
++Roger
++Porsche
++Alisa
++Hedley
++Henderson
++Ermintrude
++Roswell
++Jaydon
++Roscoe
++Darell
++Sabella
++Leroi
++Bethney
++Emma
++Keira
++Rain
++Bartholomew
++Ginger
++Cherry
++Nathaniel
++Katlyn
++Jaynie
++Alger
++Sharla
++Eliott
++Tansy
++Brayden
++Muriel
++Dayna
++Jerrie
++Allen
++Euphemia
++Simon
++Irene
++Alexis
++Wynonna
++Lindy
++Lucian
++Woody
++Lindsie
++Carry
++Ileen
++Hadley
++Darcey
++Carlyle
++Warner
++Cheri
++Gina
++Keegan
++Clitus
++Lorin
++Fitz
++Gwenda
++Susanna
++Horatio
++Lou
++Suzan
++Damian
++Haidee
++Prue
++Lalla
++Sharalyn
++Melvyn
++Lacy
++Pauleen
++Clark
++Reuben
++Sherill
++Dalya
++Jere
++Marjory
++Bidelia
++Blake
++Rastus
++Delma
++Gladwyn
++Joachim
++Joetta
++Myrtie
++Syd
++Woodrow
++Hope
++Quiana
++Wisdom
++Greta
++Renie
++Ysabel
++Cliff
++Tye
++Pene
++Suzy
++Lexia
++Noah
++Flick
++Jakki
++Saranna
++Betsy
++Wynter
++Christiana
++Joye
++Laurencia
++Jeannie
++Jemmy
++Marcia
++Godwin
++Tatyanna
++Milton
++Bysshe
++Dina
++Clinton
++Evelina
++Arn
++Janel
++Denys
++Valary
++Maryann
++Zeke
++Anjelica
++Monte
++Taylor
++Cy
++Huffie
++Alexandria
++Dortha
++Caleigh
++Tolly
++Esmeralda
++Luvenia
++Denholm
++Prosper
++Osborn
++Lakeisha
++Goodwin
++May
++Beckah
++Avalon
++Jim
++Aubrey
++Hepsie
++Eveleen
++Sheri
++Marshall
++Calanthia
++Ebba
++Rayner
++Cassian
++Pheobe
++Alfreda
++Sally
++Karyn
++Scotty
++Maurene
++Aida
++Sissy
++Phoebe
++Nettie
++Rich
++Zelda
++Sloan
++Lynsey
++Barbra
++Tel
++Duncan
++Royce
++Bill
++Debbi
++Brittani
++Joey
++Mariabella
++Sachie
++Seneca
++Jillian
++Anne
++Lessie
++Elric
++Art
++Alyssia
++Griselda
++Trinity
++Gordon
++Madyson
++Janine
++Lynn
++Cleveland
++Becky
++Danny
++William
++Haleigh
++Hugo
++Casimir
++Steph
++Francis
++Donella
++Iantha
++Mya
++Janelle
++Phyllis
++Shiloh
++Collin
++Eustace
++Kennard
++Driscoll
++Georgene
++Patton
++Marion
++Percival
++Hal
++Jacquetta
++Effie
++Carly
++Caryl
++Wayne
++Maudie
++Lennox
++Hartley
++Tori
++Devin
++Vivyan
++Jaye
++Paget
++Tamika
++Nan
++Randa
++Donny
++Brendan
++Alfred
++Karenza
++Daria
++Bertrand
++Alan
++Randal
++Arleen
++Leeann
++Cadence
++Coreen
++Innocent
++Nerissa
++Maegan
++Joi
++Claudius
++Carter
++Angel
++Winifred
++Alma
++Kerensa
++Rickey
++Tracee
++Marlowe
++Oralie
++Cynthia
++Reynard
++Cecily
++Ward
++Montague
++Kayleigh
++Candice
++Bryce
++Sherri
++Helen
++Uland
++Alexa
++Maynard
++Sal
++Jeannine
++Seymour
++Lori
++Marlyn
++Irvine
++Ronnette
++Jonathon
++Keith
++Kaleigh
++Arielle
++Emmanuel
++Rosemary
++Eliot
++Nena
++Leland
++Patience
++Floella
++Monna
++Johnathan
++Merideth
++Adolph
++Janina
++Kimberley
++Rick
++Jamison
++Baldric
++Rusty
++Marilene
++Stephany
++Jacaline
++Amaryllis
++Luanne
++Burt
++Breanne
++Jaylee
++Daniella
++Osborne
++Walter
++Jamie
++Phyliss
++Donna
++Jillie
++Canute
++Phyllida
++Holden
++Hayley
++Jenifer
++Averill
++Alex
++Astor
++Elle
++Nikolas
++Sybil
++Malcolm
++Corrine
++Edgar
++Terrell
++Richie
++July
++Dorothy
++Jasmine
++Rebeckah
++Dee
++Jalen
++Glenna
++Sophie
++Kat
++Arabella
++Abel
++Manley
++Janette
++Lanny
++Sukie
++Kerena
++Sydney
++Star
++Christobel
++Shantae
++Gwenevere
++Nonie
++Micheal
++Brooke
++Shan
++Garret
++Amos
++Shannah
++Hortensia
++Jacqui
++Sorrel
++Tod
++Charlton
++Patrick
++Rexana
++Genette
++Zack
++Elizabeth
++Chip
++Mabelle
++Rhetta
++Deena
++Rubye
++Alysha
++Latanya
++Marion
++Bernice
++Myriam
++Alisya
++Christa
++Cherette
++Byrne
++Goddard
++Tiffany
++Romayne
++Peregrine
++Minnie
++Linden
++Josepha
++Frankie
+Index: last_names.txt
+===================================================================
+--- last_names.txt	(revision 0)
++++ last_names.txt	(revision 0)
+@@ -0,0 +1,500 @@
++Whittier
++Dimeling
++Blaine
++Dennis
++Adams
++Rader
++Murray
++Butt
++Millhouse
++Ludwig
++Burris
++Shupe
++Mary
++Zadovsky
++Philips
++Wise
++Gronko
++Jardine
++Black
++Mitchell
++Enderly
++Stall
++Harrow
++Atweeke
++Sealis
++Conrad
++Lucy
++Stewart
++Green
++Feufer
++Warren
++Campbell
++Shafer
++Woodworth
++Magor
++Logue
++Reichard
++Day
++Dugmore
++Murray
++Greenawalt
++Jyllian
++Candles
++Osterwise
++Style
++Cavalet
++Garneys
++Raub
++Sholl
++Chauvin
++Poley
++Todd
++Brandenburg
++Baer
++Pritchard
++Pinney
++Kadel
++Anderson
++Clarke
++Hunt
++Gadow
++Stough
++Marcotte
++Brooks
++Watson
++Nash
++Sheets
++Ashbaugh
++Zimmer
++Noton
++Dean
++Fleming
++Draudy
++Blatenberger
++Fischer
++Hawkins
++Poehl
++Adcock
++Mcintosh
++Keppel
++Kimple
++Alice
++Stone
++Fiscina
++Leichter
++Wile
++Callison
++Cowper
++Harrold
++Carr
++Eckhardstein
++Wilkerson
++Shirey
++Benford
++Reade
++Baskett
++Seidner
++Gettemy
++Joyce
++Judge
++Burkett
++Kiefer
++Carmichael
++Hirleman
++Wells
++Wells
++Isemann
++Cressman
++Highlands
++Briggs
++Rowley
++Coldsmith
++Berkheimer
++Hill
++Maclagan
++Mcfall
++Mens
++Braun
++James
++Sloan
++Bould
++Overstreet
++Kanaga
++Polson
++Finlay
++Sandys
++Bousum
++Howard
++Treeby
++Stainforth
++Werner
++Sulyard
++Marriman
++Weinstein
++Butterfill
++Mason
++Coates
++Peters
++Gregory
++Wilo
++Edwards
++Barnes
++Harding
++Tireman
++Lombardi
++Roberts
++Faqua
++Basmanoff
++Mccune
++Mckendrick
++Oppenheimer
++Oneal
++Focell
++Tedrow
++Fields
++Ryals
++Best
++Zaun
++Knapp
++Linton
++Jackson
++Bullard
++Mcloskey
++Zoucks
++Heckendora
++Hoenshell
++Woollard
++Mueller
++Burns
++Franks
++Goodman
++Stern
++Robinson
++Hooker
++David
++Fitzgerald
++Vanleer
++Beach
++Flickinger
++Metzer
++Bynum
++Stafford
++Osteen
++Johnson
++Paynter
++Thomlinson
++Simmons
++Basinger
++Fisher
++Bunten
++Compton
++Archibald
++Catherina
++Rahl
++Bowchiew
++Tennant
++Mccullough
++Margaret
++Schaeffer
++Sommer
++Beail
++Merryman
++Knapenberger
++Patterson
++Houston
++Lacon
++Levett
++Sullivan
++Sidower
++Laborde
++Stroh
++Hice
++Biery
++Christman
++Staymates
++Sauter
++Snyder
++Bratton
++Sybilla
++Altmann
++Mathews
++Newbern
++Baker
++Kemble
++Mingle
++Unk
++Otis
++Quinn
++Gongaware
++Bell
++Roberts
++Wood
++Ullman
++Bicknell
++Gibson
++Rohtin
++James
++Wallick
++Eggbert
++Losey
++Neely
++Catleay
++Mcdonald
++Beedell
++Williamson
++Bennett
++Potter
++Caldwell
++Lowe
++Durstine
++King
++Gardner
++Ulery
++Rifler
++Trovato
++Thomas
++Nehling
++Baum
++Werry
++Mcmullen
++Koster
++Willey
++Mildred
++Straub
++Haynes
++Baxter
++Ackerley
++Greene
++Atkinson
++Davis
++Weeter
++Milne
++Leech
++Clewett
++Ewing
++Hook
++Reighner
++Welty
++Jenkins
++Bennett
++Swarner
++Hawker
++Agg
++Batten
++Cherry
++Shaffer
++Yeskey
++Stephenson
++Pycroft
++Larson
++Joghs
++Keener
++Christopher
++Roadman
++Echard
++Priebe
++Auman
++Kemerer
++Sutton
++Prechtl
++Cowart
++Ring
++Garratt
++Siegrist
++Seelig
++Lafortune
++Dryfus
++Isaman
++Teagarden
++Evans
++Wolfe
++Fiddler
++Jowers
++Aultman
++Olphert
++Howe
++Leslie
++Stocker
++Bode
++Whirlow
++Ann
++Mcclymonds
++Guess
++Queer
++Taggart
++Pratt
++Moon
++Huey
++Hegarty
++Meyers
++Stahl
++Nickolson
++Mortland
++Perkins
++Thorley
++Fuchs
++Ray
++Schrader
++Kellogg
++Wood
++Faust
++Roby
++Bashline
++Cypret
++Laurenzi
++Minnie
++Houser
++Langston
++Anderson
++Barrett
++Wible
++Hujsak
++Wardle
++Pershing
++Kuster
++Driggers
++Wheeler
++Garland
++Alliman
++Hoover
++Camp
++Hall
++Parkinson
++Swabey
++Mull
++Cox
++Hanford
++Stange
++Wolff
++Jesse
++Brinigh
++Koepple
++Schmidt
++Muller
++Schofield
++Zalack
++Pfeifer
++Fea
++Blackburn
++Ward
++Kifer
++Costello
++Donkin
++Osterweis
++Brindle
++Llora
++Duncan
++Ehret
++Fryer
++Summy
++Richards
++Boyer
++Hutton
++Mosser
++Lester
++Stroble
++Randolph
++Lord
++Scott
++Nicholas
++Smail
++Ratcliff
++Riggle
++Newton
++Sanders
++Mitchell
++Lauffer
++Agg
++Moberly
++Hynes
++Pennington
++Woolery
++Park
++Hardie
++Blessig
++Tanner
++Demuth
++Fraser
++Henry
++Shick
++Ironmonger
++Schere
++Field
++Prevatt
++Earl
++Paul
++Curry
++Powers
++Rosensteel
++Hoopengarner
++Weisgarber
++Elliott
++Pearsall
++Lowstetter
++Holdeman
++Blunt
++Kepplinger
++Bloise
++Hunter
++Glover
++Hayhurst
++Wentzel
++Owens
++Smith
++Steele
++Leach
++Armstrong
++Wheeler
++Easter
++Greenwood
++Woodward
++Pratt
++Buzzard
++Cox
++Eliza
++Rockwell
++Zeal
++Harshman
++Northey
++Tilton
++Richter
++Moore
++Jerome
++Hardy
++Bickerson
++White
++Beck
++Waldron
++Fulton
++Miller
++Fuhrer
++Sandford
++Hughes
++Winton
++Dugger
++Byers
++Hincken
++Shaner
++Todd
++Whiteman
++Lineman
++Albright
++Hastings
++Elder
++Garry
++Rose
++Kelley
++Quirin
++Dickinson
++Young
++Ramos
++Jewell
++Endsley
++Briner
++Jenner
++Saylor
++Bash
++Blyant
++Rhinehart
++Prescott
+\ No newline at end of file

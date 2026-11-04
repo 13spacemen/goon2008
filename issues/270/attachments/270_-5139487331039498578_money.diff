@@ -1,0 +1,1221 @@
+Common subdirectories: ./atoms and ../../stable2/stable/code/atoms
+diff -u ./atoms.dm ../../stable2/stable/code/atoms.dm
+--- ./atoms.dm	2008-12-26 14:50:01.000000000 -0600
++++ ../../stable2/stable/code/atoms.dm	2008-12-18 17:47:54.000000000 -0600
+@@ -223,8 +223,6 @@
+ 	var/const/blindness = 1
+ 	var/const/deafness = 2
+ 	var/const/muteness = 4
+-	var/wired_money = 0
+-	var/last_paycheck = 0
+ 
+ /mob/ghost
+ 	name = "ghost"
+@@ -318,7 +316,6 @@
+ 
+ /obj
+ 	var/datum/module/mod
+-	var/value = -1
+ 
+ /obj/mark
+ 		var/mark = ""
+@@ -328,6 +325,23 @@
+ 		layer = 99
+ 		mouse_opacity = 0
+ 
++
++/obj/blob
++	icon = 'blob.dmi'
++	icon_state = "bloba0"
++	var/health = 30
++	var/attempt = 0
++	var/idle = 0
++	density = 1
++	opacity = 0
++	anchored = 1
++
++/obj/admins
++	name = "admins"
++	var/rank = null
++	var/a_level = 0.0
++	var/screen = 1.0
++	var/owner = null
+ /obj/barrier
+ 	name = "barrier"
+ 	icon = 'stationobjs.dmi'
+@@ -366,12 +380,19 @@
+ 	icon_state = "bedbin"
+ 	var/amount = 23.0
+ 	anchored = 1.0
+-	value = 10
+ /obj/begin
+ 	name = "begin"
+ 	icon = 'stationobjs.dmi'
+ 	icon_state = "begin"
+ 	anchored = 1.0
++/obj/bomb
++	name = "bomb"
++	icon = 'screen1.dmi'
++	icon_state = "x"
++	var/btype = 0  //0 = radio, 1= prox, 2=time
++	var/explosive = 1	// 0= firebomb
++	var/btemp = 500	// bomb temperature (degC)
++	var/active = 0
+ /obj/bullet
+ 	name = "bullet"
+ 	icon = 'weap_sat.dmi'
+@@ -382,7 +403,6 @@
+ 	var/current = null
+ 	anchored = 1.0
+ 	flags = 2.0
+-	value = 10
+ /obj/bullet/electrode
+ 	name = "electrode"
+ 	icon_state = "spark"
+@@ -394,7 +414,6 @@
+ 	density = 1
+ 	anchored = 0.0
+ 	weight = 1.0E8
+-	value = 3
+ /obj/datacore
+ 	name = "datacore"
+ 
+@@ -410,7 +429,6 @@
+ 	var/struc_enzyme = null
+ 	var/uni_identity = null
+ 	var/n_chromo = null
+-	value = 5
+ /obj/effects
+ 	name = "effects"
+ 	mouse_opacity = 0
+@@ -513,7 +531,6 @@
+ 	icon_state = "gift"
+ 	s_istate = "gift"
+ 	weight = 1.0E7
+-	value = 10
+ /obj/item/weapon/ammo
+ 	name = "ammo"
+ 	icon = 'ammo.dmi'
+@@ -525,21 +542,19 @@
+ 	name = "ammo-357"
+ 	icon_state = "357-7"
+ 	amount_left = 7.0
+-	value = 70
+ /obj/item/weapon/analyzer
+ 	desc = "A hand-held environmental scanner which reports current gas levels."
+ 	name = "analyzer"
+ 	icon_state = "analyzer"
+ 	w_class = 2.0
+ 	flags = 322.0
+-	value = 15
+ /obj/item/weapon/assembly
+ 	name = "assembly"
+ 	icon = 'assemblies.dmi'
+ 	s_istate = "assembly"
+ 	w_class = 3.0
+ 	var/status = 0.0
+-	value = 75
++
+ /obj/item/weapon/assembly/m_i_ptank
+ 	desc = "A very intricate igniter and proximity sensor electrical assembly mounted onto top of a plasma tank."
+ 	name = "Proximity/Igniter/Plasma Tank Assembly"
+@@ -634,7 +649,6 @@
+ 	force = 15
+ 	throwforce = 7
+ 	w_class = 3
+-	value = 50
+ 
+ /obj/item/weapon/bedsheet
+ 	name = "bedsheet"
+@@ -642,43 +656,34 @@
+ 	icon_state = "sheet"
+ 	layer = 4.0
+ 	s_istate = "w_suit"
+-	value = 5
+ /obj/item/weapon/bottle
+ 	name = "bottle"
+ 	var/obj/substance/chemical/chem = null
+ 	throw_speed = 4
+ 	throw_range = 20
+ 	w_class = 1.0
+-	value = 5
+ /obj/item/weapon/bottle/beer
+ 	name = "Space Beer"
+ 	icon_state = "beer"
+ 	var/amount = 10
+-	value = 10
+ /obj/item/weapon/bottle/antitoxins
+ 	name = "antitoxins"
+ 	icon_state = "atoxinbottle"
+-	value = 15
+ /obj/item/weapon/bottle/r_ch_cough
+ 	name = "Cough remedy"
+ 	icon_state = "medibottle"
+-	value = 15
+ /obj/item/weapon/bottle/r_epil
+ 	name = "Epileptic Remedy"
+ 	icon_state = "medibottle"
+-	value = 15
+ /obj/item/weapon/bottle/rejuvenators
+ 	name = "rejuvenators"
+ 	icon_state = "rejuvbottle"
+-	value = 15
+ /obj/item/weapon/bottle/s_tox
+ 	name = "sleep toxins"
+ 	icon_state = "toxinbottle"
+-	value = 15
+ /obj/item/weapon/bottle/toxins
+ 	name = "toxins"
+ 	icon_state = "toxinbottle"
+-	value = 15
+ /obj/item/weapon/brutepack
+ 	name = "Bruise Pack"
+ 	desc = "A pack designed to treat blunt-force trauma."
+@@ -687,7 +692,6 @@
+ 	w_class = 1.0
+ 	throw_speed = 4
+ 	throw_range = 20
+-	value = 4
+ /obj/item/weapon/c_tube
+ 	name = "Cardboard tube"
+ 	icon_state = "c_tube"
+@@ -697,7 +701,6 @@
+ 	var/last_pic = 1.0
+ 	s_istate = "wrench"
+ 	w_class = 2.0
+-	value = 15
+ /obj/item/weapon/card
+ 	name = "card"
+ 	w_class = 1.0
+@@ -716,17 +719,12 @@
+ 	name = "emag"
+ 	icon_state = "emag-card"
+ 	s_istate = "card-id"
+-	value = 100
+ /obj/item/weapon/card/id
+ 	name = "Identification Card"
+ 	icon_state = "card-id"
+ 	var/access = list()
+ 	var/registered = null
+ 	var/assignment = null
+-	var/last_paycheck = 0
+-	New()
+-		last_paycheck = round(world.time / PAYCHECK_TIME) * PAYCHECK_TIME
+-		..()
+ /obj/item/weapon/card/id/syndicate
+ 	name = "Syndicate Card"
+ 
+@@ -735,11 +733,9 @@
+ 	icon_state = "card-id"
+ 	registered = "Captain"
+ 	assignment = "Captain"
+-	value = 100
+ 	New()
+ 		access = get_access("Captain")
+ 		..()
+-
+ /obj/item/weapon/clipboard
+ 	name = "clipboard"
+ 	icon_state = "clipboard00"
+@@ -755,7 +751,6 @@
+ 	throw_speed = 1
+ 	throw_range = 5
+ 	w_class = 2.0
+-	value = 100
+ /obj/item/weapon/clothing
+ 	name = "clothing"
+ 	var/a_filter = 0.0
+@@ -774,7 +769,6 @@
+ 	icon_state = "earmuffs"
+ 	s_fire = 1.875E7
+ 	s_istate = "earmuffs"
+-	value = 5
+ /obj/item/weapon/clothing/glasses
+ 	name = "glasses"
+ 	w_class = 2.0
+@@ -788,29 +782,24 @@
+ 	name = "Optical Meson Scanner"
+ 	icon_state = "m_glasses"
+ 	s_istate = "glasses"
+-	value = 10
+ /obj/item/weapon/clothing/glasses/regular
+ 	name = "Prescription Glasses"
+ 	icon_state = "p_glasses"
+ 	s_istate = "glasses"
+-	value = 5
+ /obj/item/weapon/clothing/glasses/sunglasses
+ 	desc = "Strangely ancient technology used to help provide rudimentary eye cover. Enhanced shielding blocks many flashes."
+ 	name = "Sunglasses"
+ 	icon_state = "s_glasses"
+ 	s_istate = "s_glasses"
+-	value = 10
+ /obj/item/weapon/clothing/glasses/thermal
+ 	name = "Optical Thermal Scanner"
+ 	icon_state = "t_glasses"
+ 	s_istate = "glasses"
+-	value = 10
+ /obj/item/weapon/clothing/gloves
+ 	name = "gloves"
+ 	w_class = 2.0
+ 	s_fire = 1.875E7
+ 	var/elec_protect = 1
+-	value = 5
+ /obj/item/weapon/clothing/gloves/black
+ 	desc = "These gloves are somewhat fire-resistant."
+ 	name = "Black Gloves"
+@@ -851,7 +840,7 @@
+ 	h_filter = 4.0
+ 	fire_protect = 16
+ 	elec_protect = 10
+-	value = 5
++
+ 
+ /obj/item/weapon/clothing/head
+ 	name = "head"
+@@ -863,7 +852,6 @@
+ 	see_face = 0.0
+ 	s_fire = 1.875E7
+ 	fire_protect = 1
+-	value = 10
+ /obj/item/weapon/clothing/head/helmet
+ 	name = "helmet"
+ 	icon_state = "helmet"
+@@ -872,7 +860,6 @@
+ 	s_fire = 6.75E7
+ 	fire_protect = 1
+ 	brute_protect = 1
+-	value = 10
+ /obj/item/weapon/clothing/head/s_helmet
+ 	name = "s helmet"
+ 	icon_state = "s_helmet"
+@@ -881,18 +868,15 @@
+ 	s_istate = "s_helmet"
+ 	s_fire = 5.625E7
+ 	fire_protect = 1
+-	value = 10
+ /obj/item/weapon/clothing/head/helmet/swat_hel
+ 	name = "swat hel"
+ 	icon_state = "swat_hel"
+ 	flags = FPRINT|TABLEPASS|SUITSPACE|HEADSPACE|HEADCOVERSEYES
+ 	s_istate = "swat_hel"
+-	value = 15
+ /obj/item/weapon/clothing/head/wig
+ 	name = "wig"
+ /obj/item/weapon/clothing/mask
+ 	name = "mask"
+-	value = 3
+ /obj/item/weapon/clothing/mask/gasmask
+ 	name = "gasmask"
+ 	desc = "A close-fitting mask that can filter some environmental toxins or be connected to an air supply."
+@@ -905,7 +889,6 @@
+ 	s_istate = "gas_mask"
+ 	s_fire = 7.5E7
+ 	fire_protect = 1
+-	value = 3
+ /obj/item/weapon/clothing/mask/m_mask
+ 	desc = "This mask does not work very well in low pressure environments."
+ 	name = "Medical Mask"
+@@ -936,7 +919,6 @@
+ 	s_fire = 7.5E7
+ 	brute_protect = 1
+ 	fire_protect = 1
+-	value = 8
+ /obj/item/weapon/clothing/mask/robot/swat
+ 	name = "SWAT Mask"
+ /obj/item/weapon/clothing/mask/surgical
+@@ -955,7 +937,6 @@
+ 	s_fire = 3.75E7
+ 	brute_protect = 64
+ 	fire_protect = 64
+-	value = 5
+ /obj/item/weapon/clothing/shoes/black
+ 	name = "Black Shoes"
+ 	icon_state = "bl_shoes"
+@@ -985,7 +966,6 @@
+ 	s_istate = "armor"
+ 	s_fire = 1.875E7
+ 	brute_protect = 6
+-	value = 15
+ /obj/item/weapon/clothing/suit/heavy_armor
+ 	name = "heavy armor"
+ 	desc = "A suit that protects against some damage."
+@@ -993,7 +973,6 @@
+ 	s_istate = "swat_suit"
+ 	s_fire = 1.875E7
+ 	brute_protect = 6
+-	value = 30
+ /obj/item/weapon/clothing/suit/bio_suit
+ 	name = "bio suit"
+ 	desc = "A suit that protects against biological contamination."
+@@ -1005,7 +984,6 @@
+ 	flags = FPRINT | TABLEPASS
+ 	s_fire = 1350000.0
+ 	fire_protect = 126
+-	value = 20
+ /obj/item/weapon/clothing/suit/firesuit
+ 	name = "firesuit"
+ 	desc = "A suit that protects against fire and heat."
+@@ -1018,7 +996,6 @@
+ 	s_fire = 7.5E7	//75000000 :O
+ 	fire_protect = 126
+ 	fire_resist = T0C+1300	//this is the max temp it can stand before you start to cook. although it might not burn away, you take damage
+-	value = 7
+ /obj/item/weapon/clothing/suit/black_firesuit
+ 	name = "firesuit"
+ 	desc = "A suit that protects against extreme fire and heat."
+@@ -1031,8 +1008,7 @@
+ 	s_fire = 7.5E7
+ 	fire_protect = 126
+ 	fire_resist = T0C+2600
+-	value = 8
+-/obj/item/weapon/clothing/suit/labcoat
++obj/item/weapon/clothing/suit/labcoat
+ 	name = "labcoat"
+ 	desc = "A suit that protects against minor chemical spills."
+ 	icon_state = "labcoat"
+@@ -1040,7 +1016,6 @@
+ 	flags = FPRINT | TABLEPASS
+ 	s_fire = 1000000.0
+ 	fire_protect = 126
+-	value = 5
+ /obj/item/weapon/clothing/suit/robot_suit
+ 	name = "robot suit"
+ 	icon_state = "ro_suit"
+@@ -1052,7 +1027,6 @@
+ 	s_fire = 1.875E7
+ 	fire_protect = 126
+ 	fire_resist = T0C+5200
+-	value = 15
+ /obj/item/weapon/clothing/suit/sp_suit
+ 	name = "sp suit"
+ 	desc = "A suit that protects against low pressure environments."
+@@ -1064,7 +1038,6 @@
+ 	flags = FPRINT | TABLEPASS | SUITSPACE
+ 	s_fire = 6.75E7
+ 	fire_protect = 126
+-	value = 15
+ /obj/item/weapon/clothing/suit/straight_jacket
+ 	name = "straight jacket"
+ 	desc = "A suit that totally restrains an individual"
+@@ -1072,7 +1045,6 @@
+ 	s_istate = "straight_jacket"
+ 	s_fire = 1.875E7
+ 	fire_protect = 126
+-	value = 10
+ /obj/item/weapon/clothing/suit/swat_suit
+ 	name = "swat suit"
+ 	icon_state = "swat_suit"
+@@ -1084,13 +1056,12 @@
+ 	s_fire = 6.75E7
+ 	brute_protect = 126
+ 	fire_protect = 126
+-	value = 10
+ /obj/item/weapon/clothing/under
+ 	name = "under"
+ 	s_fire = 1.875E7
+ 	fb_filter = 1.0
+ 	fire_protect = 46
+-	value = 8
++
+ /obj/item/weapon/clothing/under/black
+ 	name = "Black Jumpsuit"
+ 	icon_state = "bl_suit"
+@@ -1196,7 +1167,6 @@
+ 	w_class = 2
+ 	flags = TABLEPASS|USEDELAY|FPRINT
+ 	s_istate = "coil"
+-	value = 2
+ 
+ /obj/item/weapon/cable_coil/cut
+ 	icon = 'power.dmi'
+@@ -1210,7 +1180,6 @@
+ 	throwforce = 7.0
+ 	s_istate = "wrench"
+ 	w_class = 2.0
+-	value = 3
+ /obj/item/weapon/disk
+ 	name = "disk"
+ /obj/item/weapon/disk/nuclear
+@@ -1218,7 +1187,6 @@
+ 	icon_state = "nucleardisk"
+ 	s_istate = "card-id"
+ 	w_class = 1.0
+-	value = 250
+ /obj/item/weapon/dropper
+ 	name = "dropper"
+ 	desc = "A dropper that can hold a small amount of liquid."
+@@ -1242,14 +1210,12 @@
+ 	w_class = 2.0
+ 	force = 17.0
+ 	s_istate = "fire_extinguisher"
+-	value = 7
+ /obj/item/weapon/f_card
+ 	name = "Finger Print Card"
+ 	icon_state = "f_print_card0"
+ 	var/amount = 10.0
+ 	s_istate = "paper"
+ 	w_class = 1.0
+-	value = 2
+ /obj/item/weapon/f_print_scanner
+ 	name = "Finger Print Scanner"
+ 	desc = "Used to scan objects for fingerprints."
+@@ -1259,13 +1225,11 @@
+ 	w_class = 3.0
+ 	s_istate = "electronic"
+ 	flags = 450.0
+-	value = 10
+ /obj/item/weapon/fcardholder
+ 	name = "Finger Print Case"
+ 	icon_state = "fcardholder0"
+ 	s_istate = "clipboard"
+ 	w_class = 3.0
+-	value = 3
+ /obj/item/weapon/flash
+ 	name = "flash"
+ 	icon_state = "flash"
+@@ -1276,7 +1240,6 @@
+ 	s_istate = "electronic"
+ 	throw_speed = 4
+ 	throw_range = 20
+-	value = 40
+ /obj/item/weapon/flashbang
+ 	desc = "It is set to detonate in 3 seconds."
+ 	name = "flashbang"
+@@ -1288,14 +1251,12 @@
+ 	throw_speed = 4
+ 	throw_range = 20
+ 	flags = 402.0
+-	value = 55
+ /obj/item/weapon/flasks
+ 	name = "flask"
+ 	icon = 'Cryogenic2.dmi'
+ 	var/oxygen = 0.0
+ 	var/plasma = 0.0
+ 	var/coolant = 0.0
+-	value = 6
+ /obj/item/weapon/flasks/coolant
+ 	name = "light blue flask"
+ 	icon_state = "coolant-c"
+@@ -1318,7 +1279,7 @@
+ 	s_istate = "flight"
+ 	var/image/img
+ 	var/lastHolder = null
+-	value = 9
++
+ /obj/item/weapon/game_kit
+ 	name = "Gaming Kit"
+ 	icon_state = "game_kit"
+@@ -1328,7 +1289,6 @@
+ 	var/base_url = "http://svn.slurm.us/public/spacestation13/misc/game_kit"
+ 	s_istate = "sheet-metal"
+ 	w_class = 5.0
+-	value = 10
+ /obj/item/weapon/gift
+ 	name = "gift"
+ 	icon_state = "gift3"
+@@ -1336,7 +1296,6 @@
+ 	var/obj/item/gift = null
+ 	s_istate = "gift"
+ 	w_class = 4.0
+-	value = 4
+ /obj/item/weapon/grab
+ 	name = "grab"
+ 	icon = 'screen1.dmi'
+@@ -1355,7 +1314,6 @@
+ 	name = "gun"
+ 	flags = 466.0
+ 	s_istate = "gun"
+-	value = 85
+ /obj/item/weapon/gun/energy
+ 	name = "energy"
+ 	var/charges = 10.0
+@@ -1391,20 +1349,17 @@
+ 	icon_state = "hand_tele"
+ 	s_istate = "electronic"
+ 	w_class = 2.0
+-	value = 95
+ /obj/item/weapon/handcuffs
+ 	name = "handcuffs"
+ 	icon_state = "handcuff"
+ 	flags = 450.0
+ 	w_class = 2.0
+-	value = 11
+ /obj/item/weapon/healthanalyzer
+ 	name = "Health Analyzer"
+ 	icon_state = "healthanalyzer"
+ 	desc = "A hand-held body scanner able to distinguish vital signs of the subject."
+ 	flags = 450.0
+ 	w_class = 1.0
+-	value = 7
+ /obj/item/weapon/igniter
+ 	name = "igniter"
+ 	desc = "A small electronic device able to ignite combustable substances."
+@@ -1412,12 +1367,10 @@
+ 	var/status = 1.0
+ 	flags = 322.0
+ 	s_istate = "electronic"
+-	value = 15
+ /obj/item/weapon/implant
+ 	name = "implant"
+ 	var/implanted = null
+ 	var/color = "b"
+-	value = 14
+ /obj/item/weapon/implant/freedom
+ 	name = "freedom"
+ 	var/uses = 1.0
+@@ -1434,7 +1387,6 @@
+ 	throw_speed = 1
+ 	throw_range = 5
+ 	w_class = 1.0
+-	value = 2
+ /obj/item/weapon/implantcase/tracking
+ 	name = "Glass Case- 'Tracking'"
+ 	icon_state = "implantcase-b"
+@@ -1446,7 +1398,6 @@
+ 	throw_speed = 1
+ 	throw_range = 5
+ 	w_class = 2.0
+-	value = 6
+ /obj/item/weapon/implantpad
+ 	name = "implantpad"
+ 	icon_state = "implantpad-0"
+@@ -1457,7 +1408,6 @@
+ 	throw_speed = 1
+ 	throw_range = 5
+ 	w_class = 2.0
+-	value = 3
+ /obj/item/weapon/infra
+ 	name = "Infrared Beam (Security)"
+ 	desc = "Emits a visible or invisible beam and is triggered when the beam is interrupted."
+@@ -1468,7 +1418,6 @@
+ 	flags = 322.0
+ 	w_class = 2.0
+ 	s_istate = "electronic"
+-	value = 18
+ /obj/item/weapon/infra_sensor
+ 	name = "Infrared Sensor"
+ 	desc = "Scans for infrared beams in the vicinity."
+@@ -1476,7 +1425,7 @@
+ 	var/passive = 1.0
+ 	flags = 322.0
+ 	s_istate = "electronic"
+-	value = 18
++
+ /obj/item/weapon/t_scanner
+ 	name = "T-ray scanner"
+ 	desc = "A terahertz-ray emitter and scanner used to detect underfloor objects such as cables and pipes."
+@@ -1485,7 +1434,7 @@
+ 	flags = FPRINT|ONBELT|TABLEPASS
+ 	w_class = 2
+ 	s_istate = "electronic"
+-	value = 9
++
+ /obj/item/weapon/locator
+ 	name = "locator"
+ 	icon_state = "locator"
+@@ -1498,7 +1447,7 @@
+ 	s_istate = "electronic"
+ 	throw_speed = 4
+ 	throw_range = 20
+-	value = 7
++
+ /obj/item/weapon/m_pill
+ 	name = "pill"
+ 	icon_state = "pill"
+@@ -1508,7 +1457,6 @@
+ 	s_istate = "pill"
+ 	throw_speed = 4
+ 	throw_range = 20
+-	value = 10
+ /obj/item/weapon/m_pill/Tourette
+ 	name = "green pill"
+ 	icon_state = "pill2"
+@@ -1534,7 +1482,6 @@
+ 	throw_speed = 4
+ 	throw_range = 20
+ 	w_class = 1.0
+-	value = 3
+ /obj/item/weapon/organ
+ 	name = "organ"
+ 	var/owner = null
+@@ -1661,7 +1608,6 @@
+ 	var/color = "neutral"
+ 	s_istate = "paintcan"
+ 	w_class = 3.0
+-	value = 5
+ /obj/item/weapon/paper
+ 	name = "Paper"
+ 	icon_state = "paper"
+@@ -1669,7 +1615,6 @@
+ 	w_class = 1.0
+ 	throw_speed = 3
+ 	throw_range = 15
+-	value = 1
+ /obj/item/weapon/paper/Internal
+ 	name = "paper- 'Internal Atmosphere Operating Instructions'"
+ 	info = "Equipment:<BR>\n\t1+ Tank(s) with appropriate atmosphere<BR>\n\t1 Gas Mask w regulator (standard issue)<BR>\n<BR>\nProcedure:<BR>\n\t1. Wear mask<BR>\n\t2. Attach oxygen tank pipe to regulater (automatic))<BR>\n\t3. Set internal!<BR>\n<BR>\nNotes:<BR>\n\tDon't forget to stop internal when tank is low by<BR>\n\tremoving internal!<BR>\n<BR>\n\tDo not use a tank that has a high concentration of toxins.<BR>\n\tThe filters shut down on internal mode!<BR>\n<BR>\n\tWhen exiting a high danger environment it is advised<BR>\n\tthat you exit through a decontamination zone!<BR>\n<BR>\n\tRefill a tank at a oxygen canister by equiping the tank (Double Click)<BR>\n\tthen 'attacking' the canister (Double Click the canister)."
+@@ -1771,7 +1716,6 @@
+ 	w_class = 1.0
+ 	throw_speed = 3
+ 	throw_range = 15
+-	value = 3
+ /obj/item/weapon/pen/sleepypen
+ 	desc = "It's a normal black ink pen with a sharp point."
+ 	var/obj/substance/chemical/chem = null
+@@ -1780,7 +1724,6 @@
+ 	icon_state = "pill_canister"
+ 	w_class = 1.0
+ 	s_istate = "brutepack"
+-	value = 1
+ /obj/item/weapon/pill_canister/Tourette
+ 	desc = "<B>Tourette's Syndrome Remedy</B>\nAdminister as required to surpress Tourette syndrome induced twitching.\nAdminister only once every 15 minutes. Active for 20 at most.\n<B>WARNING</B>: Neurodepressant! Rebalances chemical alignment!\n<B>Warning</B>: May cause drowsyness.\nIf drowsyness persists for over 5 minutes contact medical professional."
+ 	name = "Pill Canister- 'Tourette's Syndrome Remedy'"
+@@ -1808,12 +1751,10 @@
+ 	flags = 322.0
+ 	w_class = 2.0
+ 	s_istate = "electronic"
+-	value = 6
+ /obj/item/weapon/rack_parts
+ 	name = "rack parts"
+ 	icon_state = "rack_parts"
+ 	flags = 322.0
+-	value = 2
+ /obj/item/weapon/radio
+ 	name = "Station Bounced Radio"
+ 	suffix = "\[3\]"
+@@ -1827,12 +1768,8 @@
+ //					1				2				4
+ //	var/wires = WIRE_SIGNAL | WIRE_RECEIVE | WIRE_TRANSMIT
+ 	var/b_stat = 0.0
+-	var/broken = 0
+ 	var/broadcasting = null
+ 	var/listening = 1.0
+-	var/pirate = 0
+-	var/break_wire
+-	var/pirate_wire
+ 	flags = 450.0
+ 	throw_speed = 2
+ 	throw_range = 9
+@@ -1843,7 +1780,6 @@
+ 		WIRE_RECEIVE = 2
+ 		WIRE_TRANSMIT = 4
+ 		TRANSMISSION_DELAY = 5 // only 2/second/radio
+-	value = 5
+ /obj/item/weapon/radio/beacon
+ 	name = "Tracking Beacon"
+ 	icon_state = "beacon"
+@@ -1884,7 +1820,6 @@
+ 	throwforce = 20.0
+ 	throw_speed = 2
+ 	throw_range = 10
+-	value = 2
+ /obj/item/weapon/screwdriver
+ 	name = "screwdriver"
+ 	icon_state = "screwdriver"
+@@ -1894,7 +1829,6 @@
+ 	throwforce = 5.0
+ 	throw_speed = 3
+ 	throw_range = 5
+-	value = 1
+ /obj/item/weapon/shard
+ 	name = "shard"
+ 	icon = 'shards.dmi'
+@@ -1903,7 +1837,6 @@
+ 	force = 7.0
+ 	throwforce = 10.0
+ 	s_istate = "shard-glass"
+-	value = 1
+ /obj/item/weapon/sheet
+ 	name = "sheet"
+ 	var/amount = 1.0
+@@ -1915,7 +1848,6 @@
+ 	throw_speed = 1
+ 	throw_range = 4
+ 	w_class = 4.0
+-	value = 1
+ /obj/item/weapon/sheet/glass
+ 	name = "glass"
+ 	icon_state = "sheet-glass"
+@@ -1945,7 +1877,6 @@
+ 	throw_speed = 1
+ 	throw_range = 5
+ 	w_class = 2.0
+-	value = 15
+ /obj/item/weapon/storage
+ 	name = "storage"
+ 	var/obj/screen/storage/boxes = null
+@@ -1956,17 +1887,15 @@
+ 	icon_state = "backpack"
+ 	w_class = 4.0
+ 	flags = 259.0
+-	value = 4
+ /obj/item/weapon/storage/box
+ 	name = "Box"
+ 	icon_state = "box"
+ 	s_istate = "syringe_kit"
+-	value = 4
+ /obj/item/weapon/storage/disk_kit
+ 	name = "Data Disks"
+ 	icon_state = "id_kit"
+ 	s_istate = "syringe_kit"
+-	value = 4
++
+ /obj/item/weapon/storage/disk_kit/disks
+ 
+ /obj/item/weapon/storage/disk_kit/disks2
+@@ -1979,7 +1908,6 @@
+ 	name = "First-Aid"
+ 	throw_speed = 2
+ 	throw_range = 8
+-	value = 10
+ /obj/item/weapon/storage/firstaid/fire
+ 	name = "Fire First Aid"
+ 	icon_state = "firstaid-ointment"
+@@ -1996,46 +1924,39 @@
+ 	name = "Flashbangs (WARNING)"
+ 	icon_state = "flashbang_kit"
+ 	s_istate = "syringe_kit"
+-	value = 30
+ /obj/item/weapon/storage/gl_kit
+ 	name = "Prescription Glasses"
+ 	icon_state = "id_kit"
+ 	s_istate = "syringe_kit"
+-	value = 20
+ /obj/item/weapon/storage/handcuff_kit
+ 	name = "Spare Handcuffs"
+ 	icon_state = "handcuff_kit"
+ 	s_istate = "syringe_kit"
+-	value = 10
+ /obj/item/weapon/storage/id_kit
+ 	name = "Spare IDs"
+ 	icon_state = "id_kit"
+ 	s_istate = "syringe_kit"
+-	value = 15
+ /obj/item/weapon/storage/lglo_kit
+ 	name = "Latex Gloves"
+ 	icon_state = "lglo_kit"
+ 	s_istate = "syringe_kit"
+-	value = 10
+ /obj/item/weapon/storage/stma_kit
+ 	name = "Sterile Masks"
+ 	icon_state = "lglo_kit"
+ 	s_istate = "syringe_kit"
+-	value = 10
+ /obj/item/weapon/storage/toolbox
+ 	name = "toolbox"
+ 	icon_state = "toolbox"
+ 	flags = 322.0
+-	force = 4.0 // originally 8
++	force = 8.0
+ 	throw_speed = 1
+ 	throw_range = 4
+ 	w_class = 4.0
+-	value = 20
+ /obj/item/weapon/storage/toolbox/electrical
+ 	name = "electical toolbox"
+ 	icon_state = "toolbox-y"
+ 	flags = 322.0
+-	force = 4.0 // ditto
++	force = 8.0
+ 	w_class = 4.0
+ 
+ 
+@@ -2043,7 +1964,6 @@
+ 	name = "Tracking Implant Kit"
+ 	icon_state = "imp_kit"
+ 	s_istate = "syringe_kit"
+-	value = 20
+ /obj/item/weapon/sword
+ 	name = "sword"
+ 	icon_state = "sword0"
+@@ -2054,7 +1974,6 @@
+ 	throw_range = 5
+ 	w_class = 2.0
+ 	flags = 290.0
+-	value = 60
+ /obj/item/weapon/syndicate_uplink
+ 	name = "Station Bounced Radio"
+ 	icon_state = "radio"
+@@ -2077,7 +1996,6 @@
+ 	throw_speed = 1
+ 	throw_range = 5
+ 	w_class = 1.0
+-	value = 7
+ /obj/item/weapon/table_parts
+ 	name = "table parts"
+ 	icon_state = "table_parts"
+@@ -2093,13 +2011,11 @@
+ 	throwforce = 10.0
+ 	throw_speed = 1
+ 	throw_range = 4
+-	value = 20
+ /obj/item/weapon/tank/anesthetic
+ 	name = "anesthetic"
+ 	icon_state = "an_tank"
+ 	maximum = 1750000.0
+ 	i_used = 250.0
+-	value = 3
+ /obj/item/weapon/tank/jetpack
+ 	name = "jetpack"
+ 	icon_state = "jetpack0"
+@@ -2107,17 +2023,14 @@
+ 	maximum = 300000
+ 	w_class = 4.0
+ 	s_istate = "jetpack"
+-	value = 20
+ /obj/item/weapon/tank/oxygentank
+ 	name = "oxygentank"
+ 	icon_state = "oxygen"
+ 	maximum = 600000
+-	value = 2
+ /obj/item/weapon/tank/plasmatank
+ 	name = "plasmatank"
+ 	icon_state = "plasma"
+ 	maximum = 1600000.0
+-	value = 5
+ /obj/item/weapon/tile
+ 	name = "steel floor tile"
+ 	icon_state = "tile"
+@@ -2127,7 +2040,6 @@
+ 	throw_range = 5
+ 	force = 6.0
+ 	throwforce = 7.0
+-	value = 5
+ /obj/item/weapon/timer
+ 	name = "timer"
+ 	icon_state = "timer0"
+@@ -2136,7 +2048,6 @@
+ 	flags = 322.0
+ 	w_class = 2.0
+ 	s_istate = "electronic"
+-	value = 15
+ /obj/item/weapon/weldingtool
+ 	name = "weldingtool"
+ 	icon_state = "welder"
+@@ -2148,7 +2059,6 @@
+ 	throw_speed = 1
+ 	throw_range = 5
+ 	w_class = 2.0
+-	value = 5
+ /obj/item/weapon/wire
+ 	desc = "This is just a simple piece of regular insulated wire."
+ 	name = "wire"
+@@ -2164,12 +2074,10 @@
+ 	throw_speed = 2
+ 	throw_range = 9
+ 	w_class = 2.0
+-	value = 4
+ /obj/item/weapon/wrapping_paper
+ 	name = "wrapping paper"
+ 	icon_state = "wrap_paper"
+ 	var/amount = 20.0
+-	value = 10
+ /obj/item/weapon/wrench
+ 	name = "wrench"
+ 	icon_state = "wrench"
+@@ -2177,7 +2085,7 @@
+ 	force = 5.0
+ 	throwforce = 7.0
+ 	w_class = 2.0
+-	value = 2
++
+ /obj/item/weapon/cell
+ 	name = "power cell"
+ 	desc = "A rechargable electrochemical power cell."
+@@ -2193,7 +2101,6 @@
+ 	weight = 100000
+ 	var/charge = 0	// note %age conveted to actual charge in New
+ 	var/maxcharge = 1000
+-	value = 15
+ 
+ /obj/landmark
+ 	name = "landmark"
+@@ -2208,7 +2115,6 @@
+ 	icon = 'weap_sat.dmi'
+ 	var/damage = 0.0
+ 	var/range = 10.0
+-	value = 75
+ 
+ /obj/lattice
+ 	desc = "A lightweight support lattice."
+@@ -2259,7 +2165,120 @@
+ 	icon = 'airtunnel.dmi'
+ 	icon_state = "reader00"
+ 	anchored = 1.0
++/obj/machinery/atmoalter
++	name = "atmoalter"
++	var/obj/substance/gas/gas = null
++	var/maximum
++	var/t_status
++	var/t_per
++	var/c_per
++	var/c_status
++	var/obj/item/weapon/tank/holding
++	var/max_valve = 1e6
++/obj/machinery/atmoalter/canister
++	name = "canister"
++	icon = 'canister.dmi'
++	density = 1
++	maximum = 1.3E8
++	var/color = "blue"
++	t_status = 3.0
++	t_per = 50.0
++	c_per = 50.0
++	c_status = 0.0
++	holding = null
++	var/health = 20.0
++	var/destroyed = null
++	flags = FPRINT
++	weight = 1.0E7
++	var/filled = 1		//fractional fullness at spawn
++/obj/machinery/atmoalter/canister/anesthcanister
++	name = "Canister: \[N2O\]"
++	icon_state = "redws"
++	color = "redws"
++/obj/machinery/atmoalter/canister/n2canister
++	name = "Canister: \[N2\]"
++	icon_state = "red"
++	color = "red"
++/obj/machinery/atmoalter/canister/oxygencanister
++	name = "Canister: \[O2\]"
++	icon_state = "blue"
++/obj/machinery/atmoalter/canister/poisoncanister
++	name = "Canister \[Plasma (Bio)\]"
++	icon_state = "orange"
++	color = "orange"
++/obj/machinery/atmoalter/canister/co2canister
++	name = "Canister \[CO2\]"
++	icon_state = "black"
++	color = "black"
++/obj/machinery/atmoalter/canister/aircanister
++	name = "Canister \[Air\]"
++	icon_state = "grey"
++	color = "grey"
++
++/obj/machinery/atmoalter/heater
++	name = "heater"
++	icon = 'stationobjs.dmi'
++	icon_state = "heater1"
++	density = 1
++	maximum = 1.3E8
++	t_status = 3.0
++	var/h_status = 0.0
++	t_per = 50.0
++	var/h_tar = 20.0
++	c_per = 50.0
++	c_status = 0.0
++	holding = null
++	anchored = 1.0
++	var/heatrate = 1500000.0
++/obj/machinery/atmoalter/siphs
++	name = "siphs"
++	density = 1
++	var/alterable = 1.0
++	var/f_time = 1.0
++	var/location = null
++	maximum = 1.3E8
++	holding = null
++	t_status = 3.0
++	t_per = 50.0
++	c_per = 50.0
++	c_status = 0.0
++	weight = 1.0E7
++	anchored = 1.0
++	var/empty =  null
++/obj/machinery/atmoalter/siphs/fullairsiphon
++	name = "Air siphon"
++	icon = 'turfs.dmi'
++	icon_state = "siphon:0"
++/obj/machinery/atmoalter/siphs/fullairsiphon/air_vent
++	name = "Air regulator"
++	icon = 'aircontrol.dmi'
++	icon_state = "vent2"
++	t_status = 4.0
++	alterable = 0.0
++	density = 0	//*****
++/obj/machinery/atmoalter/siphs/fullairsiphon/port
++	name = "Portable Siphon"
++	icon = 'stationobjs.dmi'
++	flags = FPRINT
++	anchored = 0.0
++/obj/machinery/atmoalter/siphs/scrubbers
++	name = "scrubbers"
++	icon = 'turfs2.dmi'
++	icon_state = "siphon:0"
++/obj/machinery/atmoalter/siphs/scrubbers/air_filter
++	name = "air filter"
++	icon = 'aircontrol.dmi'
++	icon_state = "vent2"
++	t_status = 4.0
++	alterable = 0.0
++	density = 0 //*****
+ 
++/obj/machinery/atmoalter/siphs/scrubbers/port
++	name = "Portable Siphon"
++	icon = 'stationobjs.dmi'
++	icon_state = "scrubber:0"
++	flags = FPRINT
++	anchored = 0.0
+ /obj/machinery/autolathe
+ 	name = "Autolathe"
+ 	icon = 'stationobjs.dmi'
+@@ -2323,7 +2342,6 @@
+ 	icon = 'stationobjs.dmi'
+ 	icon_state = "comm_computer"
+ 
+-
+ /obj/machinery/computer/atmosphere
+ 	name = "atmosphere"
+ 	icon = 'turfs.dmi'
+@@ -2668,7 +2686,6 @@
+ 	icon_state = "igniter1"
+ 	var/on = 1.0
+ 	anchored = 1.0
+-	value = 25
+ /obj/machinery/injector
+ 	name = "injector"
+ 	icon = 'stationobjs.dmi'
+@@ -2676,7 +2693,6 @@
+ 	density = 1
+ 	anchored = 1.0
+ 	flags = 512.0
+-	value = 10
+ /obj/machinery/mass_driver
+ 	name = "mass driver"
+ 	icon = 'stationobjs.dmi'
+@@ -2686,7 +2702,6 @@
+ 	var/id = 1.0
+ 	anchored = 1.0
+ 	var/drive_range = 50 //this is mostly irrelevant since current mass drivers throw into space, but you could make a lower-range mass driver for interstation transport or something I guess.
+-	value = 50
+ 
+ /obj/machinery/meter
+ 	name = "meter"
+@@ -2696,6 +2711,23 @@
+ 	anchored = 1.0
+ 	var/average = 0
+ 
++/obj/machinery/nuclearbomb
++	desc = "Uh oh."
++	name = "Nuclear Fission Explosive"
++	icon = 'stationobjs.dmi'
++	icon_state = "nuclearbomb0"
++	density = 1
++	var/deployable = 0.0
++	var/extended = 0.0
++	var/timeleft = 60.0
++	var/timing = 0.0
++	var/r_code = "ADMIN"
++	var/code = ""
++	var/yes_code = 0.0
++	var/safety = 1.0
++	var/obj/item/weapon/disk/nuclear/auth = null
++	flags = FPRINT
++
+ /obj/machinery/valve
+ 	var/obj/substance/gas/gas1 = null
+ 	var/obj/substance/gas/ngas1 = null
+@@ -2892,7 +2924,6 @@
+ 	var/can_rotate = 1
+ 	var/can_maximize_speed = 0
+ 	var/one_person_only = 0
+-	value = 100
+ 
+ /obj/machinery/vehicle/pod
+ 	name = "Escape Pod"
+@@ -3159,7 +3190,6 @@
+ 	anchored = 0
+ 	netnum = -1
+ 	directwired = 0
+-	value = 100
+ 
+ /obj/machinery/compressor
+ 	name = "compressor"
+@@ -3221,7 +3251,6 @@
+ 	var/d1 = 0
+ 	var/d2 = 1
+ 	layer = 2.5
+-	value = 7
+ 
+ /obj/manifest
+ 	name = "manifest"
+@@ -3356,6 +3385,17 @@
+ 
+ 	var/list/parts = list(  )
+ 
++/obj/shuttle
++	name = "shuttle"
++/obj/shuttle/door
++	name = "door"
++	icon = 'shuttle.dmi'
++	icon_state = "door1"
++	opacity = 1
++	density = 1
++	var/visible = 1.0
++	var/operating = null
++	anchored = 1.0
+ /obj/start
+ 	name = "start"
+ 	icon = 'screen1.dmi'
+@@ -3367,7 +3407,6 @@
+ 	icon_state = "stool"
+ 	flags = FPRINT
+ 	weight = 100000
+-	value = 10
+ /obj/stool/bed
+ 	name = "bed"
+ 	icon_state = "bed"
+Common subdirectories: ./data and ../../stable2/stable/code/data
+Common subdirectories: ./game and ../../stable2/stable/code/game
+diff -u ./globals.dm ../../stable2/stable/code/globals.dm
+--- ./globals.dm	2008-12-25 15:01:54.000000000 -0600
++++ ../../stable2/stable/code/globals.dm	2008-12-19 06:15:18.000000000 -0600
+@@ -96,7 +96,7 @@
+ 
+ var
+ 	savefile_ver = "3"
+	SS13_version = "Kurper Stable, Goonstation"
+ 	datum/air_tunnel/air_tunnel1/SS13_airtunnel = null
+ 	datum/control/cellular/cellcontrol = null
+ 	datum/control/gameticker/ticker = null
+@@ -176,8 +176,8 @@
+ 	list/airlockIndexToWireColor
+ 	list/airlockWireColorToIndex
+ 
+-	const/FIRE_DAMAGE_MODIFIER = 0.0215 //Higher values result in more external fire damage to the skin (default 0.0215)
+-	const/AIR_DAMAGE_MODIFIER = 2.025 //More means less damage from hot air scalding lungs, less = more damage. (default 2.025)
++	const/FIRE_DAMAGE_MODIFIER = 0.0215 //Higher values result in more external fire damage to the skin (default 0.025)
++	const/AIR_DAMAGE_MODIFIER = 2.025 //More means less damage from hot air scalding lungs, less = more damage. (default 1.0)
+ 	const/INFINITY = 1e31 //closer then enough
+ 
+ 	//Don't set this very much higher then 1024 unless you like inviting people in to dos your server with message spam
+@@ -193,13 +193,13 @@
+ 	view = "15x15"
+ 
+ //  Ricks hub
+-//	hub = "Slurm.SpaceStation13"
+-//	hub_password = ""
++	hub = "Slurm.SpaceStation13"
++	hub_password = ""
+ 	name = "Goonstation 13"
+ 
+ //  Exadv1 hub
+	hub = "Exadv1.spacestation13"
+	hub_password = "kMZy3U5jJHSiBQjr"
+ //	name = "Space Station 13"
+ 
+ 	//visibility = 0
+Only in .: money.dm
+diff -u ./setup.dm ../../stable2/stable/code/setup.dm
+--- ./setup.dm	2008-12-25 16:44:56.000000000 -0600
++++ ../../stable2/stable/code/setup.dm	2008-12-21 19:57:27.000000000 -0600
+@@ -61,6 +61,4 @@
+ 	GAS_N2 = 1 << 1
+ 	GAS_PL = 1 << 2
+ 	GAS_CO2 = 1 << 3
+-	GAS_N2O = 1 << 4
+-
+-#define PAYCHECK_TIME 600	// time between paycheck collections
+\ No newline at end of file
++	GAS_N2O = 1 << 4
+\ No newline at end of file

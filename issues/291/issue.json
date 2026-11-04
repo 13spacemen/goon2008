@@ -1,0 +1,1 @@
+{"id":291,"status":"Accepted","summary":"Authentication Failure","labels":["Type-Defect","Priority-Medium","Branch-Kelson","Phase-Kelson-1"],"stars":0,"commentCount":1,"comments":[{"id":0,"commenterId":-1465051431848490388,"content":"SS13 must make sure the server sends a response before trying to use it\r\n(for authentication)","timestamp":1221365299,"attachments":[]}]}

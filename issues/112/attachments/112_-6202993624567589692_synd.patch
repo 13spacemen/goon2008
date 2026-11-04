@@ -1,0 +1,109 @@
+--- ss13_algorithm2.dm	2008-05-15 16:23:07.265625000 -0400
++++ _ss13_algorithm2.dm	2008-06-23 20:39:51.000000000 -0400
+@@ -271,6 +271,8 @@
+ 	dat += text("Chronic Cough: <a href=\"byond://?src=\ref[];b_co=1\"><b>[]</b></a><br>", src, (src.be_cough ? "Yes" : "No"))
+ 	dat += text("Stutter: <a href=\"byond://?src=\ref[];b_stut=1\"><b>[]</b></a><br>", src, (src.be_stut ? "Yes" : "No"))
+ 	dat += "<hr>"
++	dat += text("Choose me for Syndicate: <a href=\"byond://?src=\ref[];be_syndicate=1\"><b>[]</b></a><br>", src, (src.be_syndicate ? "Yes" : "No"))
++	dat += "<hr>"
+ 	dat += text("<a href='byond://?src=\ref[];load=1'>Load Setup</a><br>", src)
+ 	dat += text("<a href='byond://?src=\ref[];save=1'>Save Setup</a><br>", src)
+ 	dat += text("<a href='byond://?src=\ref[];reset_all=1'>Reset Setup</a><br>", src)
+--- !atoms.dm	2008-05-15 16:23:07.375000000 -0400
++++ _!atoms.dm	2008-06-23 20:40:32.781250000 -0400
+@@ -372,6 +372,7 @@
+ 	var/s_tone = 0.0
+ 	var/age = 30.0
+ 	var/b_type = "A+"
++	var/be_syndicate = 1.0
+ 	var/obj/item/weapon/clothing/suit/wear_suit = null
+ 	var/obj/item/weapon/clothing/under/w_uniform = null
+ 	var/obj/item/weapon/radio/w_radio = null
+--- cellautomata.dm	2008-05-15 16:23:07.343750000 -0400
++++ _cellautomata.dm	2008-06-23 20:48:28.656250000 -0400
+@@ -1884,9 +1884,12 @@
+ 			world << "<B>A Syndicate Strike Force has landed on SS13!</B>"
+ 			world << "A nuclear explosive was being transported by Nanotrasen to a military base. The transport ship mysteriously lost contact with Space Traffic Control (STC). About that time a strange disk was discovered around SS13. It was identified by Nanotrasen as a nuclear auth. disk and now Syndicate Operatives have arrived to retake the disk and detonate SS13! Also, msot likely Syndicate star ships are in the vicinity so take care not to lose the disk!\n<B>Syndicate</B>: Reclaim the disk and detonate the nuclear bomb anywhere on SS13.\n<B>Personell</B>: Hold the disk and <B>escape with the disk</B> on the shuttle!"
+ 			var/list/mobs = list(  )
++			var/list/synd_list = list()
+ 			for(var/mob/human/M in world)
+ 				if ((M.client && M.start))
+ 					mobs += M
++					if(M.be_syndicate)
++						synd_list += M
+ 				//Foreach goto(260)
+ 			var/obj/O = locate("landmark*CTF-rogue")
+ 			if (mobs.len >= 4)
+@@ -1894,7 +1897,12 @@
+ 				amount = min(5, amount)
+ 				while(amount > 0)
+ 					amount--
+-					var/mob/human/H = pick(mobs)
++					var/mob/human/H = null
++					if(synd_list.len < 1)
++						H = pick(mobs)
++					else
++						H = pick(synd_list)
++						synd_list -= H
+ 					mobs -= H
+ 					if (istype(H, /mob/human))
+ 						H.loc = O.loc
+@@ -1952,15 +1960,21 @@
+ 	switch(src.mode)
+ 		if("traitor")
+ 			var/list/mobs = list(  )
++			var/list/synd_list = list()
+ 			Label_970:
+ 			for(var/mob/M in world)
+ 				if ((M.client && M.start))
+ 					mobs += M
++					if(M.be_syndicate)
++						synd_list += M
+ 				//Foreach goto(983)
+ 			if (!( mobs.len ))
+ 				sleep(300)
+ 				goto Label_970
+-			ticker.killer = pick(mobs)
++			if(synd_list.len < 1)
++				ticker.killer = pick(mobs)
++			else
++				ticker.killer = pick(synd_list)
+ 			mobs -= src.killer
+ 			src.objective = pick("assassinate", "alone", "theft")
+ 			if ( mobs.len < 1 )
+--- mob.dm	2008-05-15 16:23:07.359375000 -0400
++++ _mob.dm	2008-06-23 20:52:11.671875000 -0400
+@@ -4424,6 +4424,8 @@
+ 		F["be_tur"] >> src.be_tur
+ 		F["be_cough"] >> src.be_cough
+ 		F["be_stut"] >> src.be_stut
++		F["be_syndicate"] >> src.be_syndicate
++
+ 		return 1
+ 	else
+ 		return 0
+@@ -4535,6 +4537,8 @@
+ 			src.be_cough = !( src.be_cough )
+ 		else if (findtext(href, "b_stut", 1, null))
+ 			src.be_stut = !( src.be_stut )
++		else if (findtext(href, "be_syndicate", 1, null))
++			src.be_syndicate = !( src.be_syndicate )
+ 		else if (findtext(href, "save", 1, null))
+ 			var/savefile/F = new /savefile( text("players/[].sav", src.ckey) )
+ 			F["version"] << savefile_ver
+@@ -4559,6 +4563,7 @@
+ 			F["be_tur"] << src.be_tur
+ 			F["be_cough"] << src.be_cough
+ 			F["be_stut"] << src.be_stut
++			F["be_syndicate"] << src.be_syndicate
+ 		else if (findtext(href, "load", 1, null))
+ 			if (!src.savefile_load(0))
+ 				alert("You do not have a savefile.")
+@@ -4589,6 +4594,7 @@
+ 			b_eyes = 0.0
+ 			s_tone = 0.0
+ 			b_type = "A+"
++			be_syndicate = 1.0
+ 
+ 
+ 		if(!href_list["priv_msg"])

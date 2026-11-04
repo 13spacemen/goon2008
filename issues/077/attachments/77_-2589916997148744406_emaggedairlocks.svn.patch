@@ -1,0 +1,62 @@
+Index: code/setup.dm
+===================================================================
+--- code/setup.dm	(revision 205)
++++ code/setup.dm	(working copy)
+@@ -47,5 +47,6 @@
+ #define NOPOWER 2
+ #define POWEROFF 4		// tbd
+ #define MAINT 8			// under maintaince
++#define EMAGGED 16
+ 
+-#define ENGINE_EJECT_Z 2
+\ No newline at end of file
++#define ENGINE_EJECT_Z 2
+Index: code/game/machinery/airlock.dm
+===================================================================
+--- code/game/machinery/airlock.dm	(revision 205)
++++ code/game/machinery/airlock.dm	(working copy)
+@@ -214,10 +214,10 @@
+ 	return ((src.wires & wireFlag) == 0)
+ 
+ /obj/machinery/door/airlock/proc/canAIControl()
+-	return ((src.aiControlDisabled!=1) && (!src.isAllPowerCut()));
++	return (!(src.stat & EMAGGED) && (src.aiControlDisabled!=1) && (!src.isAllPowerCut()));
+ 
+ /obj/machinery/door/airlock/proc/canAIHack()
+-	return ((src.aiControlDisabled==1) && (!src.isAllPowerCut()));
++	return (!(src.stat & EMAGGED) && (src.aiControlDisabled==1) && (!src.isAllPowerCut()));
+ 
+ /obj/machinery/door/airlock/proc/arePowerSystemsOn()
+ 	return (src.secondsMainPowerLost==0 || src.secondsBackupPowerLost==0)
+@@ -726,8 +726,7 @@
+ 	return
+ 
+ /obj/machinery/door/airlock/open()
+-
+-	if (src.blocked || src.locked || (!src.arePowerSystemsOn()) || (stat & NOPOWER))
++	if (src.blocked || src.locked || (!src.arePowerSystemsOn()) || (stat & (NOPOWER|EMAGGED)))
+ 		return 0
+ 	use_power(50)
+ 	if (src.closeOther != null && istype(src.closeOther, /obj/machinery/door/airlock/) && !src.closeOther.density)
+@@ -735,8 +734,7 @@
+ 	return ..()
+ 
+ /obj/machinery/door/airlock/close()
+-
+-	if (src.blocked || (!src.arePowerSystemsOn()) || (stat & NOPOWER))
++	if (src.blocked || (!src.arePowerSystemsOn()) || (stat & (NOPOWER|EMAGGED)))
+ 		return
+ 	use_power(50)
+ 	..()
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 205)
++++ code/game/demo.dm	(working copy)
+@@ -45,6 +45,7 @@
+ 		flick("door_spark", src)
+ 		sleep(6)
+ 		open()
++		src.stat |= EMAGGED
+ 		return 1
+ 	if (src.allowed(user))
+ 		if (src.density)

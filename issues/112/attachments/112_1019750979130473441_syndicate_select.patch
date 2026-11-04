@@ -1,0 +1,167 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 268)
++++ code/atoms.dm	(working copy)
+@@ -358,7 +358,6 @@
+ 	anchored = 1.0
+ 	opacity = 0
+ 	density = 1
+-
+ /obj/hud
+ 	name = "hud"
+ 	var/adding = null
+Index: code/game/mob/prespawn/setup.dm
+===================================================================
+--- code/game/mob/prespawn/setup.dm	(revision 268)
++++ code/game/mob/prespawn/setup.dm	(working copy)
+@@ -9,7 +9,7 @@
+ 		char_hair_color = HAIR_COLOR_BROWN
+ 		char_hair_style = HAIR_STYLE_SHORT
+ 		char_last_version //md5 of changelog, to keep track of the most recent version of ss13 they've seen
+-		char_will_play_traitor = "No"
++		char_be_syndicate = "No"
+ 		ready = 0
+ 		savefile_loc = null
+ 		const/SAVEFILE_EXTENSION = "sav"
+@@ -41,8 +41,8 @@
+ 		F["hair_color"] >> src.char_hair_color
+ 		F["hair_style"] >> src.char_hair_style
+ 		F["skin_color"] >> src.char_skin_color
++		F["be_syndicate"] >> src.char_be_syndicate
+ 		F["last_version"] >> src.char_last_version
+-		F["will_play_traitor"] >> src.char_will_play_traitor
+ 		return 1
+ 	else
+ 		world << "no file"
+@@ -58,8 +58,8 @@
+ 	F["hair_color"] << src.char_hair_color
+ 	F["hair_style"] << src.char_hair_style
+ 	F["skin_color"] << src.char_skin_color
++	F["be_syndicate"] << src.char_be_syndicate
+ 	F["last_version"] << md5(changes)
+-	F["will_play_traitor"] << src.char_will_play_traitor
+ 
+ /mob/prespawn/Topic(href, href_list)
+ 	if(src != usr)
+@@ -111,8 +111,8 @@
+ 			src.char_hair_color = initial(src.char_hair_color)
+ 			src.char_hair_style = initial(src.char_hair_style)
+ 			src.char_skin_color = initial(src.char_skin_color)
+-	else if(href_list["willing_to_play_traitor"])
+-		src.char_will_play_traitor = input("Would you like to be eligible for being traitor?", "Character Generation", src.char_will_play_traitor) in list("Yes", "No")
++	else if(href_list["prefer_syndicate"])
++		src.char_be_syndicate = input("Would you like to be eligible for playing as Syndicate?", "Character Generation", src.char_be_syndicate) in list("Yes", "No")
+ 	else
+ 		return ..()
+ 	spawn()
+@@ -132,8 +132,8 @@
+ 		src.char_hair_color = HAIR_COLOR_BROWN
+ 	if(!(src.char_hair_style in get_hair_styles()))
+ 		src.char_hair_style = HAIR_STYLE_SHORT
+-	if(!(src.char_will_play_traitor in list("Yes", "No")))
+-		src.char_will_play_traitor = "No"
++	if(!(src.char_be_syndicate in list("Yes", "No")))
++		src.char_be_syndicate = "No"
+ 	if(!(src.char_job1))
+ 		src.char_job1 = "No Preference"
+ 		src.char_job2 = "No Preference"
+@@ -146,12 +146,12 @@
+ 		"skin_color" = src.char_skin_color,
+ 		"hair_color" = src.char_hair_color,
+ 		"hair_style" = src.char_hair_style,
+-		"willing_to_play_traitor" = src.char_will_play_traitor
++		"prefer_syndicate" = src.char_be_syndicate
+ 	)
+ 	for(var/x in vars)
+ 		dat += "<b>[capitalize(dd_replacetext(x,"_"," "))]: </b>"
+ 		dat += "<a href=\"byond://?src=\ref[src];[x]=input\"><b>[capitalize(vars[x])]</b></a><br>"
+-
++//	dat += text("Prefer Syndicate: <a href=\"byond://?src=\ref[];char_be_syndicate=[]\"><b>[]</b></a><br>", src, src.char_be_syndicate, src.char_be_syndicate)
+ 	dat += "<hr>"
+ 
+ 	dat += "<b>Occupation Choices</b>:<br>"
+@@ -160,7 +160,7 @@
+ 		dat += "Second Choice: <a href=\"byond://?src=\ref[src];job=2\">[src.char_job2 == "No Preference" ? "No Preference" : "<b>[src.char_job2]</b>"]</a><br>"
+ 		if (src.char_job2 != "No Preference")
+ 			dat += "Third Choice: <a href=\"byond://?src=\ref[src];job=3\">[src.char_job3 == "No Preference" ? "No Preference" : "<b>[src.char_job2]</b>"]</a><br>"
+-
++	dat += "<hr>"
+ 	dat += "<br><a href='byond://?src=\ref[src];reset=1'>Reset</a>"
+ 	dat += "<h2><a href='byond://?src=\ref[src];ready=1'>Ready</a></h2>"
+ 	dat += "</body></html>"
+Index: code/game/mob/var.dm
+===================================================================
+--- code/game/mob/var.dm	(revision 268)
++++ code/game/mob/var.dm	(working copy)
+@@ -16,6 +16,7 @@
+ 	var/is_intelligent = 1
+ 
+ 	var/is_dead = 0
++	var/be_syndicate = "No"
+ 
+ 	var/last_known_ip = null
+ 
+Index: code/game/modes/nuclear.dm
+===================================================================
+--- code/game/modes/nuclear.dm	(revision 268)
++++ code/game/modes/nuclear.dm	(working copy)
+@@ -9,9 +9,12 @@
+ 
+ /datum/game_mode/nuclear/pre_setup()
+ 	var/list/mobs = list(  )
++	var/list/synd_list = list ()
+ 	for(var/mob/carbon/M in world)
+ 		if (M.client)
+ 			mobs += M
++			if(M.be_syndicate)
++				synd_list += M
+ 	var/obj/O = locate("landmark*CTF-rogue")
+ 	var/amount = 1
+ 	if (mobs.len >= 4)
+@@ -20,7 +23,12 @@
+ 	amount = min(5, amount)
+ 	while(amount > 0)
+ 		amount--
+-		var/mob/carbon/H = pick(mobs)
++		var/mob/carbon/human/H = null
++		if(synd_list.len < 1)
++			H = pick(mobs)
++		else
++			H = pick(synd_list)
++			synd_list -= H
+ 		mobs -= H
+ 		if (istype(H, /mob/carbon))
+ 			H.loc = O.loc
+Index: code/game/modes/traitor.dm
+===================================================================
+--- code/game/modes/traitor.dm	(revision 268)
++++ code/game/modes/traitor.dm	(working copy)
+@@ -62,7 +62,12 @@
+ 		ticker.extend_process()
+ 
+ /datum/game_mode/traitor/proc/pick_killer()
+-	var/mob/carbon/killer = pick(get_mob_list())
++	var/mob/carbon/killer
++	var/list/synd_list = get_synd_list()
++	if(synd_list.len < 1)
++		killer = pick(get_mob_list())
++	else
++		killer = pick(synd_list)
+ 	ticker.killer = killer
+ 	var/objective = pick_objective(killer)
+ 	ticker.objective = objective
+@@ -361,6 +366,14 @@
+ 			mobs += M
+ 	return mobs
+ 
++/datum/game_mode/traitor/proc/get_synd_list()
++	var/list/mobs = list()
++	for(var/mob/M in world)
++		if (M.client && (istype(M, /mob/carbon) || istype(M, /mob/silicon/ai)))
++			if(M.be_syndicate)
++				mobs += M
++	return mobs
++
+ /datum/game_mode/traitor/proc/get_human_list()
+ 	var/list/humans = list()
+ 	for(var/mob/carbon/M in world)

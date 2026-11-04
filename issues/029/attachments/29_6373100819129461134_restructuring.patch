@@ -1,0 +1,73 @@
+Index: code/game/cellautomata.dm
+===================================================================
+--- code/game/cellautomata.dm	(revision 268)
++++ code/game/cellautomata.dm	(working copy)
+@@ -657,7 +657,7 @@
+ 		if ((src.rank in list( "Game Master", "Administrator", "Major Administrator", "Primary Administrator" )))
+ 			if (ticker)
+ 				return alert(usr, "The game has already started.", null, null, null, null)
+-			var/dat = text("<B>What mode do you wish to play?</B><HR>\n<A href='?src=\ref[];c_mode2=secret'>Secret</A><br>\n<A href='?src=\ref[];c_mode2=random'>Random</A><br>\n<A href='?src=\ref[];c_mode2=traitor'>Traitor</A><br>\n<A href='?src=\ref[];c_mode2=meteor'>Meteor</A><br>\n<A href='?src=\ref[];c_mode2=extended'>Extended</A><br>\n<A href='?src=\ref[];c_mode2=monkey'>Monkey</A><br>\n<A href='?src=\ref[];c_mode2=nuclear'>Nuclear Emergency</A><br>\n<A href='?src=\ref[];c_mode2=blob'>Blob</A><br>\n<A href='?src=\ref[];c_mode2=sandbox'>Sandbox</A><br>\n\nNow: []\n", src, src, src, src, src, src, src, src, src, master_mode)
++			var/dat = text("<B>What mode do you wish to play?</B><HR>\n<A href='?src=\ref[];c_mode2=secret'>Secret</A><br>\n<A href='?src=\ref[];c_mode2=restructuring'>Corporate Restructuring</A><br>\n<A href='?src=\ref[];c_mode2=random'>Random</A><br>\n<A href='?src=\ref[];c_mode2=traitor'>Traitor</A><br>\n<A href='?src=\ref[];c_mode2=meteor'>Meteor</A><br>\n<A href='?src=\ref[];c_mode2=extended'>Extended</A><br>\n<A href='?src=\ref[];c_mode2=monkey'>Monkey</A><br>\n<A href='?src=\ref[];c_mode2=nuclear'>Nuclear Emergency</A><br>\n<A href='?src=\ref[];c_mode2=blob'>Blob</A><br>\n<A href='?src=\ref[];c_mode2=sandbox'>Sandbox</A><br>\n\nNow: []\n", src, src, src, src, src, src, src, src, src, src, master_mode)
+ 			usr << browse(dat, "window=c_mode")
+ 	if (href_list["c_mode2"])
+ 		if ((src.rank in list( "Game Master", "Administrator", "Major Administrator", "Primary Administrator" )))
+@@ -666,6 +666,8 @@
+ 			switch(href_list["c_mode2"])
+ 				if("secret")
+ 					master_mode = "secret"
++				if("restructuring")
++					master_mode = "restructuring"
+ 				if("random")
+ 					master_mode = "random"
+ 				if("traitor")
+Index: code/game/mob.dm
+===================================================================
+--- code/game/mob.dm	(revision 235)
++++ code/game/mob.dm	(working copy)
+@@ -3126,6 +3126,7 @@
+ 	if(src.client)
+ 		src.blind.layer = 0
+ 	src.lying = 1
++	ticker.check_win()
+ 	//src.icon_state = "dead"
+ 	var/cancel
+ 	for(var/mob/M in world)
+Index: InSpace.dme
+===================================================================
+--- InSpace.dme	(revision 268)
++++ InSpace.dme	(working copy)
+@@ -4,8 +4,9 @@
+ 
+ // BEGIN_INTERNALS
+ /*
+-FILE:
+-DIR:
++FILE: code\game\modes\restructuring.dm
++DIR: code code\data code\game code\game\machinery code\game\modes code\game\verbs maps
++UPDATE_OBJ_TREE: ON
+ MAP_ICON_TYPE: 0
+ AUTO_FILE_DIR: ON
+ */
+@@ -27,6 +28,7 @@
+ #define FILE_DIR "icons/ss13"
+ #define FILE_DIR "interface"
+ #define FILE_DIR "maps"
++#define FILE_DIR "maps/backup"
+ // END_FILE_DIR
+ 
+ // BEGIN_PREFERENCES
+@@ -112,6 +114,7 @@
+ #include "code\game\modes\meteor.dm"
+ #include "code\game\modes\monkey.dm"
+ #include "code\game\modes\nuclear.dm"
++#include "code\game\modes\restructuring.dm"
+ #include "code\game\modes\sandbox.dm"
+ #include "code\game\modes\traitor.dm"
+ #include "code\game\modes\virus.dm"
+Index: mode.txt
+===================================================================
+--- mode.txt	(revision 184)
++++ mode.txt	(working copy)
+@@ -1 +1 @@
+-traitor
++restructuring

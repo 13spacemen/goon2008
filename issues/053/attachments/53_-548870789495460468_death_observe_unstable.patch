@@ -1,0 +1,20 @@
+Index: code/game/mob/verbs.dm
+===================================================================
+--- code/game/mob/verbs.dm	(revision 268)
++++ code/game/mob/verbs.dm	(working copy)
+@@ -98,7 +98,14 @@
+ 		if (eye)
+ 			src.client.eye = eye
+ 		else
+-			src.client.eye = src.client.mob
++	if (src.is_dead)
++		src.sight |= SEE_TURFS
++		src.sight |= SEE_MOBS
++		src.sight |= SEE_INFRA
++		src.sight |= SEE_OBJS
++		src.see_in_dark = 8
++		src.see_invisible = 2
++		src.see_infrared = 8
+ 
+ /mob/verb/cancel_camera()
+ 	set name = "Cancel Camera View"

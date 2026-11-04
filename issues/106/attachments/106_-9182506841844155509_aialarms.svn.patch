@@ -1,0 +1,688 @@
+Index: maps/Space Station 13.dmp
+===================================================================
+--- maps/Space Station 13.dmp	(revision 178)
++++ maps/Space Station 13.dmp	(working copy)
+@@ -1266,7 +1266,7 @@
+ "yr" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/turf/station/wall,/area/crew_quarters/male)
+ "ys" = (/obj/machinery/firealarm{pixel_x = 31},/turf/station/floor,/area/hallway/primary/west)
+ "yt" = (/turf/station/wall,/area/hallway/primary/south)
+-"yu" = (/turf/station/wall,/area/storage/emergency)
++"yu" = (/turf/station/wall,/area/ai_monitored/storage/emergency)
+ "yv" = (/obj/grille,/obj/window{icon_state = "rwindow"; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 1; reinf = 1},/obj/cable{icon_state = "0-4"; d2 = 4},/obj/window{icon_state = "rwindow"; dir = 8; reinf = 1},/turf/station/floor,/area/hallway/primary/south)
+ "yw" = (/obj/grille,/obj/window{icon_state = "rwindow"; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 1; reinf = 1},/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/turf/station/floor,/area/hallway/primary/south)
+ "yx" = (/obj/grille,/obj/window{icon_state = "rwindow"; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 1; reinf = 1},/obj/cable{icon_state = "2-8"; d1 = 2; d2 = 8},/obj/cable{icon_state = "2-4"; d1 = 2; d2 = 4},/turf/station/floor,/area/hallway/primary/south)
+@@ -1297,14 +1297,14 @@
+ "yW" = (/turf/station/floor,/area/hallway/primary/south)
+ "yX" = (/obj/machinery/alarm{pixel_y = 31},/turf/station/floor,/area/hallway/primary/south)
+ "yY" = (/obj/grille,/obj/window{icon_state = "rwindow"; dir = 4; invisibility = 0; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 8; reinf = 1},/obj/cable{icon_state = "0-4"; d2 = 4},/obj/window{icon_state = "rwindow"; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 1; reinf = 1},/turf/station/floor,/area/hallway/primary/south)
+-"yZ" = (/obj/closet/emcloset,/obj/cable{icon_state = "2-8"; d1 = 2; d2 = 8},/turf/station/floor,/area/storage/emergency)
+-"za" = (/obj/closet/emcloset,/turf/station/floor,/area/storage/emergency)
+-"zb" = (/obj/closet,/turf/station/floor,/area/storage/emergency)
+-"zc" = (/obj/item/weapon/radio/intercom{name = "Station Intercom (Main Hallway Storage)"; pixel_y = 24; freq = 146.1},/turf/station/floor,/area/storage/emergency)
+-"zd" = (/obj/item/weapon/radio,/turf/station/floor,/area/storage/emergency)
+-"ze" = (/obj/watertank,/turf/station/floor,/area/storage/emergency)
+-"zf" = (/obj/weldfueltank,/turf/station/floor,/area/storage/emergency)
+-"zg" = (/obj/machinery/power/apc{name = "N APC"; dir = 1; pixel_x = 0; cell_type = 2},/obj/cable{icon_state = "0-2"; d2 = 2},/obj/cable{icon_state = "2-4"; d1 = 2; d2 = 4},/turf/station/floor,/area/storage/emergency)
++"yZ" = (/obj/closet/emcloset,/obj/cable{icon_state = "2-8"; d1 = 2; d2 = 8},/turf/station/floor,/area/ai_monitored/storage/emergency)
++"za" = (/obj/closet/emcloset,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"zb" = (/obj/closet,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"zc" = (/obj/machinery/camera/motion{network = "SS13"; c_tag = "Emergency Storage"},/obj/item/weapon/radio/intercom{name = "Station Intercom (Main Hallway Storage)"; pixel_y = 24; freq = 146.1},/turf/station/floor,/area/ai_monitored/storage/emergency)
++"zd" = (/obj/item/weapon/radio,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"ze" = (/obj/watertank,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"zf" = (/obj/weldfueltank,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"zg" = (/obj/machinery/power/apc{name = "N APC"; dir = 1; pixel_x = 0; cell_type = 2},/obj/cable{icon_state = "0-2"; d2 = 2},/obj/cable{icon_state = "2-4"; d1 = 2; d2 = 4},/turf/station/floor,/area/ai_monitored/storage/emergency)
+ "zh" = (/obj/grille,/obj/window{icon_state = "rwindow"; dir = 4; invisibility = 0; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 8; reinf = 1},/obj/cable{icon_state = "0-8"; d2 = 8},/obj/window{icon_state = "rwindow"; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 1; reinf = 1},/turf/station/floor,/area/hallway/primary/south)
+ "zi" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/turf/station/floor,/area/hallway/primary/south)
+ "zj" = (/obj/item/weapon/radio/signaler,/turf/station/floor,/area/hallway/primary/south)
+@@ -1331,12 +1331,12 @@
+ "zE" = (/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/obj/machinery/door/firedoor,/turf/station/floor,/area/hallway/primary/south)
+ "zF" = (/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/turf/station/floor,/area/hallway/primary/south)
+ "zG" = (/obj/machinery/door/airlock{name = "Storage"; req_access_txt = "0"},/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/turf/station/floor,/area/hallway/primary/south)
+-"zH" = (/obj/cable{icon_state = "1-4"; d1 = 1; d2 = 4},/obj/cable{icon_state = "2-4"; d1 = 2; d2 = 4},/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/turf/station/floor,/area/storage/emergency)
+-"zI" = (/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/turf/station/floor,/area/storage/emergency)
+-"zJ" = (/obj/machinery/vent,/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/turf/station/floor,/area/storage/emergency)
+-"zK" = (/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/obj/item/weapon/storage/toolbox,/turf/station/floor,/area/storage/emergency)
+-"zL" = (/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/obj/landmark/alterations{name = "blobstart"; icon_state = "x3"},/turf/station/floor,/area/storage/emergency)
+-"zM" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/obj/cable{icon_state = "2-8"; d1 = 2; d2 = 8},/turf/station/floor,/area/storage/emergency)
++"zH" = (/obj/cable{icon_state = "1-4"; d1 = 1; d2 = 4},/obj/cable{icon_state = "2-4"; d1 = 2; d2 = 4},/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/turf/station/floor,/area/ai_monitored/storage/emergency)
++"zI" = (/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/turf/station/floor,/area/ai_monitored/storage/emergency)
++"zJ" = (/obj/machinery/vent,/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/turf/station/floor,/area/ai_monitored/storage/emergency)
++"zK" = (/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/obj/item/weapon/storage/toolbox,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"zL" = (/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/obj/landmark/alterations{name = "blobstart"; icon_state = "x3"},/turf/station/floor,/area/ai_monitored/storage/emergency)
++"zM" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/obj/cable{icon_state = "2-8"; d1 = 2; d2 = 8},/turf/station/floor,/area/ai_monitored/storage/emergency)
+ "zN" = (/obj/machinery/door/airlock{name = "Storage"; req_access_txt = "0"},/turf/station/floor,/area/hallway/primary/south)
+ "zO" = (/obj/machinery/door/airlock{name = "Senior Staff"; req_access_txt = "22"},/turf/station/floor,/area/hallway/primary/south)
+ "zP" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/obj/cable{icon_state = "2-4"; d1 = 2; d2 = 4},/turf/station/floor{icon_state = "Floor2"},/area/crew_quarters/heads)
+@@ -1353,12 +1353,12 @@
+ "Aa" = (/obj/machinery/vent,/turf/station/floor,/area/crew_quarters/male)
+ "Ab" = (/obj/machinery/light_switch{name = "E lightswitch"; dir = 4; pixel_x = 24},/turf/station/floor,/area/crew_quarters/male)
+ "Ac" = (/obj/grille,/obj/window{icon_state = "rwindow"; dir = 4; invisibility = 0; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 8; reinf = 1},/obj/cable{icon_state = "0-4"; d2 = 4},/obj/window{icon_state = "rwindow"; dir = 1; reinf = 1},/obj/window{icon_state = "rwindow"; reinf = 1},/turf/station/floor,/area/hallway/primary/south)
+-"Ad" = (/obj/item/weapon/extinguisher,/obj/cable{icon_state = "1-8"; d1 = 1; d2 = 8},/turf/station/floor,/area/storage/emergency)
+-"Ae" = (/obj/item/weapon/extinguisher,/turf/station/floor,/area/storage/emergency)
+-"Af" = (/obj/machinery/pipes{tag = ""; icon_state = "3"; p_dir = 3},/turf/station/floor,/area/storage/emergency)
+-"Ag" = (/turf/station/floor,/area/storage/emergency)
+-"Ah" = (/obj/item/weapon/storage/gl_kit,/turf/station/floor,/area/storage/emergency)
+-"Ai" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/obj/cable{icon_state = "2-4"; d1 = 2; d2 = 4},/obj/item/weapon/storage/toolbox,/turf/station/floor,/area/storage/emergency)
++"Ad" = (/obj/item/weapon/extinguisher,/obj/cable{icon_state = "1-8"; d1 = 1; d2 = 8},/turf/station/floor,/area/ai_monitored/storage/emergency)
++"Ae" = (/obj/item/weapon/extinguisher,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"Af" = (/obj/machinery/pipes{tag = ""; icon_state = "3"; p_dir = 3},/turf/station/floor,/area/ai_monitored/storage/emergency)
++"Ag" = (/turf/station/floor,/area/ai_monitored/storage/emergency)
++"Ah" = (/obj/item/weapon/storage/gl_kit,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"Ai" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/obj/cable{icon_state = "2-4"; d1 = 2; d2 = 4},/obj/item/weapon/storage/toolbox,/turf/station/floor,/area/ai_monitored/storage/emergency)
+ "Aj" = (/obj/grille,/obj/window{icon_state = "rwindow"; dir = 4; invisibility = 0; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 8; reinf = 1},/obj/cable{icon_state = "0-8"; d2 = 8},/obj/window{icon_state = "rwindow"; dir = 1; reinf = 1},/obj/window{icon_state = "rwindow"; reinf = 1},/turf/station/floor,/area/hallway/primary/south)
+ "Ak" = (/obj/grille,/obj/window{icon_state = "rwindow"; dir = 4; invisibility = 0; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 8; reinf = 1},/obj/cable{icon_state = "0-4"; d2 = 4},/obj/window{icon_state = "rwindow"; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 1; reinf = 1},/turf/station/command/floor/other,/area/hallway/primary/south)
+ "Al" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/obj/cable{icon_state = "2-8"; d1 = 2; d2 = 8},/obj/machinery/light_switch{name = "S lightswitch"; dir = 3; pixel_y = -24},/turf/station/floor{icon_state = "Floor2"},/area/crew_quarters/heads)
+@@ -1377,17 +1377,17 @@
+ "Ay" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/turf/station/floor,/area/crew_quarters/male)
+ "Az" = (/obj/start{name = "Staff Assistant"},/obj/machinery/door/firedoor,/turf/station/floor,/area/hallway/primary/south)
+ "AA" = (/obj/machinery/firealarm{pixel_x = 31},/turf/station/floor,/area/hallway/primary/south)
+-"AB" = (/obj/table{icon_state = "corners"; dir = 10},/obj/item/weapon/flashlight,/obj/item/weapon/radio/headset,/obj/item/weapon/radio/signaler,/turf/station/floor,/area/storage/emergency)
+-"AC" = (/obj/table{icon_state = "sides"; dir = 2},/obj/item/weapon/flashlight,/obj/item/weapon/radio/headset,/obj/item/weapon/radio/signaler,/turf/station/floor,/area/storage/emergency)
+-"AD" = (/obj/table{icon_state = "sides"; dir = 2},/obj/machinery/pipes{tag = ""; icon_state = "3"; p_dir = 3},/obj/item/weapon/flashlight,/obj/item/weapon/screwdriver,/obj/item/weapon/healthanalyzer,/turf/station/floor,/area/storage/emergency)
+-"AE" = (/obj/table{icon_state = "sides"; dir = 2},/obj/item/weapon/flashlight,/obj/item/weapon/crowbar,/obj/item/weapon/cable_coil,/turf/station/floor,/area/storage/emergency)
+-"AF" = (/obj/table{icon_state = "sides"; dir = 2},/obj/item/weapon/flashlight,/obj/item/weapon/crowbar,/obj/item/weapon/cable_coil,/obj/item/weapon/igniter,/turf/station/floor,/area/storage/emergency)
+-"AG" = (/obj/table{icon_state = "sides"; dir = 2},/obj/item/weapon/flashlight,/obj/item/weapon/infra,/turf/station/floor,/area/storage/emergency)
+-"AH" = (/obj/table{icon_state = "sides"; dir = 2},/obj/item/weapon/flashlight,/obj/item/weapon/radio,/turf/station/floor,/area/storage/emergency)
+-"AI" = (/obj/table{icon_state = "sides"; dir = 2},/obj/item/weapon/flashlight,/obj/item/weapon/igniter,/obj/item/weapon/analyzer,/turf/station/floor,/area/storage/emergency)
+-"AJ" = (/obj/table{icon_state = "sides"; dir = 2},/obj/item/weapon/flashlight,/obj/item/weapon/screwdriver,/obj/item/weapon/t_scanner,/turf/station/floor,/area/storage/emergency)
+-"AK" = (/obj/table{icon_state = "sides"; dir = 2},/obj/item/weapon/paper_bin,/obj/item/weapon/wrench,/obj/item/weapon/pen,/obj/item/weapon/clothing/gloves/black,/turf/station/floor,/area/storage/emergency)
+-"AL" = (/obj/table{icon_state = "corners"; dir = 6},/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/obj/item/weapon/flashlight,/obj/item/weapon/prox_sensor,/turf/station/floor,/area/storage/emergency)
++"AB" = (/obj/table{icon_state = "corners"; dir = 10},/obj/item/weapon/flashlight,/obj/item/weapon/radio/headset,/obj/item/weapon/radio/signaler,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"AC" = (/obj/table{icon_state = "sides"; dir = 2},/obj/item/weapon/flashlight,/obj/item/weapon/radio/headset,/obj/item/weapon/radio/signaler,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"AD" = (/obj/table{icon_state = "sides"; dir = 2},/obj/machinery/pipes{tag = ""; icon_state = "3"; p_dir = 3},/obj/item/weapon/flashlight,/obj/item/weapon/screwdriver,/obj/item/weapon/healthanalyzer,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"AE" = (/obj/table{icon_state = "sides"; dir = 2},/obj/item/weapon/flashlight,/obj/item/weapon/crowbar,/obj/item/weapon/cable_coil,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"AF" = (/obj/table{icon_state = "sides"; dir = 2},/obj/item/weapon/flashlight,/obj/item/weapon/crowbar,/obj/item/weapon/cable_coil,/obj/item/weapon/igniter,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"AG" = (/obj/table{icon_state = "sides"; dir = 2},/obj/item/weapon/flashlight,/obj/item/weapon/infra,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"AH" = (/obj/table{icon_state = "sides"; dir = 2},/obj/item/weapon/flashlight,/obj/item/weapon/radio,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"AI" = (/obj/table{icon_state = "sides"; dir = 2},/obj/item/weapon/flashlight,/obj/item/weapon/igniter,/obj/item/weapon/analyzer,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"AJ" = (/obj/table{icon_state = "sides"; dir = 2},/obj/item/weapon/flashlight,/obj/item/weapon/screwdriver,/obj/item/weapon/t_scanner,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"AK" = (/obj/table{icon_state = "sides"; dir = 2},/obj/item/weapon/paper_bin,/obj/item/weapon/wrench,/obj/item/weapon/pen,/obj/item/weapon/clothing/gloves/black,/turf/station/floor,/area/ai_monitored/storage/emergency)
++"AL" = (/obj/table{icon_state = "corners"; dir = 6},/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/obj/item/weapon/flashlight,/obj/item/weapon/prox_sensor,/turf/station/floor,/area/ai_monitored/storage/emergency)
+ "AM" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/turf/station/r_wall,/area/hallway/primary/south)
+ "AN" = (/obj/machinery/door/airlock{name = "EVA Storage"; req_access_txt = "21"},/turf/station/floor,/area/hallway/primary/south)
+ "AO" = (/obj/watertank,/turf/station/floor,/area/hallway/primary/south)
+@@ -1414,16 +1414,16 @@
+ "Bj" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/obj/cable{icon_state = "2-8"; d1 = 2; d2 = 8},/turf/station/wall,/area/hallway/primary/south)
+ "Bk" = (/obj/item/weapon/extinguisher,/obj/machinery/door/firedoor,/turf/station/floor,/area/hallway/primary/south)
+ "Bl" = (/obj/grille,/obj/window{icon_state = "rwindow"; dir = 4; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 8; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 1; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 10; reinf = 1},/obj/cable,/obj/cable{icon_state = "0-2"; d2 = 2},/turf/station/floor,/area/hallway/primary/south)
+-"Bm" = (/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/turf/station/floor,/area/storage/eva)
+-"Bn" = (/obj/item/weapon/radio/intercom{name = "Station Intercom (Tech Storage)"; pixel_y = 24; freq = 148.9},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/turf/station/floor,/area/storage/eva)
+-"Bo" = (/obj/machinery/alarm{pixel_y = 31},/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/turf/station/floor,/area/storage/eva)
+-"Bp" = (/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/turf/station/floor,/area/storage/eva)
+-"Bq" = (/obj/machinery/power/apc{name = "N APC"; dir = 1; pixel_x = 0; cell_type = 2},/obj/cable{icon_state = "0-4"; d2 = 4},/obj/machinery/camera{network = "SS13"; c_tag = "EVA Storage"},/turf/station/floor,/area/storage/eva)
+-"Br" = (/obj/cable{icon_state = "2-8"; d1 = 2; d2 = 8},/obj/item/weapon/analyzer,/turf/station/floor,/area/storage/eva)
+-"Bs" = (/obj/item/weapon/crowbar,/turf/station/floor,/area/storage/eva)
+-"Bt" = (/obj/machinery/dispenser{name = "Oxygen Tank Storage Unit"; pltanks = 0},/turf/station/floor,/area/storage/eva)
+-"Bu" = (/obj/machinery/light_switch{name = "N lightswitch"; dir = 1; pixel_y = 24},/turf/station/floor,/area/storage/eva)
+-"Bv" = (/turf/station/floor,/area/storage/eva)
++"Bm" = (/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/turf/station/floor,/area/ai_monitored/storage/eva)
++"Bn" = (/obj/item/weapon/radio/intercom{name = "Station Intercom (Tech Storage)"; pixel_y = 24; freq = 148.9},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/obj/item/weapon/sheet/metal{amount = 50},/turf/station/floor,/area/ai_monitored/storage/eva)
++"Bo" = (/obj/machinery/alarm{pixel_y = 31},/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/turf/station/floor,/area/ai_monitored/storage/eva)
++"Bp" = (/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/obj/item/weapon/cable_coil,/turf/station/floor,/area/ai_monitored/storage/eva)
++"Bq" = (/obj/machinery/power/apc{name = "N APC"; dir = 1; pixel_x = 0; cell_type = 2},/obj/cable{icon_state = "0-4"; d2 = 4},/obj/machinery/camera/motion{network = "SS13"; c_tag = "EVA Storage"},/turf/station/floor,/area/ai_monitored/storage/eva)
++"Br" = (/obj/cable{icon_state = "2-8"; d1 = 2; d2 = 8},/obj/item/weapon/analyzer,/turf/station/floor,/area/ai_monitored/storage/eva)
++"Bs" = (/obj/item/weapon/crowbar,/turf/station/floor,/area/ai_monitored/storage/eva)
++"Bt" = (/obj/machinery/dispenser{name = "Oxygen Tank Storage Unit"; pltanks = 0},/turf/station/floor,/area/ai_monitored/storage/eva)
++"Bu" = (/obj/machinery/light_switch{name = "N lightswitch"; dir = 1; pixel_y = 24},/turf/station/floor,/area/ai_monitored/storage/eva)
++"Bv" = (/turf/station/floor,/area/ai_monitored/storage/eva)
+ "Bw" = (/obj/grille,/obj/window{icon_state = "rwindow"; dir = 8; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 4; invisibility = 0; reinf = 1},/obj/cable{icon_state = "0-2"; d2 = 2},/obj/window{icon_state = "rwindow"; dir = 1; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 10; reinf = 1},/obj/cable,/obj/cable{icon_state = "0-2"; d2 = 2},/turf/station/floor,/area/hallway/primary/south)
+ "Bx" = (/obj/table{icon_state = "corners"; dir = 9},/obj/item/weapon/radio/signaler,/obj/item/weapon/screwdriver,/turf/station/floor,/area/hallway/primary/south)
+ "By" = (/obj/table{icon_state = "corners"; dir = 5},/obj/item/weapon/healthanalyzer,/turf/station/floor,/area/hallway/primary/south)
+@@ -1447,10 +1447,10 @@
+ "BQ" = (/obj/machinery/pipes{tag = ""; icon_state = "3"; p_dir = 3},/turf/station/floor,/area/hallway/primary/south)
+ "BR" = (/obj/machinery/camera{network = "SS13"; c_tag = "Main Hallway South"},/turf/station/floor,/area/hallway/primary/south)
+ "BS" = (/obj/grille,/obj/window{icon_state = "rwindow"; dir = 4; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 8; reinf = 1},/obj/window{icon_state = "rwindow"; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 10; reinf = 1},/obj/cable,/obj/cable{icon_state = "0-2"; d2 = 2},/turf/station/floor,/area/hallway/primary/south)
+-"BT" = (/obj/item/weapon/sheet/rglass{amount = 50},/turf/station/floor,/area/storage/eva)
+-"BU" = (/obj/item/weapon/sheet/glass{amount = 50},/turf/station/floor,/area/storage/eva)
+-"BV" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/turf/station/floor,/area/storage/eva)
+-"BW" = (/obj/item/weapon/extinguisher,/turf/station/floor,/area/storage/eva)
++"BT" = (/obj/item/weapon/sheet/rglass{amount = 50},/turf/station/floor,/area/ai_monitored/storage/eva)
++"BU" = (/obj/item/weapon/sheet/glass{amount = 50},/turf/station/floor,/area/ai_monitored/storage/eva)
++"BV" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/turf/station/floor,/area/ai_monitored/storage/eva)
++"BW" = (/obj/item/weapon/extinguisher,/turf/station/floor,/area/ai_monitored/storage/eva)
+ "BX" = (/obj/grille,/obj/window{icon_state = "rwindow"; dir = 8; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 4; invisibility = 0; reinf = 1},/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/obj/window{icon_state = "rwindow"; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 10; reinf = 1},/obj/cable,/obj/cable{icon_state = "0-2"; d2 = 2},/turf/station/floor,/area/hallway/primary/south)
+ "BY" = (/obj/table{icon_state = "corners"; dir = 10},/obj/item/weapon/multitool,/turf/station/floor,/area/hallway/primary/south)
+ "BZ" = (/obj/table{icon_state = "corners"; dir = 6},/obj/item/weapon/radio,/obj/item/weapon/timer,/turf/station/floor,/area/hallway/primary/south)
+@@ -1475,8 +1475,8 @@
+ "Cs" = (/turf/station/floor,/area/security/checkpoint)
+ "Ct" = (/obj/machinery/door/airlock{name = "Security"; req_access_txt = "1"},/turf/station/floor,/area/hallway/primary/south)
+ "Cu" = (/obj/machinery/door/airlock{name = "EVA Storage"; req_access_txt = "21"},/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/turf/station/floor,/area/hallway/primary/south)
+-"Cv" = (/obj/machinery/vent,/turf/station/floor,/area/storage/eva)
+-"Cw" = (/turf/station/r_wall,/area/storage/eva)
++"Cv" = (/obj/machinery/vent,/turf/station/floor,/area/ai_monitored/storage/eva)
++"Cw" = (/turf/station/r_wall,/area/ai_monitored/storage/eva)
+ "Cx" = (/obj/securearea{name = "EXTERNAL AIRLOCK"; desc = "A warning sign which reads 'EXTERNAL AIRLOCK'"},/turf/station/wall,/area/hallway/primary/south)
+ "Cy" = (/obj/machinery/door/airlock{name = "External Access"; req_access_txt = "15"},/turf/station/floor,/area/hallway/primary/south)
+ "Cz" = (/obj/machinery/alarm{pixel_x = -31},/turf/station/floor,/area/maintenance/south)
+@@ -1487,12 +1487,12 @@
+ "CE" = (/obj/machinery/pipes{tag = ""; icon_state = "3"; p_dir = 3},/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/obj/item/weapon/flash,/turf/station/floor,/area/security/checkpoint)
+ "CF" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/obj/cable{icon_state = "2-8"; d1 = 2; d2 = 8},/obj/item/weapon/extinguisher,/obj/machinery/light_switch{name = "S lightswitch"; dir = 3; pixel_y = -24},/turf/station/floor,/area/security/checkpoint)
+ "CG" = (/obj/closet/wardrobe/red,/turf/station/floor,/area/security/checkpoint)
+-"CH" = (/obj/machinery/light_switch{name = "W lightswitch"; pixel_x = -24},/turf/station/floor,/area/storage/eva)
+-"CI" = (/obj/rack,/obj/item/weapon/clothing/mask/m_mask,/obj/item/weapon/clothing/head/s_helmet,/obj/item/weapon/clothing/suit/sp_suit,/obj/item/weapon/clothing/under/grey,/obj/item/weapon/clothing/shoes/white,/obj/item/weapon/clothing/gloves/latex,/turf/station/floor,/area/storage/eva)
+-"CJ" = (/obj/item/weapon/tank/jetpack,/turf/station/floor,/area/storage/eva)
+-"CK" = (/obj/machinery/pipes{tag = ""; icon_state = "3"; p_dir = 3},/turf/station/floor,/area/storage/eva)
+-"CL" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/obj/item/weapon/tank/jetpack,/turf/station/floor,/area/storage/eva)
+-"CM" = (/obj/weldfueltank,/turf/station/floor,/area/storage/eva)
++"CH" = (/obj/machinery/light_switch{name = "W lightswitch"; pixel_x = -24},/turf/station/floor,/area/ai_monitored/storage/eva)
++"CI" = (/obj/rack,/obj/item/weapon/clothing/mask/m_mask,/obj/item/weapon/clothing/head/s_helmet,/obj/item/weapon/clothing/suit/sp_suit,/obj/item/weapon/clothing/under/grey,/obj/item/weapon/clothing/shoes/white,/obj/item/weapon/clothing/gloves/latex,/turf/station/floor,/area/ai_monitored/storage/eva)
++"CJ" = (/obj/item/weapon/tank/jetpack,/turf/station/floor,/area/ai_monitored/storage/eva)
++"CK" = (/obj/machinery/pipes{tag = ""; icon_state = "3"; p_dir = 3},/turf/station/floor,/area/ai_monitored/storage/eva)
++"CL" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/obj/item/weapon/tank/jetpack,/turf/station/floor,/area/ai_monitored/storage/eva)
++"CM" = (/obj/weldfueltank,/turf/station/floor,/area/ai_monitored/storage/eva)
+ "CN" = (/obj/machinery/alarm{pixel_y = 31},/turf/station/floor,/area/maintenance/south)
+ "CO" = (/obj/machinery/camera{network = "SS13"; c_tag = "Southern External Airlock"},/turf/station/floor,/area/maintenance/south)
+ "CP" = (/obj/machinery/connector{dir = 4; p_dir = 4},/obj/machinery/atmoalter/canister/aircanister{name = "C Air"; c_per = 150; c_status = 1},/turf/station/floor,/area/maintenance/south)
+@@ -1513,8 +1513,8 @@
+ "De" = (/obj/grille,/obj/window{icon_state = "rwindow"; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 1; reinf = 1},/obj/cable{icon_state = "0-4"; d2 = 4},/obj/cable{icon_state = "0-8"; d2 = 8},/turf/station/floor,/area/hallway/primary/south)
+ "Df" = (/obj/grille,/obj/window{icon_state = "rwindow"; dir = 1; reinf = 1},/obj/window{icon_state = "rwindow"; reinf = 1},/obj/window{icon_state = "rwindow"; dir = 4; invisibility = 0; reinf = 1},/obj/cable{icon_state = "0-4"; d2 = 4},/obj/cable{icon_state = "0-8"; d2 = 8},/turf/station/command/floor/other,/area/hallway/primary/south)
+ "Dg" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/turf/station/wall,/area/hallway/primary/south)
+-"Dh" = (/obj/machinery/pipes{tag = ""; icon_state = "3"; p_dir = 3},/turf/station/r_wall,/area/storage/eva)
+-"Di" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/turf/station/r_wall,/area/storage/eva)
++"Dh" = (/obj/machinery/pipes{tag = ""; icon_state = "3"; p_dir = 3},/turf/station/r_wall,/area/ai_monitored/storage/eva)
++"Di" = (/obj/cable{icon_state = "1-2"; d1 = 1; d2 = 2},/turf/station/r_wall,/area/ai_monitored/storage/eva)
+ "Dj" = (/obj/cable{icon_state = "2-4"; d1 = 2; d2 = 4},/obj/cable{icon_state = "1-4"; d1 = 1; d2 = 4},/turf/station/floor,/area/maintenance/south)
+ "Dk" = (/obj/machinery/door/airlock{name = "Maintenance"; req_access_txt = "14"},/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/turf/station/floor,/area/maintenance/south)
+ "Dl" = (/obj/cable{icon_state = "4-8"; d1 = 4; d2 = 8},/obj/cable{icon_state = "1-4"; d1 = 1; d2 = 4},/turf/station/floor,/area/maintenance/south)
+Index: maps/Space Station 13 areas.dm
+===================================================================
+--- maps/Space Station 13 areas.dm	(revision 178)
++++ maps/Space Station 13 areas.dm	(working copy)
+@@ -183,6 +183,18 @@
+ 	name = "Emergency Storage"
+ 	icon_state = "storage"
+ 
++/area/ai_monitored/storage/eva
++	name = "EVA Storage"
++	icon_state = "storage"
++
++/area/ai_monitored/storage/secure
++	name = "Secure Storage"
++	icon_state = "storage"
++
++/area/ai_monitored/storage/emergency
++	name = "Emergency Storage"
++	icon_state = "storage"
++
+ /area/turret_protected/ai_upload
+ 	name = "AI Upload Chamber"
+ 	icon_state = "ai_upload"
+Index: mode.txt
+===================================================================
+--- mode.txt	(revision 178)
++++ mode.txt	(working copy)
+@@ -1 +1 @@
+-traitor
++sandbox
+Index: config.txt
+===================================================================
+--- config.txt	(revision 178)
++++ config.txt	(working copy)
+@@ -49,4 +49,4 @@
+ ALLOW_AI
+ 
+ # goon authentication
+-AUTHENTICATION
++# AUTHENTICATION
+Index: InSpace.dme
+===================================================================
+--- InSpace.dme	(revision 178)
++++ InSpace.dme	(working copy)
+@@ -90,6 +90,7 @@
+ #include "code\game\vote.dm"
+ #include "code\game\weap_sat.dm"
+ #include "code\game\weapons.dm"
++#include "code\game\area\ai_monitored.dm"
+ #include "code\game\item\weapon\aimodules.dm"
+ #include "code\game\item\weapon\flashlight.dm"
+ #include "code\game\item\weapon\game_kit.dm"
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 178)
++++ code/atoms.dm	(working copy)
+@@ -304,6 +304,7 @@
+ 	var/list/laws = list()
+ 	flags = 258.0
+ 	var/cameraFollow = null
++	var/alarms = list("Motion"=list(), "Fire"=list(), "Atmosphere"=list(), "Power"=list())
+ 
+ /mob/megamonkey
+ 		name = "mutant monkey"
+Index: code/game/camera.dm
+===================================================================
+--- code/game/camera.dm	(revision 178)
++++ code/game/camera.dm	(working copy)
+@@ -76,26 +76,12 @@
+ 
+ 	var/t = input(user, "Which camera should you change to?") as null|anything in D
+ 
+-	if (!t)
+-		user.machine = null
+-		user.reset_view(null)
++	if (!t || t == "Cancel")
++		switchCamera(null)
+ 		return 0
+ 
+ 	var/obj/machinery/camera/C = D[t]
+ 
+-	if (t == "Cancel")
+-		user.machine = null
+-		user.reset_view(null)
+-		return 0
++	switchCamera(C)
+ 
+-	//if (user.machine != src || !( C.status ))
+-	if (!( C.status ))
+-
+-		return 0
+-	else
+-		src.current = C
+-		//use_power(50)
+-		spawn( 5 )
+-			attack_ai(user)
+-			return
+ 	return
+Index: code/game/power.dm
+===================================================================
+--- code/game/power.dm	(revision 178)
++++ code/game/power.dm	(working copy)
+@@ -575,23 +575,27 @@
+ 
+ 		// set channels depending on how much charge we have left
+ 
+-
+ 		if(cell.charge <= 0)					// zero charge, turn all off
+ 			equipment = autoset(equipment, 2)
+ 			lighting = autoset(lighting, 2)
+ 			environ = autoset(environ, 2)
++			area.poweralert(0)
+ 		else if(cell.percent() < 15)				// <15%, turn off lighting & equipment
+ 			equipment = autoset(equipment, 2)
+ 			lighting = autoset(lighting, 2)
+ 			environ = autoset(environ, 1)
++			area.poweralert(0)
+ 		else if(cell.percent() < 30)			// <30%, turn off equipment
+ 			equipment = autoset(equipment, 2)
+ 			lighting = autoset(lighting, 1)
+ 			environ = autoset(environ, 1)
++			area.poweralert(0)
+ 		else									// otherwise all can be on
+ 			equipment = autoset(equipment, 1)
+ 			lighting = autoset(lighting, 1)
+ 			environ = autoset(environ, 1)
++			if(cell.percent() > 75)
++				area.poweralert(1)
+ 
+ 
+ 		if(excess > 0 || perapc > lastused_total)		// if power excess, or enough anyway, recharge the cell
+@@ -677,6 +681,7 @@
+ 		equipment = autoset(equipment, 0)
+ 		lighting = autoset(lighting, 0)
+ 		environ = autoset(environ, 0)
++		area.poweralert(0)
+ 
+ 
+ 
+Index: code/game/computer.dm
+===================================================================
+--- code/game/computer.dm	(revision 178)
++++ code/game/computer.dm	(working copy)
+@@ -89,6 +89,42 @@
+ 	if(stat & NOPOWER) return
+ 	call_shuttle_proc(usr)
+ 
++/mob/ai/proc/ai_alerts()
++	set category = "AI Commands"
++	set name = "Show Alerts"
++
++	var/dat = "<HEAD><TITLE>Current Station Alerts</TITLE><META HTTP-EQUIV='Refresh' CONTENT='10'></HEAD><BODY>\n"
++	dat += "( <A HREF='?src=\ref[src];showalerts=1'>Refresh</A> | <A HREF='?src=\ref[src];mach_close=aialerts'>Close</A> )<BR><BR>"
++	for (var/cat in src.alarms)
++		dat += text("<B>[]</B><BR>\n", cat)
++		var/list/L = src.alarms[cat]
++		if (L.len)
++			for (var/alarm in L)
++				var/list/alm = L[alarm]
++				var/area/A = alm[1]
++				var/C = alm[2]
++				if (C && istype(C, /list))
++					var/dat2 = ""
++					for (var/obj/machinery/camera/I in C)
++						dat2 += text("[]<A HREF=?src=\ref[];switchcamera=\ref[]>[]</A>", (dat2=="") ? "" : " | ", src, I, I.c_tag)
++					dat += text("<NOBR>-- [] ([])</NOBR><BR>\n", A.name, (dat2!="") ? dat2 : "No Camera")
++				else if (C && istype(C, /obj/machinery/camera))
++					var/obj/machinery/camera/Ctmp = C
++					dat += text("-- [] (<A HREF=?src=\ref[];switchcamera=\ref[]>[]</A>)<BR>\n", A.name, src, C, Ctmp.c_tag)
++				else
++					dat += text("-- [] (No Camera)<BR>\n", A.name)
++		else
++			dat += "-- All Systems Nominal<BR>\n"
++		dat += "<BR>\n"
++
++	usr << browse(dat, "window=aialerts")
++
++/mob/ai/proc/ai_camera_list()
++	set category = "AI Commands"
++	set name = "Show Camera List"
++
++	attack_ai(src)
++
+ /mob/ai/proc/ai_camera_track()
+ 	set category = "AI Commands"
+ 	set name = "Track With Camera"
+Index: code/game/airtunnel.dm
+===================================================================
+--- code/game/airtunnel.dm	(revision 178)
++++ code/game/airtunnel.dm	(working copy)
+@@ -622,6 +622,8 @@
+ 	return
+ 
+ /obj/machinery/alarm/process()
++	var/turf/T = src.loc
++	var/area/A = T.loc
+ 
+ 	if(stat & NOPOWER)
+ 		icon_state = "alarm-p"
+@@ -629,21 +631,38 @@
+ 
+ 	use_power(5, ENVIRON)
+ 
+-	var/safe = 1
+-	var/turf/T = src.loc
++	var/safe = 2
+ 	if (!( istype(T, /turf) ))
+ 		return
+ 	if (locate(/obj/move, T))
+ 		T = locate(/obj/move, T)
+ 	var/turf_total = T.co2 + T.oxygen + T.poison + T.sl_gas + T.n2
+ 	turf_total = max(turf_total, 1)
+-	var/t1 = turf_total / CELLSTANDARD * 100
+-	if (!( (90 < t1 && t1 < 110) ))
+-		safe = 0
+-	t1 = T.oxygen / turf_total * 100
+-	if (!( (20 < t1 && t1 < 30) ))
+-		safe = 0
+-	src.icon_state = text("alarm:[]", !( safe ))
++
++	//if (!( (75 < t1 && t1 < 125) ))
++	//	safe = 0
++	//if (!( (20 < t2 && t2 < 30) ))
++	//	safe = 0
++
++	var/P    = turf_total / CELLSTANDARD // pressure in bar
++
++	var/ppO2   = P * (T.oxygen / turf_total)
++	var/ppCO2  = P * (T.co2 / turf_total)
++	var/ppPlas = P * (T.poison / turf_total)
++
++	// world.log << "[A.name] : P = [P] | FO2 = [FO2] | ppO2 = [ppO2]"
++	if (P < 0.90 || P > 1.10) // pressure alarm
++		safe = (P < 0.75 || P > 1.25) ? 0 : 1
++	if (safe && (ppO2 < 0.19 || ppO2 > 0.23)) // O2 alarm
++		safe = (ppO2 < 0.17 || ppO2 > 0.25) ? 0 : 1
++	if (safe && (ppCO2 > 0.05)) // CO2 alarm
++		safe = (ppCO2 > 0.1) ? 0 : 1
++	if (safe && (ppPlas > 0.05)) // Plasma alarm
++		safe = (ppPlas > 0.1) ? 0 : 1
++
++	A.atmosalert(safe)
++	src.icon_state = text("alarm:[]", !( safe == 2 ))
++
+ 	return
+ 
+ /obj/machinery/alarm/power_change()
+Index: code/game/area/ai_monitored.dm
+===================================================================
+--- code/game/area/ai_monitored.dm	(revision 0)
++++ code/game/area/ai_monitored.dm	(revision 0)
+@@ -0,0 +1,63 @@
++/area/ai_monitored
++	name = "AI Monitored Area"
++	var/obj/machinery/camera/motion/motioncamera = null
++
++/area/ai_monitored/New()
++	..()
++	// locate and store the motioncamera
++	spawn (20) // spawn on a delay to let turfs/objs load
++		for (var/obj/machinery/camera/motion/M in src)
++			motioncamera = M
++			return
++	return
++
++/area/ai_monitored/Entered(atom/movable/O)
++	if (istype(O, /mob) && motioncamera)
++		motioncamera.newTarget(O)
++
++/area/ai_monitored/Exited(atom/movable/O)
++	if (istype(O, /mob) && motioncamera)
++		motioncamera.lostTarget(O)
++
++/obj/machinery/camera/motion
++	name = "Motion Security Camera"
++	var/list/motionTargets = list()
++	var/detectTime = 0
++
++/obj/machinery/camera/motion/process()
++	// motion camera event loop
++	if (detectTime > 0)
++		var/elapsed = world.time - detectTime
++		if (elapsed > 300)
++			triggerAlarm()
++	else if (detectTime == -1)
++		for (var/mob/target in motionTargets)
++			if (target.stat == 2) lostTarget(target)
++
++/obj/machinery/camera/motion/proc/newTarget(var/mob/target)
++	if (istype(target, /mob/ai)) return 0
++	if (detectTime == 0)
++		detectTime = world.time // start the clock
++	if (!(target in motionTargets))
++		motionTargets += target
++	return 1
++
++/obj/machinery/camera/motion/proc/lostTarget(var/mob/target)
++	if (target in motionTargets)
++		motionTargets -= target
++	if (motionTargets.len == 0)
++		cancelAlarm()
++
++/obj/machinery/camera/motion/proc/cancelAlarm()
++	if (detectTime == -1)
++		for (var/mob/ai/aiPlayer in world)
++			aiPlayer.cancelAlarm("Motion", src.loc.loc)
++	detectTime = 0
++	return 1
++
++/obj/machinery/camera/motion/proc/triggerAlarm()
++	if (!detectTime) return 0
++	for (var/mob/ai/aiPlayer in world)
++		aiPlayer.triggerAlarm("Motion", src.loc.loc, src) 
++	detectTime = -1
++	return 1
+Index: code/game/mob.dm
+===================================================================
+--- code/game/mob.dm	(revision 178)
++++ code/game/mob.dm	(working copy)
+@@ -1959,6 +1959,8 @@
+ 	O.verbs += /mob/ai/proc/ai_call_shuttle
+ 	O.verbs += /mob/ai/proc/show_laws
+ 	O.verbs += /mob/ai/proc/ai_camera_track
++	O.verbs += /mob/ai/proc/ai_alerts
++	O.verbs += /mob/ai/proc/ai_camera_list
+ 	O.verbs -= /mob/verb/switch_hud
+ 	//O.verbs += /mob/ai/proc/ai_cancel_call
+ 	del(src)
+@@ -5958,6 +5960,11 @@
+ 			O.process()
+ 			return
+ 		*/
++	if (href_list["switchcamera"])
++		switchCamera(locate(href_list["switchcamera"]))
++	if (href_list["showalerts"])
++		ai_alerts()
++
+ 	..()
+ 	return
+ 
+@@ -6916,6 +6923,60 @@
+ 	return total
+ 	return
+ 
++/mob/ai/proc/switchCamera(var/obj/machinery/camera/C)
++	usr:cameraFollow = null
++	if (!C)
++		src.machine = null
++		src.reset_view(null)
++		return 0
++	if (stat == 2 || !C.status || C.network != src.network) return 0
++
++	// ok, we're alive, camera is good and in our network...
++
++	src.machine = src
++	src:current = C
++	src.reset_view(C)
++	return 1
++
++/mob/ai/proc/triggerAlarm(var/class, area/A, var/O=null)
++	if (stat == 2)
++		return
++	var/list/L = src.alarms[class]
++	for (var/I in L)
++		if (I == A.name) return 1
++	var/obj/machinery/camera/C = null
++	var/list/CL = null
++	if (O && istype(O, /list))
++		CL = O
++		if (CL.len == 1)
++			C = CL[1]
++	else if (O && istype(O, /obj/machinery/camera))
++		C = O
++	L[A.name] = list(A, (C) ? C : O)
++	if (O)
++		if (C && C.status)
++			src << text("--- [] alarm detected in []! (<A HREF=?src=\ref[];switchcamera=\ref[]>[]</A>)", class, A.name, src, C, C.c_tag)
++		else if (CL && CL.len)
++			var/foo = 0
++			var/dat2 = ""
++			for (var/obj/machinery/camera/I in CL)
++				dat2 += text("[]<A HREF=?src=\ref[];switchcamera=\ref[]>[]</A>", (!foo) ? "" : " | ", src, I, I.c_tag)
++				foo = 1
++			src << text ("--- [] alarm detected in []! ([])", class, A.name, dat2)
++		else
++			src << text("--- [] alarm detected in []! (No Camera)", class, A.name)
++	else
++		src << text("--- [] alarm detected in []! (No Camera)", class, A.name)
++	return 0
++
++/mob/ai/proc/cancelAlarm(var/class, area/A as area)
++	var/list/L = src.alarms[class]
++	for (var/I in L)
++		if (I == A.name)
++			L -= I
++	src << text("--- [] alarm in [] has been cleared.", class, A.name)
++	return 0
++
+ /mob/monkey/proc/emote(act)
+ 
+ 	var/param = null
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 178)
++++ code/game/demo.dm	(working copy)
+@@ -426,16 +426,7 @@
+ 	A = A.loc
+ 	if (!( istype(A, /area) ))
+ 		return
+-	A.fire = 0
+-	A.mouse_opacity = 0
+-	A.updateicon()
+-
+-	for(var/obj/machinery/door/firedoor/D in A)
+-		if (D.density)
+-			spawn( 0 )
+-				D.openfire()
+-				return
+-		//Foreach goto(93)
++	A.firereset()
+ 	return
+ 
+ /obj/machinery/firealarm/proc/alarm()
+Index: code/game/areas.dm
+===================================================================
+--- code/game/areas.dm	(revision 178)
++++ code/game/areas.dm	(working copy)
+@@ -1,5 +1,7 @@
+ /area
+ 	var/fire = null
++	var/atmos = 1
++	var/poweralm = 1
+ 	level = null
+ 	name = "Space"
+ 	icon = 'areas.dmi'
+@@ -91,6 +93,38 @@
+ 		//Foreach goto(42)
+ 	return */
+ 
++/area/proc/atmosalert(var/state)
++	// state 2 == normal, 1 == recovering, 0 == alarm
++	if ( atmos && state == 0) // trigger alarm- was normal, now alarmed (not recovering)
++		atmos = 0
++	else if (!atmos && state == 2) // normalized- was alarmed, now normal (out of recovery bands)
++		atmos = 1
++	else
++		return 0 // no change in state, so bail out before the alert stuff
++	var/list/cameras = list()
++	for (var/obj/machinery/camera/C in src)
++		cameras += C
++	for (var/mob/ai/aiPlayer in world)
++		if (atmos)
++			aiPlayer.cancelAlarm("Atmosphere", src, null)
++		else
++			aiPlayer.triggerAlarm("Atmosphere", src, cameras)
++	return 1
++
++/area/proc/poweralert(var/state)
++	if (state != poweralm)
++		poweralm = state
++		var/list/cameras = list()
++		for (var/obj/machinery/camera/C in src)
++			cameras += C
++		for (var/mob/ai/aiPlayer in world)
++			if (state == 1)
++				aiPlayer.cancelAlarm("Power", src, null)
++			else
++				aiPlayer.triggerAlarm("Power", src, cameras)
++	return
++
++
+ /area/proc/firealert()
+ 
+ 	if (!( src.fire ))
+@@ -102,9 +136,26 @@
+ 				spawn( 0 )
+ 					D.closefire()
+ 					return
+-			//Foreach goto(74)
++		var/list/cameras = list()
++		for (var/obj/machinery/camera/C in src)
++			cameras += C
++		for (var/mob/ai/aiPlayer in world)
++			aiPlayer.triggerAlarm("Fire", src, cameras)
+ 	return
+ 
++/area/proc/firereset()
++	if (src.fire)
++		src.fire = 0
++		src.mouse_opacity = 0
++		src.updateicon()
++		for(var/obj/machinery/door/firedoor/D in src)
++			if (D.density)
++				spawn( 0 )
++					D.openfire()
++					return
++		for (var/mob/ai/aiPlayer in world)
++			aiPlayer.cancelAlarm("Fire", src, null)
++	return
+ 
+ /area/proc/updateicon()
+ 	if ((fire || eject) && power_environ)

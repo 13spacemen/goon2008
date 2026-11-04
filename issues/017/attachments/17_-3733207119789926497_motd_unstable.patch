@@ -1,0 +1,36 @@
+Index: code/game/client.dm
+===================================================================
+--- code/game/client.dm	(revision 268)
++++ code/game/client.dm	(working copy)
+@@ -13,8 +13,6 @@
+ 
+ 	src.authorize()
+ 
+-	src << "\blue <B>[world_message]</B>"
+-
+ 	if (config.log_access)
+ 		for (var/mob/M in world)
+ 			if(M.client == src)
+Index: code/game/verbs/authorize.dm
+===================================================================
+--- code/game/verbs/authorize.dm	(revision 268)
++++ code/game/verbs/authorize.dm	(working copy)
+@@ -3,7 +3,7 @@
+ 
+ 	if (src.authenticating)
+ 		return
+-	
++
+ 	if (!config.enable_authentication)
+ 		src.authenticated = 1
+ 		return
+@@ -30,7 +30,8 @@
+ 			if (code == "ok" && account)
+ 				src.verbs -= /client/proc/authorize
+ 				src.authenticated = account
+-				src << "Key authorized, hello [html_encode(account)]!."
++				src << "Key authorized, hello [html_encode(account)]!"
++				src << "\blue <B>[world_message]</B>"
+ 				success = 1
+ 			else if (code == "banned")
+ 				banned.Add(src.ckey)

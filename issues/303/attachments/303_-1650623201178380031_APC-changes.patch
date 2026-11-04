@@ -1,0 +1,41 @@
+Index: code/game/power.dm
+===================================================================
+--- code/game/power.dm	(revision 571)
++++ code/game/power.dm	(working copy)
+@@ -266,16 +266,27 @@
+ 			else
+ 				user << "You fail to [ locked ? "unlock" : "lock"] the APC interface."
+ 	else if(istype(W, /obj/item/weapon/wirecutters))
+-		if (opened)
+-			if (src.aidisabled)
+-				user << "You have reconnected the AI control wire in the APC interface."
+-				src.aidisabled = 0
+-			else
+-				user << "You have cut the AI control wire in the APC interface."
+-				src.aidisabled = 1
+-		else
+-			user << "You must open the cover first."
++		if(!opened) return
++		user << "You search for the AI control wire."
++		sleep(50)
++		user << "\red You [ aidisabled? "mend":"cut"] the AI control wire."
++		aidisabled = !aidisabled
+ 
++	else if(istype(W, /obj/item/weapon/multitool))
++		if(!opened) return
++		user << "You search for the ID confirm wire."
++		sleep(100)
++		user << "\red You [ locked? "pulse on":"pulse off"] the ID confirm wire."
++		locked = !locked
++
++	else if(istype(W, /obj/item/weapon/crowbar))
++		if(opened) return
++		if(!coverlocked) return
++		user <<"You try to pry open the panel."
++		sleep(100)
++		user << "\red You break the panel lock."
++		coverlocked = 0
++
+ // attack with hand - remove cell (if cover open) or interact with the APC
+ 
+ /obj/machinery/power/apc/interact(mob/carbon/user)

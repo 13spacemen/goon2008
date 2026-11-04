@@ -1,0 +1,50 @@
+Index: code/game/verbs/authorize.dm
+===================================================================
+--- code/game/verbs/authorize.dm	(revision 517)
++++ code/game/verbs/authorize.dm	(working copy)
+@@ -5,7 +5,11 @@
+ 		return
+ 
+ 	if (!config.enable_authentication)
+-		src.verbs += /mob/verb/character_setup
++		if(src.mob)
++			src.mob.verbs += /mob/verb/character_setup
++		if(!src.prefs.savefile_loc)
++			src.prefs.savefile_loc = "savefiles/[savefile_ver]/[src.ckey].sav"
++			src.prefs.load()
+ 		src.prefs.setup(src)
+ 		src.authenticated = 1
+ 		return
+@@ -35,7 +39,11 @@
+ 				src << "Key Authorized: Hello [html_encode(account)]!"
+ 				src << "[auth_motd]"
+ 				success = 1
+-				src.verbs += /mob/verb/character_setup
++				if(src.mob)
++					src.mob.verbs += /mob/verb/character_setup
++				if(!src.prefs.savefile_loc)
++					src.prefs.savefile_loc = "savefiles/[savefile_ver]/[src.ckey].sav"
++					src.prefs.load()
+ 				src.prefs.setup(src)
+ 			else if (code == "banned")
+ 				banned.Add(src.ckey)
+Index: code/game/mob/prespawn/login.dm
+===================================================================
+--- code/game/mob/prespawn/login.dm	(revision 517)
++++ code/game/mob/prespawn/login.dm	(working copy)
+@@ -3,8 +3,13 @@
+ 
+ 	src.client.eye = null
+ 
+-	src.client.prefs.savefile_loc = "savefiles/[savefile_ver]/[src.ckey].sav"
+-	src.client.prefs.load()
++	if(!src.client.prefs.savefile_loc)
++		src.client.prefs.savefile_loc = "savefiles/[savefile_ver]/[src.ckey].sav"
++		src.client.prefs.load()
+ 
+ 	if(!src.client.prefs.last_version || src.client.prefs.last_version != md5(changes)) //they havent seen this changelog
+ 		src.changes()
++	
++	if(src.client.authenticated)
++		// give them the verb now, since we didn't in Authorize
++		src.verbs += /mob/verb/character_setup

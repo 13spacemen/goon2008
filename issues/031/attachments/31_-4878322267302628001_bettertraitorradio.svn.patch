@@ -1,0 +1,182 @@
+Index: code/atoms.dm
+===================================================================
+--- code/atoms.dm	(revision 178)
++++ code/atoms.dm	(working copy)
+@@ -1696,6 +1696,8 @@
+ 	suffix = "\[3\]"
+ 	icon_state = "radio"
+ 	var/freq = 145.9
++	var/traitorfreq = 0.0
++	var/obj/item/weapon/syndicate_uplink/traitorradio = null
+ 	var/wires = 7.0
+ 	var/b_stat = 0.0
+ 	var/broadcasting = null
+@@ -1904,6 +1906,8 @@
+ 	var/temp = null
+ 	var/uses = 1.0
+ 	var/selfdestruct = 0.0
++	var/traitorfreq = 0.0
++	var/obj/item/weapon/radio/origradio = null
+ 	flags = 322.0
+ 	w_class = 2.0
+ 	s_istate = "electronic"
+Index: code/game/items.dm
+===================================================================
+--- code/game/items.dm	(revision 178)
++++ code/game/items.dm	(working copy)
+@@ -872,7 +872,7 @@
+ 		if (src.temp)
+ 			dat = text("[]<BR><BR><A href='?src=\ref[];temp=1'>Clear</A>", src.temp, src)
+ 		else
+-			dat = text("<B>Syndicate Uplink Console:</B>\n<HR>\nTele-Crystals left: []<BR>\n<B>Request item:</B> (uses 1 tele-crystal)<BR>\n<A href='?src=\ref[];item_emag=1'>Electromagnet Card</A><BR>\n<A href='?src=\ref[];item_sleepypen=1'>Sleepy Pen</A><BR>\n<A href='?src=\ref[];item_cyanide=1'>Cyanide Pill</A><BR>\n<A href='?src=\ref[];item_cloak=1'>Cloaking Device</A><BR>\n<A href='?src=\ref[];item_revolver=1'>Revolver</A><BR>\n<A href='?src=\ref[];item_imp_freedom=1'>Implant- Freedom (with injector)</A><BR>\n<A href='?src=\ref[];item_ai_module=1'>'OxygenIsToxicToHumans' AI Module</A><BR>\n<HR>\n<A href='?src=\ref[];selfdestruct=1'>Self-Destruct</A>", src.uses, src, src, src, src, src, src, src, src)
++			dat = text("<B>Syndicate Uplink Console:</B>\n<HR>\nTele-Crystals left: []<BR>\n<B>Request item:</B> (uses 1 tele-crystal)<BR>\n<A href='?src=\ref[];item_emag=1'>Electromagnet Card</A><BR>\n<A href='?src=\ref[];item_sleepypen=1'>Sleepy Pen</A><BR>\n<A href='?src=\ref[];item_cyanide=1'>Cyanide Pill</A><BR>\n<A href='?src=\ref[];item_cloak=1'>Cloaking Device</A><BR>\n<A href='?src=\ref[];item_revolver=1'>Revolver</A><BR>\n<A href='?src=\ref[];item_imp_freedom=1'>Implant- Freedom (with injector)</A><BR>\n<A href='?src=\ref[];item_ai_module=1'>'OxygenIsToxicToHumans' AI Module</A><BR>\n<HR>\n<A href='?src=\ref[];lock=1'>Lock</A><BR>\n<HR>\n<A href='?src=\ref[];selfdestruct=1'>Self-Destruct</A>", src.uses, src, src, src, src, src, src, src, src, src)
+ 	user << browse(dat, "window=radio")
+ 	return
+ 
+@@ -916,6 +916,29 @@
+ 			if (src.uses > 0)
+ 				src.uses--
+ 				new /obj/item/weapon/aiModule/oxygen( H.loc )
++		else if (href_list["lock"])
++			// presto chango, a regular radio again! (reset the freq too...)
++			usr.machine = null
++			usr << browse(null, "window=radio")
++			var/obj/item/weapon/radio/T = src.origradio
++			var/obj/item/weapon/syndicate_uplink/R = src
++			R.loc = T
++			T.loc = usr
++			// R.layer = initial(R.layer)
++			R.layer = 0
++			if (usr.client)
++				usr.client.screen -= R
++			if (usr.r_hand == R)
++				usr.u_equip(R)
++				usr.r_hand = T
++			else
++				usr.u_equip(R)
++				usr.l_hand = T
++			R.loc = T
++			T.layer = 20
++			T.freq = initial(T.freq)
++			T.attack_self(usr)
++			return
+ 		else if (href_list["selfdestruct"])
+ 			src.temp = text("<A href='?src=\ref[];selfdestruct2=1'>Self-Destruct</A>", src)
+ 		else if (href_list["selfdestruct2"])
+@@ -3840,11 +3863,15 @@
+ 	if ((usr.contents.Find(src) || (usr.contents.Find(src.master) || (get_dist(src, usr) <= 1 && istype(src.loc, /turf)))))
+ 		usr.machine = src
+ 		if (href_list["freq"])
++			/* // comment this out and bump to parent, so we don't duplicate syndicate uplink code
+ 			src.freq += text2num(href_list["freq"])
+ 			if (src.freq * 10 % 2 == 0)
+ 				src.freq += 0.1
+ 			src.freq = min(148.9, src.freq)
+ 			src.freq = max(144.1, src.freq)
++			*/
++			..()
++			return
+ 		else
+ 			if (href_list["code"])
+ 				src.code += text2num(href_list["code"])
+@@ -3965,6 +3992,27 @@
+ 				src.freq += 0.1
+ 			src.freq = min(148.9, src.freq)
+ 			src.freq = max(144.1, src.freq)
++			if (src.traitorfreq && src.freq == src.traitorfreq)
++				usr.machine = null
++				usr << browse(null, "window=radio")
++				// now transform the regular radio, into a (disguised)syndicate uplink!
++				var/obj/item/weapon/syndicate_uplink/T = src.traitorradio
++				var/obj/item/weapon/radio/R = src
++				R.loc = T
++				T.loc = usr
++				R.layer = 0
++				if (usr.client)
++					usr.client.screen -= R
++				if (usr.r_hand == R)
++					usr.u_equip(R)
++					usr.r_hand = T
++				else
++					usr.u_equip(R)
++					usr.l_hand = T
++				R.loc = T
++				T.layer = 20
++				T.attack_self(usr)
++				return
+ 		else
+ 			if (href_list["talk"])
+ 				src.broadcasting = text2num(href_list["talk"])
+Index: code/game/modes/traitor.dm
+===================================================================
+--- code/game/modes/traitor.dm	(revision 178)
++++ code/game/modes/traitor.dm	(working copy)
+@@ -111,6 +111,17 @@
+ 
+ 	if (!istype(killer, /mob/ai))
+ 		spawn (100)
++			// generate list of radio freqs
++			var/freq = 144.1
++			var/list/freqlist = list()
++			while (freq <= 148.9)
++				if (freq < 145.1 || freq > 145.9)
++					freqlist += freq
++				freq += 0.2
++				if (freq * 10 % 2 == 0)
++					freq += 0.1
++			freq = freqlist[rand(1, freqlist.len)]
++			/* // comment all this out, instead of giving a radio we'll just convert an existing one
+ 			if (istype(killer.back, /obj/item/weapon/storage/backpack))
+ 				var/obj/item/weapon/storage/backpack/B = killer.back
+ 				var/obj/item/weapon/syndicate_uplink/U = new /obj/item/weapon/syndicate_uplink(B)
+@@ -131,6 +142,50 @@
+ 					killer << "Unfortunately, the Syndicate wasn't able to get you a radio."
+ 			else
+ 				killer << "Unfortunately, the Syndicate wasn't able to get you a radio."
++			*/
++			// find a radio! toolbox(es), backpack, belt, headset
++			while (1) // don't worry, we'll break at the end
++				var/loc = ""
++				var/obj/item/weapon/radio/R = null
++				if (!R && istype(killer.l_hand, /obj/item/weapon/storage))
++					var/obj/item/weapon/storage/S = killer.l_hand
++					var/list/L = S.return_inv()
++					for (var/obj/item/weapon/radio/foo in L)
++						R = foo
++						loc = "in the [S.name] in your left hand"
++						break
++				if (!R && istype(killer.r_hand, /obj/item/weapon/storage))
++					var/obj/item/weapon/storage/S = killer.r_hand
++					var/list/L = S.return_inv()
++					for (var/obj/item/weapon/radio/foo in L)
++						R = foo
++						loc = "in the [S.name] in your right hand"
++						break
++				if (!R && istype(killer.back, /obj/item/weapon/storage))
++					var/obj/item/weapon/storage/S = killer.back
++					var/list/L = S.return_inv()
++					for (var/obj/item/weapon/radio/foo in L)
++						R = foo
++						loc = "in the [S.name] on your back"
++						break
++				if (!R && killer.w_uniform && istype(killer.belt, /obj/item/weapon/radio))
++					R = killer.belt
++					loc = "on your belt"
++				if (!R && istype(killer.w_radio, /obj/item/weapon/radio))
++					R = killer.w_radio
++					loc = "on your head"
++				if (!R)
++					killer << "Unfortunately, the Syndicate wasn't able to get you a radio."
++				else
++					var/obj/item/weapon/syndicate_uplink/T = new /obj/item/weapon/syndicate_uplink(R)
++					R.traitorradio = T
++					R.traitorfreq = freq
++					T.name = R.name
++					T.icon_state = R.icon_state
++					T.origradio = R
++					killer << "The Syndicate have cunningly disguised a Syndicate Uplink as your [R.name] [loc]. Simply dial the frequency [freq] to unlock it's hidden features."
++					killer:memory += "<BR><B>Radio Freq:</B> [freq] ([R.name] [loc])."
++				break // don't remove this.
+ 
+ /datum/game_mode/traitor/proc/send_intercept()
+ 	var/intercepttext = "<FONT size = 3><B>Cent. Com. Update</B> Enemy communication intercept. Security Level Elevated</FONT><HR>"

@@ -1,0 +1,221 @@
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 537)
++++ code/game/demo.dm	(working copy)
+@@ -1321,7 +1321,7 @@
+ 			return
+ 		if ((get_dist(src, usr) > 1 && src.loc != user))
+ 			return
+-		t = html_encode(t)
++		t = copytext(sanitize(t),1,MAX_MESSAGE_LEN)
+ 		if (t)
+ 			src.name = text("Morgue- '[]'", t)
+ 		else
+Index: code/game/items.dm
+===================================================================
+--- code/game/items.dm	(revision 537)
++++ code/game/items.dm	(working copy)
+@@ -1119,7 +1119,7 @@
+ 			return
+ 		if (src.loc != user)
+ 			return
+-		t = html_encode(t)
++		t = copytext(sanitize(t),1,MAX_MESSAGE_LEN)
+ 		if (t)
+ 			src.name = text("Pill Canister- '[]'", t)
+ 		else
+@@ -1985,7 +1985,7 @@
+ 				return
+ 			if ((get_dist(src, usr) > 1 && src.loc != user))
+ 				return
+-			t = html_encode(t)
++			t = copytext(sanitize(t),1,MAX_MESSAGE_LEN)
+ 			if (t)
+ 				src.name = text("FPCase- '[]'", t)
+ 			else
+@@ -2186,7 +2186,7 @@
+ 		var/t = input(user, "What text do you wish to add?", text("[]", src.name), null)  as message
+ 		if ((get_dist(src, usr) > 1 && src.loc != user && !( istype(src.loc, /obj/item/weapon/clipboard) ) && src.loc.loc != user && user.equipped() != P))
+ 			return
+-		t = html_encode(t)
++		t = copytext(sanitize(t),1,MAX_MESSAGE_LEN)
+ 		t = dd_replacetext(t, "\n", "<BR>")
+ 		t = dd_replacetext(t, "\[b\]", "<B>")
+ 		t = dd_replacetext(t, "\[/b\]", "</B>")
+@@ -2310,7 +2310,7 @@
+ 				return
+ 			if ((get_dist(src, usr) > 1 && src.loc != user))
+ 				return
+-			t = html_encode(t)
++			t = copytext(sanitize(t),1,MAX_MESSAGE_LEN)
+ 			if (t)
+ 				src.name = text("FPrintC- '[]'", t)
+ 			else
+@@ -3265,7 +3265,7 @@
+ 			return
+ 		if ((get_dist(src, usr) > 1 && src.loc != user))
+ 			return
+-		t = html_encode(t)
++		t = copytext(sanitize(t),1,MAX_MESSAGE_LEN)
+ 		if (t)
+ 			src.name = text("Glass Case- '[]'", t)
+ 		else
+Index: code/game/mob/prespawn/say.dm
+===================================================================
+--- code/game/mob/prespawn/say.dm	(revision 537)
++++ code/game/mob/prespawn/say.dm	(working copy)
+@@ -1,6 +1,6 @@
+ /mob/prespawn/say(txt as text)
+-	txt = sanitize(txt)
+-	txt = copytext(txt, 1, 256)
++	txt = copytext(sanitize(txt),1,256)
++	if(!txt) return
+ 	world.log_say("[src.name]/[src.key] : [txt]")
+ 	for(var/mob/prespawn/P in world)
+ 		P << "[src.client] \[prespawn\]: [txt]"
+\ No newline at end of file
+Index: code/game/mob/say.dm
+===================================================================
+--- code/game/mob/say.dm	(revision 537)
++++ code/game/mob/say.dm	(working copy)
+@@ -2,18 +2,22 @@
+ 	return 1
+ 
+ /mob/proc/say_dead(message)
++	message = copytext(sanitize(message), 1, MAX_MESSAGE_LEN)
++	var/msg = "<b>[src.spawn_name]</b> <i>(dead)</i>: [message]"
++	if(!msg) return
+ 	for(var/mob/M in world)
+-		if (M.is_dead)
+-			M << "<b>[src.spawn_name]</b> <i>(dead)</i>: [message]"
++		if(M.is_dead) M << msg
+ 
+ /mob/proc/stutter(txt)
+ 	var/s = ""
++	txt = copytext(sanitize(txt),1,MAX_MESSAGE_LEN/2)
++	if(!txt) return
+ 	for(var/i = 1; i <= lentext(txt); i++)
+ 		var/c = copytext(txt, i, i + 1)
+ 		var/numrepeats = rand(5) - 1
+ 		for(var/j = 0; j < numrepeats; j++)
+ 			s += c
+-	return s
++	return copytext(s,1,MAX_MESSAGE_LEN)
+ 
+ /mob/proc/get_default_radio()
+ 	return null
+@@ -33,14 +37,12 @@
+ 				return I
+ 
+ /mob/verb/say(txt as text)
+-	if(!txt)
+-		return
+-	txt = sanitize(txt)
+-	txt = copytext(txt, 1, MAX_MESSAGE_LEN)
++	txt = copytext(sanitize(txt),1,MAX_MESSAGE_LEN)
++	if(!txt) return
+ 	world.log_say("[src.name]/[src.key] : [txt]")
+ 
+ 	if(src.is_dead)
+-		return src.say_dead(html_encode(txt))
++		return src.say_dead(txt)
+ 
+ 	if(!src.can_say())
+ 		return
+@@ -61,14 +63,11 @@
+ 		target = src.get_radio(copytext(txt, 2, 3))
+ 		hear_range = 1
+ 
+-	if (src.is_stuttering())
++	if(src.is_stuttering())
+ 		txt = stutter(txt)
+-	txt = html_encode(txt)
+-	if (hear_range == 1)
++	if(hear_range == 1)
+ 		txt = "<i>[txt]</i>"
+ 
+-
+-
+ 	var/datum/message = new /datum/message(src.voice, txt, src.curr_language)
+ 
+ 	if(target && istype(target, /obj/item/weapon/radio))
+Index: code/game/verbs/adminhelp.dm
+===================================================================
+--- code/game/verbs/adminhelp.dm	(revision 537)
++++ code/game/verbs/adminhelp.dm	(working copy)
+@@ -3,12 +3,9 @@
+ 		src << "Please authorize before sending these messages."
+ 		return
+ 
+-	msg = sanitize(msg)
+-	msg = html_encode(copytext(msg, 1, MAX_MESSAGE_LEN))
++	msg = copytext(sanitize(msg), 1, MAX_MESSAGE_LEN)
++	if(!msg) return
+ 
+-	if (!msg)
+-		return
+-
+ 	var/yep = 0
+ 	for(var/mob/M in world)
+ 		if (M.client && M.client.powers)
+Index: code/game/verbs/adminsay.dm
+===================================================================
+--- code/game/verbs/adminsay.dm	(revision 537)
++++ code/game/verbs/adminsay.dm	(working copy)
+@@ -9,13 +9,10 @@
+ 
+ 	var/name = ((src.mob)?(src.mob.name):("No Mob"))
+ 
+-	//	Seems silly to log the message without sanitizing, but other *.dm do...
++	msg = copytext(sanitize(msg), 1, MAX_MESSAGE_LEN)
++	if(!msg) return
+ 	world.log << "ADMIN: [src.key]/[name] : [msg]"
+-	msg = html_encode(copytext(sanitize(msg), 1, 1024))
+ 
+-	if (!msg)
+-		return
+-
+ 	for(var/mob/M in world)
+ 		if (M.client && M.client.powers)
+ 			M << "\blue <b>ADMIN: <a href='?src=\ref[usr];priv_msg=\ref[usr]'>[src.key]</a>/([name]):</b> [msg]"
+Index: code/game/verbs/ooc.dm
+===================================================================
+--- code/game/verbs/ooc.dm	(revision 537)
++++ code/game/verbs/ooc.dm	(working copy)
+@@ -13,18 +13,12 @@
+ 		src << "You are not authorized to communicate over these channels."
+ 		return
+ 
+-	world.log_ooc("[src.name]/[src.key] : [msg]")
++	if(!ooc_allowed) return
++	if(!src.client.listen_ooc) return
++	msg = copytext(sanitize(msg), 1, MAX_MESSAGE_LEN)
++	if(!msg) return
+ 
+-	msg = sanitize(msg)
+-	msg = html_encode(copytext(msg, 1, MAX_MESSAGE_LEN))
+-
+-	if (!msg)
+-		return
+-	else if (!src.client.listen_ooc)
+-		return
+-	else if (!ooc_allowed)
+-		return
+-
++	world.log_ooc("[src.name]/[src.key] : [msg]")
+ 	for (var/mob/M in world)
+ 		if (M.client && M.client.listen_ooc)
+ 			M << "<span class='ooc_title'>OOC: [src.key]:</span> <span class='ooc_text'>[msg]</span>"
+Index: code/helpers.dm
+===================================================================
+--- code/helpers.dm	(revision 537)
++++ code/helpers.dm	(working copy)
+@@ -27,7 +27,7 @@
+ 		t = copytext(t, 1, index) + "#" + copytext(t, index+1)
+ 		index = findtext(t, "\t")
+ 
+-	return t
++	return html_encode(t)
+ 
+ /proc/add_zero(t, u)
+ 	while(length(t) < u)

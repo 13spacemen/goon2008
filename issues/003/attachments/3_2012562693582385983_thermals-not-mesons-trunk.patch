@@ -1,0 +1,25 @@
+Index: code/!atoms.dm
+===================================================================
+--- code/!atoms.dm	(revision 55)
++++ code/!atoms.dm	(working copy)
+@@ -1017,7 +1017,7 @@
+ 	icon_state = "s_glasses"
+ 	s_istate = "s_glasses"
+ /obj/item/weapon/clothing/glasses/thermal
+-	name = "Optical Thermal/Meson Scanner"
++	name = "Optical Thermal Scanner"
+ 	icon_state = "t_glasses"
+ 	s_istate = "glasses"
+ /obj/item/weapon/clothing/gloves
+Index: code/mob.dm
+===================================================================
+--- code/mob.dm	(revision 55)
++++ code/mob.dm	(working copy)
+@@ -3995,7 +3995,6 @@
+ 			src.see_invisible = 0
+ 		else
+ 			if (istype(src.glasses, /obj/item/weapon/clothing/glasses/thermal))
+-				src.sight |= SEE_TURFS
+ 				src.sight |= SEE_MOBS
+ 				src.see_in_dark = 4
+ 				src.see_invisible = 2

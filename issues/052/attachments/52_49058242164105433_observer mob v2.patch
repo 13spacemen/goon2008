@@ -1,0 +1,398 @@
+Index: code/game/cellautomata.dm
+===================================================================
+--- code/game/cellautomata.dm	(revision 527)
++++ code/game/cellautomata.dm	(working copy)
+@@ -204,17 +204,16 @@
+ 
+ /atom/verb/point()
+ 	set src in oview()
++	if(!usr)		return
++	if(isarea(src))		return
++	if(!isturf(usr.loc))	return
++	if(!usr.can_use_hands())	return
+ 
+-	if ((!( usr ) || !( isturf(usr.loc) )) || isarea(src))		// can't point to areas anymore
++	var/P = new /obj/point( (isturf(src) ? src : src.loc) )
++	spawn( 20 )
++		del(P)
+ 		return
+-	if (usr.can_use_hands())
+-		var/P = new /obj/point( (isturf(src) ? src : src.loc) )
+-		spawn( 20 )
+-			//P = null
+-			del(P)
+-			return
+-		usr.show_viewers(text("<B>[]</B> points to []", usr, src))
+-			//Foreach goto(102)
++	usr.show_viewers(text("<B>[]</B> points to []", usr, src))
+ 	return
+ 
+ /turf/proc/updatecell()
+Index: code/game/client.dm
+===================================================================
+--- code/game/client.dm	(revision 527)
++++ code/game/client.dm	(working copy)
+@@ -77,6 +77,8 @@
+ 		return 0
+ 	if(!src.mob)
+ 		return
++	if(istype(src.mob, /mob/observer))
++		return src.mob.Move(n,direct)
+ 	if(src.mob.is_dead)
+ 		return
+ 	if(world.time < src.move_delay)
+Index: code/game/demo.dm
+===================================================================
+--- code/game/demo.dm	(revision 527)
++++ code/game/demo.dm	(working copy)
+@@ -663,7 +663,8 @@
+ 	return
+ 
+ /obj/item/weapon/tank/jetpack/verb/toggle()
+-
++	set src in view(1)
++	if(!usr.can_use_hands()) return
+ 	src.on = !( src.on )
+ 	src.icon_state = text("jetpack[]", src.on)
+ 	return
+@@ -1946,8 +1947,8 @@
+ 	return
+ 
+ /obj/stool/chair/verb/rotate()
+-	set src in oview(1)
+-
++	set src in view(1)
++	if(!usr.can_use_hands()) return
+ 	src.dir = turn(src.dir, 90)
+ 	if (src.dir == NORTH)
+ 		src.layer = FLY_LAYER
+@@ -2303,7 +2304,7 @@
+ 
+ /obj/window/verb/rotate()
+ 	set src in oview(1)
+-
++	if(!usr.can_use_hands()) return
+ 	if (src.anchored)
+ 		usr << "It is fastened to the floor; therefore, you can't rotate it!"
+ 		return 0
+Index: code/game/dna/dna_scanner.dm
+===================================================================
+--- code/game/dna/dna_scanner.dm	(revision 527)
++++ code/game/dna/dna_scanner.dm	(working copy)
+@@ -18,9 +18,8 @@
+ 
+ /obj/machinery/dna_scanner/verb/eject()
+ 	set src in oview(1)
++	if(!usr.is_active())return
+ 
+-	if (!usr.is_conscious())
+-		return
+ 	src.go_out()
+ 	add_fingerprint(usr)
+ 	return
+@@ -29,12 +28,12 @@
+ 	set src in oview(1)
+ 	if(src.locked)
+ 		return
+-	if (!usr.is_active())
++	if(!usr.is_active())
+ 		return
+-	if (src.occupant)
++	if(src.occupant)
+ 		usr << "\blue <B>The scanner is already occupied!</B>"
+ 		return
+-	if (usr.abiotic())
++	if(usr.abiotic())
+ 		usr << "\blue <B>Subject cannot have abiotic items on.</B>"
+ 		return
+ 	usr.pulling = null
+Index: code/game/item/weapon/radio.dm
+===================================================================
+--- code/game/item/weapon/radio.dm	(revision 527)
++++ code/game/item/weapon/radio.dm	(working copy)
+@@ -173,6 +173,8 @@
+ 
+ /obj/item/weapon/radio/beacon/verb/alter_signal(t as text)
+ 	set src in usr
++	if(!usr.is_active()) return
++	if(!usr.can_use_hands()) return
+ 
+ 	if (usr.canmove && !usr.is_handcuffed())
+ 		src.code = t
+Index: code/game/items.dm
+===================================================================
+--- code/game/items.dm	(revision 527)
++++ code/game/items.dm	(working copy)
+@@ -276,24 +276,16 @@
+ 	return
+ 
+ 
+-//*****RM
+-
+ /obj/item/weapon/verb/move_to_top()
+ 	set src in oview(1)
+ 
+-	if(!istype(src.loc, /turf) || !usr.can_use_hands())
+-		return
++	if(!usr.can_use_hands()) return
++	if(!istype(src.loc, /turf)) return
+ 
+ 	var/turf/T = src.loc
+-
+ 	src.loc = null
+-
+ 	src.loc = T
+ 
+-
+-//*****
+-
+-
+ /obj/item/weapon/proc/attack_self()
+ 
+ 	return
+Index: code/game/mob/carbon/emote.dm
+===================================================================
+--- code/game/mob/carbon/emote.dm	(revision 527)
++++ code/game/mob/carbon/emote.dm	(working copy)
+@@ -6,6 +6,7 @@
+ 		return
+ 	if(!medium)
+ 		medium = SENSE_SIGHT
++	if(!usr.is_active()) return
+ 	var/list/mobs_seen = list()
+ 	if(medium & SENSE_SIGHT)
+ 		for(var/mob/M in viewers(src))
+Index: code/game/mob/carbon/life.dm
+===================================================================
+--- code/game/mob/carbon/life.dm	(revision 527)
++++ code/game/mob/carbon/life.dm	(working copy)
+@@ -92,7 +92,7 @@
+ 		src.update_clothing()
+ 
+ 	if(!src.client)
+-		if (src.is_active() && src.canmove && prob(10) && isturf(src.loc))
++		if (src.is_active() && src.canmove && prob(10) && isturf(src.loc) && !src.resting)
+ 			step(src, pick(NORTH, SOUTH, EAST, WEST))
+ 		if (prob(1) && src.is_conscious())
+ 			pick(src.shiver(), src.sigh(), src.yawn(), src.cough(), src.tail())
+Index: code/game/mob/death.dm
+===================================================================
+--- code/game/mob/death.dm	(revision 527)
++++ code/game/mob/death.dm	(working copy)
+@@ -3,29 +3,25 @@
+ 	src.canmove = 0
+ 
+ 	//let dead people see anything, there's no resurrection any more anyways
+-	src.sight |= SEE_TURFS
+-	src.sight |= SEE_MOBS
+-	src.sight |= SEE_INFRA
+-	src.sight |= SEE_OBJS
+-	src.see_in_dark = 8
+-	src.see_invisible = 2
+-	src.see_infrared = 8
++	if(src.client)
++		src.client.mob = new/mob/observer(src)
+ 
+ 	var/cancel
+ 	spawn(50)
+ 		for(var/mob/M in world)
+-			if (M.client && !M.is_dead)
++			if(M.client && !M.is_dead)
+ 				cancel = 1
+-		if (!( cancel ))
+-			world << "<B>Everyone is dead! Resetting in 30 seconds!</B>"
+-			if ((ticker && ticker.timing))
+-				ticker.check_win()
+-			else
+-				spawn( 300 )
+-					for(var/mob/M in world)
+-						if (M.client && !M.is_dead)
+-							cancel = 1
+-					if (!cancel)
+-						world.log_game("Rebooting because of no live players")
+-						world.Reboot()
++		if(cancel)
++			return
++		world << "<B>Everyone is dead! Resetting in 30 seconds!</B>"
++		if(ticker && ticker.timing)
++			ticker.check_win()
++			return
++		spawn(300)
++			for(var/mob/M in world)
++				if(M.client && !M.is_dead)
++					cancel = 1
++			if(!cancel)
++				world.log_game("Rebooting because of no live players")
++				world.Reboot()
+ 	return ..()
+\ No newline at end of file
+Index: code/game/mob/observer.dm
+===================================================================
+--- code/game/mob/observer.dm	(revision 0)
++++ code/game/mob/observer.dm	(revision 0)
+@@ -0,0 +1,38 @@
++/mob/observer
++	layer = 1	//	not used
++	density = 0	//	not used
++	is_dead = 1	//	not used
++	canmove = 0	//	not used
++	var/mob/corpse = null	//	observer mode
++
++/mob/observer/New(var/mob/corpse)
++	set invisibility = 101
++	src.corpse		= corpse
++	src.loc			= corpse.loc
++	src.name		= corpse.name
++	src.voice		= corpse.voice
++	src.spawn_name	= corpse.spawn_name
++	src.sight |= SEE_TURFS | SEE_MOBS | SEE_INFRA | SEE_OBJS
++	src.see_invisible = 100
++	src.see_infrared = 100
++	src.see_in_dark = 100
++
++	if(!src.corpse.is_dead)
++		if(istype(corpse,/mob/carbon))
++			//	stop our body from wandering
++			src.corpse:resting = 1
++
++/mob/observer/Move(NewLoc, direct)
++	if(NewLoc)
++		src.loc = NewLoc
++		return
++	if(direct & NORTH)	src.y++
++	if(direct & SOUTH)	src.y--
++	if(direct & EAST)	src.x++
++	if(direct & WEST)	src.x--
++
++/mob/observer/examine()
++	if(usr)	usr << src.desc
++
++/mob/observer/can_use_hands()	return 0
++/mob/observer/is_active()		return 0
+Index: code/game/shuttle.dm
+===================================================================
+--- code/game/shuttle.dm	(revision 527)
++++ code/game/shuttle.dm	(working copy)
+@@ -67,6 +67,7 @@
+ 
+ /obj/machinery/computer/prison_shuttle/verb/restabalize()
+ 	set src in oview(1)
++	if(!usr.is_active()) return
+ 
+ 	viewers(null, null) << "\red <B>Restabalizing prison shuttle atmosphere!</B>"
+ 	var/A = locate(/area/shuttle_prison)
+Index: code/game/vehicle.dm
+===================================================================
+--- code/game/vehicle.dm	(revision 527)
++++ code/game/vehicle.dm	(working copy)
+@@ -70,10 +70,8 @@
+ 
+ /obj/machinery/vehicle/verb/eject()
+ 	set src = usr.loc
++	if(!usr.is_active()) return
+ 
+-	if (!usr.is_active())
+-		return
+-
+ 	var/mob/M = usr
+ 	M.loc = src.loc
+ 	if (M.client)
+Index: code/game/weap_sat.dm
+===================================================================
+--- code/game/weap_sat.dm	(revision 527)
++++ code/game/weap_sat.dm	(working copy)
+@@ -56,6 +56,7 @@
+ /obj/machinery/computer/teleporter/verb/set_id(t as text)
+ 	set src in oview(1)
+ 	set desc = "ID Tag:"
++	if(!usr.is_active()) return
+ 
+ 	if(stat & (NOPOWER|BROKEN) )
+ 		return
+@@ -153,9 +154,10 @@
+ 
+ 	for(var/x in src.topics)
+ 		usr << text("[], \...", x)
+-		//Foreach goto(19)
++
+ 	usr << ""
+-	src.add_fingerprint(usr)
++	if(usr.can_use_hands())
++		src.add_fingerprint(usr)
+ 	return
+ 
+ /obj/machinery/computer/data/verb/read(topic as text)
+@@ -165,7 +167,8 @@
+ 		usr << text("<B>[]</B>\n\t []", topic, src.topics[text("[]", topic)])
+ 	else
+ 		usr << text("Unable to find- []", topic)
+-	src.add_fingerprint(usr)
++	if(usr.can_use_hands())
++		src.add_fingerprint(usr)
+ 	return
+ 
+ /obj/machinery/teleport/hub/Bumped(M as mob|obj)
+@@ -258,6 +261,7 @@
+ 	set src in oview(1)
+ 
+ 	if(stat & NOPOWER) return
++	if(!usr.can_use_hands()) return
+ 
+ 	var/atom/l = src.loc
+ 	var/obj/machinery/teleport/hub/com = locate(/obj/machinery/teleport/hub, locate(l.x + 1, l.y, l.z))
+Index: code/game/weapons.dm
+===================================================================
+--- code/game/weapons.dm	(revision 527)
++++ code/game/weapons.dm	(working copy)
+@@ -51,6 +51,7 @@
+ /obj/machinery/nuclearbomb/verb/make_deployable()
+ 	set name = "make deployable"
+ 	set src in oview(1)
++	if(!usr.can_use_hands()) return
+ 
+ 	if (src.deployable)
+ 		src.deployable = 0
+@@ -534,7 +535,6 @@
+ 
+ /obj/item/weapon/infra/verb/rotate()
+ 	set src in usr
+-
+ 	src.dir = turn(src.dir, 90)
+ 	return
+ 
+@@ -993,7 +993,6 @@
+ 
+ /obj/item/weapon/assembly/rad_infra/verb/rotate()
+ 	set src in usr
+-
+ 	src.dir = turn(src.dir, 90)
+ 	src.part2.dir = src.dir
+ 	src.add_fingerprint(usr)
+@@ -1162,6 +1161,7 @@
+ 
+ /obj/item/weapon/assembly/m_i_ptank/verb/Arm()
+ 	set src in view(1)
++	if(!usr.can_use_hands()) return
+ 
+ 	usr.see("\blue The proximity sensor has been armed with a delay of 15 seconds.")
+ 
+Index: unstable.dme
+===================================================================
+--- unstable.dme	(revision 527)
++++ unstable.dme	(working copy)
+@@ -120,6 +120,7 @@
+ #include "code\game\admin\admin_powers\make_object.dm"
+ #include "code\game\admin\admin_powers\manage_bans.dm"
+ #include "code\game\admin\admin_powers\meteor_wave.dm"
++#include "code\game\admin\admin_powers\observer_mode.dm"
+ #include "code\game\admin\admin_powers\power_all.dm"
+ #include "code\game\admin\admin_powers\private_message.dm"
+ #include "code\game\admin\admin_powers\restart.dm"
+@@ -176,6 +177,7 @@
+ #include "code\game\mob\login.dm"
+ #include "code\game\mob\memory.dm"
+ #include "code\game\mob\new.dm"
++#include "code\game\mob\observer.dm"
+ #include "code\game\mob\proc.dm"
+ #include "code\game\mob\say.dm"
+ #include "code\game\mob\see.dm"

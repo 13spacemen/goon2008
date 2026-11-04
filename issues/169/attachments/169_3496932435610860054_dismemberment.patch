@@ -1,0 +1,534 @@
+Index: code/game/dna/change_dna.dm
+===================================================================
+--- code/game/dna/change_dna.dm	(revision 269)
++++ code/game/dna/change_dna.dm	(working copy)
+@@ -8,7 +8,8 @@
+ 	del(src.lying_icon)
+ 	src.stand_icon = new /icon( 'human.dmi', "blank" )
+ 	src.lying_icon = new /icon( 'human.dmi', "blank" )
+-	for(var/t in list( "chest", "head", "l_arm", "r_arm", "l_hand", "r_hand", "l_leg", "r_leg", "l_foot", "r_foot" ))
++//	for(var/t in list( "chest", "head", "l_arm", "r_arm", "l_hand", "r_hand", "l_leg", "r_leg", "l_foot", "r_foot" ))
++	for(var/t in src.organs) // update/show only those organs that are currently attached
+ 		src.stand_icon.Blend(new /icon( 'human.dmi', text("[]", t) ), 3)
+ 		src.lying_icon.Blend(new /icon( 'human.dmi', text("[]2", t) ), 3)
+ 		//Foreach goto(95)
+Index: code/game/item/weapon/limb.dm
+===================================================================
+--- code/game/item/weapon/limb.dm	(revision 0)
++++ code/game/item/weapon/limb.dm	(revision 0)
+@@ -0,0 +1,137 @@
++/obj/item/weapon/limb
++	name = "limb"
++	icon = 'humansevered.dmi'
++	s_istate = "bio_orange"
++	var/skintone = 0.0
++	var/owner = ""
++	var/icon/skin
++	var/rname
++	var/hairstyle
++	var/haircolor
++/obj/item/weapon/limb/r_arm
++	name = "severed right arm"
++	desc = "A severed right arm"
++	icon_state = "r_arm"
++	rname = "r_arm"
++	force = 15
++/obj/item/weapon/limb/l_arm
++	name = "severed left arm"
++	desc = "A severed left arm"
++	icon_state = "l_arm"
++	rname = "l_arm"
++	force = 15
++/obj/item/weapon/limb/r_arm_stump
++	name = "severed right arm stump"
++	desc = "A severed right arm without a hand"
++	icon_state = "r_arm_stump"
++	rname = "r_arm_stump"
++	force = 12
++/obj/item/weapon/limb/l_arm_stump
++	name = "severed left arm stump"
++	desc = "A severed left arm without a hand"
++	icon_state = "l_arm_stump"
++	rname = "l_arm_stump"
++	force = 12
++/obj/item/weapon/limb/r_hand
++	name = "severed right hand"
++	desc = "A severed right hand"
++	icon_state = "r_hand"
++	rname = "r_hand"
++	force = 3
++/obj/item/weapon/limb/l_hand
++	name = "severed left hand"
++	desc = "A severed left hand"
++	icon_state = "l_hand"
++	rname = "l_hand"
++	force = 3
++/obj/item/weapon/limb/r_leg
++	name = "severed right leg"
++	desc = "A severed right leg"
++	icon_state = "r_leg"
++	rname = "r_leg"
++	force = 15
++/obj/item/weapon/limb/l_leg
++	name = "severed left leg"
++	desc = "A severed left leg"
++	icon_state = "l_leg"
++	rname = "l_leg"
++	force = 15
++/obj/item/weapon/limb/r_leg_stump
++	name = "severed right leg stump"
++	desc = "A severed right leg without a foot"
++	icon_state = "r_leg_stump"
++	rname = "r_leg_stump"
++	force = 12
++/obj/item/weapon/limb/l_leg_stump
++	name = "severed left leg stump"
++	desc = "A severed left leg without a foot"
++	icon_state = "l_leg_stump"
++	rname = "l_leg_stump"
++	force = 12
++/obj/item/weapon/limb/r_foot
++	name = "severed right foot"
++	desc = "A severed right foot"
++	icon_state = "r_foot"
++	rname = "r_foot"
++	force = 3
++/obj/item/weapon/limb/l_foot
++	name = "severed left foot"
++	desc = "A severed left foot"
++	icon_state = "l_foot"
++	rname = "l_foot"
++	force = 3
++/obj/item/weapon/limb/head
++	name = "severed head"
++	desc = "A severed head"
++	icon_state = "head"
++	rname = "head"
++	force = 7
++	skintone = 0.0
++	var/icon/face
++
++/obj/item/weapon/storage/toolbox/attack(mob/carbon/M as mob, mob/carbon/user as mob)	// toolbox knockout script for severed heads
++
++	..()
++	if ((prob(30) && !M.is_dead))
++		var/mob/carbon/H = M
++
++		// ******* Check
++
++		if ((istype(H, /mob/carbon) && istype(H, /obj/item/weapon/clothing/head) && H.flags & 8 && prob(80)))
++			M << "\red The helmet protects you from being hit hard in the head!"
++			return
++		var/time = rand(1, 5)
++		if (prob(90))
++			M.knockout_until(time)
++		else
++			M.knockdown_until(time)
++		user.show_viewers(text("\red <B>[] has been knocked unconscious!</B>", M))
++	return
++
++/obj/item/weapon/limb/proc/haircolor_rgb(color)
++	if(color == "grey")
++		return rgb(200,200,200)
++	else if(color == "black")
++		return rgb(255,255,255)
++
++/obj/item/weapon/limb/proc/update_skin(rname)
++	var/icon/skin = new /icon( 'humansevered.dmi', rname )
++	if (src.skintone == "medium")			// this has not really been tested, as skintone doesn't work atm.
++		skin.Blend(rgb(100,100,100), 0)
++	else if(src.skintone == "dark")
++		skin.Blend(rgb(200,200,200), 0)
++	skin.Blend(new /icon('humansevered.dmi', text("[]_blood",rname)),3)	// Blooood
++	src.icon = skin
++
++/obj/item/weapon/limb/head/proc/update_head()
++	var/icon/skin = new /icon( 'humansevered.dmi', "head" )
++	if (src.skintone == "medium")
++		skin.Blend(rgb(100,100,100), 0)
++	else if(src.skintone == "dark")
++		skin.Blend(rgb(200,200,200), 0)
++	var/icon/face = new /icon('mob.dmi', "[src.hairstyle]2")
++	face.Blend(haircolor_rgb(src.haircolor), 0)
++	skin.Blend(face, 3)
++	skin.Blend(new /icon('humansevered.dmi', "head_blood"),3)
++	src.icon = skin
++
+Index: code/game/mob/carbon/damage.dm
+===================================================================
+--- code/game/mob/carbon/damage.dm	(revision 269)
++++ code/game/mob/carbon/damage.dm	(working copy)
+@@ -28,6 +28,8 @@
+ 	var/datum/damage/dam = new /datum/damage(brute = brute, burn = burn, suffocation = suffocation, toxin = toxin, electric = electric)
+ 	var/datum/organ/O = src.choose_organ()
+ 	if (istype(O, /datum/organ))
++		if (src.appearance == APPEARANCE_HUMAN && prob(dam.brute))	// No monkey dismemberment, maybe the chance is a bit too high,
++			src.sever(O)											// but at least explosions can rip limbs off quite easily
+ 		O.take_damage(dam)
+ 		src.update_damage()
+ 
+Index: code/game/mob/carbon/dismember.dm
+===================================================================
+--- code/game/mob/carbon/dismember.dm	(revision 0)
++++ code/game/mob/carbon/dismember.dm	(revision 0)
+@@ -0,0 +1,160 @@
++/mob/carbon/proc/sever(trgt)
++
++	for(var/datum/organ/OOO in src.organs)				// This whole thing looks pretty damn bad
++		if (trgt == OOO)
++			if (OOO.name == "chest" || OOO.name == "diaper")
++				return
++			if (OOO.name == "head")
++				var/obj/item/weapon/limb/head/O = new /obj/item/weapon/limb/head( src.loc )
++				O.hairstyle = src.hair_style
++				O.haircolor = src.hair_color
++				O.owner = src.body_name
++				O.skintone = src.skin_color
++				O.name = "[O.owner]'s severed head"
++				O.desc = "[O.owner]'s severed head"
++				O.update_head()
++				src.hair_style = "bald"		// "removes" hair from the mob icon
++				src.update_face()
++			else if (OOO.name == "r_arm")
++				for(var/datum/organ/OO in src.organs)
++					if (OO.name == "r_hand")
++						src.organs -= OO
++						src.lostorgans += OO
++						var/obj/item/weapon/limb/O = new /obj/item/weapon/limb/r_arm( src.loc )
++						O.owner = src.body_name
++						O.skintone = src.skin_color
++						O.update_skin(trgt)
++						src.organs -= trgt
++						src.lostorgans += trgt
++						src.check_limbs()
++						src.update_body()
++						src.update_clothing_icons()
++						return
++				var/obj/item/weapon/limb/O = new /obj/item/weapon/limb/r_arm_stump( src.loc )
++				O.owner = src.body_name
++				O.skintone = src.skin_color
++				O.update_skin("r_arm_stump")
++			else if (OOO.name == "l_arm")
++				for(var/datum/organ/OO in src.organs)
++					if (OO.name == "l_hand")
++						src.organs -= OO
++						src.lostorgans += OO
++						var/obj/item/weapon/limb/O = new /obj/item/weapon/limb/l_arm( src.loc )
++						O.owner = src.body_name
++						O.skintone = src.skin_color
++						O.update_skin(trgt)
++						src.organs -= trgt
++						src.lostorgans += trgt
++						src.check_limbs()
++						src.update_body()
++						src.update_clothing_icons()
++						return
++				var/obj/item/weapon/limb/O = new /obj/item/weapon/limb/l_arm_stump( src.loc )
++				O.owner = src.body_name
++				O.skintone = src.skin_color
++				O.update_skin("l_arm_stump")
++			else if (OOO.name == "r_leg")
++				for(var/datum/organ/OO in src.organs)
++					if (OO.name == "r_foot")
++						src.organs -= OO
++						src.lostorgans += OO
++						var/obj/item/weapon/limb/O = new /obj/item/weapon/limb/r_leg( src.loc )
++						O.owner = src.body_name
++						O.skintone = src.skin_color
++						O.update_skin(trgt)
++						src.organs -= trgt
++						src.lostorgans += trgt
++						src.check_limbs()
++						src.update_body()
++						src.update_clothing_icons()
++						return
++				var/obj/item/weapon/limb/O = new /obj/item/weapon/limb/r_leg_stump( src.loc )
++				O.owner = src.body_name
++				O.skintone = src.skin_color
++				O.update_skin("r_leg_stump")
++			else if (OOO.name == "l_leg")
++				for(var/datum/organ/OO in src.organs)
++					if (OO.name == "l_foot")
++						src.organs -= OO
++						src.lostorgans += OO
++						var/obj/item/weapon/limb/O = new /obj/item/weapon/limb/l_leg( src.loc )
++						O.owner = src.name
++						O.skintone = src.skin_color
++						O.update_skin(trgt)
++						src.organs -= trgt
++						src.lostorgans += trgt
++						src.check_limbs()
++						src.update_body()
++						src.update_clothing_icons()
++						return
++				var/obj/item/weapon/limb/O = new /obj/item/weapon/limb/l_leg_stump( src.loc )
++				O.owner = src.body_name
++				O.skintone = src.skin_color
++				O.update_skin("l_leg_stump")
++			else if (OOO.name == "r_hand")
++				var/obj/item/weapon/limb/O = new /obj/item/weapon/limb/r_hand( src.loc )
++				O.owner = src.body_name
++				O.skintone = src.skin_color
++				O.update_skin(trgt)
++			else if (OOO.name == "l_hand")
++				var/obj/item/weapon/limb/O = new /obj/item/weapon/limb/l_hand( src.loc )
++				O.owner = src.body_name
++				O.skintone = src.skin_color
++				O.update_skin(trgt)
++			else if (OOO.name == "r_foot")
++				var/obj/item/weapon/limb/O = new /obj/item/weapon/limb/r_foot( src.loc )
++				O.owner = src.body_name
++				O.skintone = src.skin_color
++				O.update_skin(trgt)
++			else if (OOO.name == "l_foot")
++				var/obj/item/weapon/limb/O = new /obj/item/weapon/limb/l_foot( src.loc )
++				O.owner = src.body_name
++				O.skintone = src.skin_color
++				O.update_skin(trgt)
++	src.organs -= trgt
++	src.lostorgans += trgt
++	src.check_limbs()
++	src.update_body()
++	src.update_clothing_icons()
++
++
++/mob/carbon/proc/check_limbs()
++	for(var/datum/organ/O in src.lostorgans)
++		if (O.name == "r_foot")
++			for(var/datum/organ/OO in src.lostorgans)
++				if (OO.name == "l_foot")	// only drop shoes if both feet are gone
++					src.drop(SLOT_SHOES)
++					src.can_wear_shoes = 0
++		if (O.name == "r_hand")
++			src.drop(SLOT_R_HAND)
++			src.drop(SLOT_HANDCUFFS)
++			src.can_wear_r_hand = 0
++			src.can_wear_handcuffs = 0
++			for(var/datum/organ/OO in src.lostorgans)
++				if (OO.name == "l_hand")	// also for hands
++					src.drop(SLOT_GLOVES)
++					src.can_wear_gloves = 0
++		if (O.name == "l_hand")
++			src.drop(SLOT_L_HAND)
++			src.drop(SLOT_HANDCUFFS)
++			src.can_wear_l_hand = 0
++			src.can_wear_handcuffs = 0
++		if (O.name == "head")
++			src.drop(SLOT_MASK)
++			src.drop(SLOT_GLASSES)
++			src.drop(SLOT_HELMET)
++			src.drop(SLOT_HEADSET)
++			can_wear_mask = 0
++			can_wear_glasses = 0
++			can_wear_helmet = 0
++			can_wear_headset = 0
++			src.death()
++	src.hud.update_slots()
++
++
++/mob/carbon/proc/check_clothing_icons(suffix)
++	limb_icon_standing = new /icon('humansevered.dmi', "head_mask")	// empty
++	for(var/datum/organ/O in src.lostorgans)
++		if (O.name != "head")																				// remove those limbs
++			limb_icon_standing.Blend(new /icon('humansevered.dmi', "[O.name]_mask[suffix]"), ICON_MULTIPLY) // from the clothing icon that
++	return limb_icon_standing																				// have been severed
+Index: code/game/mob/carbon/equipment.dm
+===================================================================
+--- code/game/mob/carbon/equipment.dm	(revision 269)
++++ code/game/mob/carbon/equipment.dm	(working copy)
+@@ -110,11 +110,13 @@
+ /mob/carbon/proc/db_click(text, t1)
+ 	var/obj/item/weapon/W = src.equipped()
+ 	var/emptyHand = (W == null)
++
+ 	if ((!emptyHand) && (!istype(W, /obj/item/weapon)))
+ 		return
+ 	if (emptyHand)
+ 		usr.next_move = usr.prev_move
+ 		usr:lastDblClick -= 3	//permit the double-click redirection to proceed.
++
+ 	if(text == "mask" && src.can_wear_mask)
+ 		if (src.mask)
+ 			if (emptyHand)
+@@ -297,20 +299,26 @@
+ 	icons[src.r_hand] = "1,2"
+ 	icons[src.l_hand] = "3,2"
+ 
++	var/icon/tempicon
++
+ 	var/iconsource = src.appearance == APPEARANCE_MONKEY ? 'monkey.dmi' : 'mob.dmi'
+ 
+ 	for(var/obj/item/weapon/W in icons)
+ 		var/type = W.s_istate
+ 		if (!type)
+ 			type = W.icon_state
+-		src.overlays += image("icon" = 'mob.dmi', "icon_state" = "[type][suffix]", "layer" = MOB_LAYER)
++		tempicon = src.check_clothing_icons(suffix)								// Hides those parts of clothing
++		tempicon.Blend(new /icon('mob.dmi', "[type][suffix]"), ICON_MULTIPLY)	// that have no limbs under
++		src.overlays += image(tempicon, "layer" = MOB_LAYER)					//
+ 		W.screen_loc = icons[W]
+ 
+ 	if (src.jumpsuit && istype(src.jumpsuit, /obj/item/weapon/clothing/under))
+ 		var/color = src.jumpsuit.color
+ 		if (!color)
+ 			color = src.icon_state
+-		src.overlays += image("icon" = 'uniforms.dmi', "icon_state" = "[color][suffix]", "layer" = MOB_LAYER)
++		tempicon = src.check_clothing_icons()										//
++		tempicon.Blend(new /icon('uniforms.dmi', "[color][suffix]"), ICON_MULTIPLY)	// Same thing for uniforms
++		src.overlays += image(tempicon, "layer" = MOB_LAYER)						//
+ 		src.jumpsuit.screen_loc = "2,2"
+ 	if (src.id)
+ 		src.overlays += image("icon" = 'mob.dmi', "icon_state" = "id[suffix]", "layer" = MOB_LAYER)
+@@ -369,6 +377,8 @@
+ 	if ((src.mask && !(src.mask.see_face)) || (src.helmet && !(src.helmet.see_face))) // can't see the face
+ 		if(src.id && src.id.registered)
+ 			src.name = src.id.registered
++		else if(src.appearance == APPEARANCE_HUMAN && !src.can_wear_mask)
++			src.name = "headless Unknown"
+ 		else
+ 			src.name = "Unknown"
+ 	else
+Index: code/game/mob/carbon/hud.dm
+===================================================================
+--- code/game/mob/carbon/hud.dm	(revision 269)
++++ code/game/mob/carbon/hud.dm	(working copy)
+@@ -99,28 +99,8 @@
+ 	src.storage1 = new /obj/screen(src, "storage1", null, "4,1", 19, "block")
+ 	src.storage2 = new /obj/screen(src, "storage2", null, "5,1", 19, "block")
+ 
+-	// make the slots they can't use have the "block" icon
+-	var/list/slots = list(
+-		src.mask = src.owner.can_wear_mask,
+-		src.back = src.owner.can_wear_back,
+-		src.r_hand = src.owner.can_wear_r_hand,
+-		src.jumpsuit = src.owner.can_wear_jumpsuit,
+-		src.l_hand = src.owner.can_wear_l_hand,
+-		src.gloves = src.owner.can_wear_gloves,
+-		src.shoes = src.owner.can_wear_shoes,
+-		src.glasses = src.owner.can_wear_glasses,
+-		src.helmet = src.owner.can_wear_helmet,
+-		src.belt = src.owner.can_wear_belt,
+-		src.id = src.owner.can_wear_id,
+-		src.suit = src.owner.can_wear_suit,
+-		src.headset = src.owner.can_wear_headset,
+-		src.storage1 = src.owner.can_wear_l_store,
+-		src.storage2 = src.owner.can_wear_r_store
+-	)
+-	for(var/obj/screen/x in slots)
+-		if(!slots[x])
+-			x.icon_state = "blocked"
+-			x.name = "blocked"
++	// moved slots into their own proc
++	src.update_slots()
+ 
+ 	// intents
+ 	src.grab = new /obj/screen(src, "grab", null, "11,15", 19, "grab")
+@@ -186,4 +166,28 @@
+ 	if (src.owner.is_blind && !src.owner.is_dead)
+ 		src.blind.layer = 18
+ 	else
+-		src.blind.layer = 0
+\ No newline at end of file
++		src.blind.layer = 0
++
++/datum/hud/carbon/proc/update_slots()
++	// make the slots they can't use have the "block" icon
++	var/list/slots = list(
++		src.mask = src.owner.can_wear_mask,
++		src.back = src.owner.can_wear_back,
++		src.r_hand = src.owner.can_wear_r_hand,
++		src.jumpsuit = src.owner.can_wear_jumpsuit,
++		src.l_hand = src.owner.can_wear_l_hand,
++		src.gloves = src.owner.can_wear_gloves,
++		src.shoes = src.owner.can_wear_shoes,
++		src.glasses = src.owner.can_wear_glasses,
++		src.helmet = src.owner.can_wear_helmet,
++		src.belt = src.owner.can_wear_belt,
++		src.id = src.owner.can_wear_id,
++		src.suit = src.owner.can_wear_suit,
++		src.headset = src.owner.can_wear_headset,
++		src.storage1 = src.owner.can_wear_l_store,
++		src.storage2 = src.owner.can_wear_r_store
++	)
++	for(var/obj/screen/x in slots)
++		if(!slots[x])
++			x.icon_state = "blocked"
++			x.name = "blocked"
+Index: code/game/mob/carbon/var.dm
+===================================================================
+--- code/game/mob/carbon/var.dm	(revision 269)
++++ code/game/mob/carbon/var.dm	(working copy)
+@@ -73,6 +73,7 @@
+ 
+ 	var/icon/stand_icon = null
+ 	var/icon/lying_icon = null
++
+ 	var/now_pushing = null
+ 
+ 	var/list/grabbed_by = list()
+@@ -105,6 +106,7 @@
+ 	var/list/body_standing = list()
+ 	var/list/body_lying = list()
+ 	var/list/organs = list()
++	var/list/lostorgans = list() // organs be gone
+ 
+ 	var/blackout_threshold = 80
+ 
+@@ -131,4 +133,6 @@
+ 	var/sl_gas_breathed = 0
+ 
+ 	var/is_dextrous = 0
+-	is_intelligent = 0
+\ No newline at end of file
++	is_intelligent = 0
++
++	var/icon/limb_icon_standing = null
+Index: icons/ss13/dam_mask.dmi
+===================================================================
+Cannot display: file marked as a binary type.
+svn:mime-type = application/octet-stream
+Index: icons/ss13/human.dmi
+===================================================================
+Cannot display: file marked as a binary type.
+svn:mime-type = application/octet-stream
+Index: icons/ss13/humansevered.dmi
+===================================================================
+Cannot display: file marked as a binary type.
+svn:mime-type = application/octet-stream
+
+Property changes on: icons\ss13\humansevered.dmi
+___________________________________________________________________
+Added: svn:mime-type
+   + application/octet-stream
+
+Index: unstable.dme
+===================================================================
+--- unstable.dme	(revision 269)
++++ unstable.dme	(working copy)
+@@ -4,9 +4,8 @@
+ 
+ // BEGIN_INTERNALS
+ /*
+-FILE: code\game\mob\silicon\ai\life.dm
++FILE: code\game\mob\carbon\equipment.dm
+ DIR: code code\atoms code\data code\game code\game\dna code\game\dna\gene code\game\item code\game\item\weapon code\game\machinery code\game\mob code\game\mob\carbon code\game\mob\carbon\human code\game\mob\prespawn code\game\mob\silicon code\game\mob\silicon\ai
+-UPDATE_OBJ_TREE: ON
+ MAP_ICON_TYPE: 0
+ AUTO_FILE_DIR: ON
+ */
+@@ -126,6 +125,7 @@
+ #include "code\game\item\weapon\aimodules.dm"
+ #include "code\game\item\weapon\flashlight.dm"
+ #include "code\game\item\weapon\game_kit.dm"
++#include "code\game\item\weapon\limb.dm"
+ #include "code\game\item\weapon\multitool.dm"
+ #include "code\game\item\weapon\radio.dm"
+ #include "code\game\machinery\airlock.dm"
+@@ -153,6 +153,7 @@
+ #include "code\game\mob\carbon\damage.dm"
+ #include "code\game\mob\carbon\death.dm"
+ #include "code\game\mob\carbon\dexterity.dm"
++#include "code\game\mob\carbon\dismember.dm"
+ #include "code\game\mob\carbon\emote.dm"
+ #include "code\game\mob\carbon\equipment.dm"
+ #include "code\game\mob\carbon\examine.dm"

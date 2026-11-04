@@ -1,0 +1,16 @@
+Index: code/game/airtunnel.dm
+===================================================================
+--- code/game/airtunnel.dm	(revision 524)
++++ code/game/airtunnel.dm	(working copy)
+@@ -632,9 +632,9 @@
+ 	var/ppPlasma = T.gas.plasma / turf_total
+ 	var/ppCarbon = T.gas.co2 / turf_total
+ 
+-	if(0.90 < pressure || pressure > 1.10)
++	if(0.90 > pressure || pressure > 1.10)
+ 		safe = 0
+-	else if(0.19 < ppOxygen || ppOxygen > 0.23)
++	else if(0.19 > ppOxygen || ppOxygen > 0.23)
+ 		safe = 0
+ 	else if(ppPlasma > 0.05)
+ 		safe = 0
